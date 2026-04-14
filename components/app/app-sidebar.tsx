@@ -21,21 +21,21 @@ type AppSidebarProps = {
 };
 
 const navItems = [
-  { href: "/app/dashboard", label: "Dashboard", shortLabel: "Início", icon: LayoutDashboard },
+  { href: "/app/dashboard", label: "Dashboard", shortLabel: "Inicio", icon: LayoutDashboard },
   {
     href: "/app/movimentacoes",
-    label: "Movimentações",
+    label: "Movimentacoes",
     shortLabel: "Mov.",
     icon: WalletCards,
   },
   {
     href: "/app/fechamento-mensal",
-    label: "Fechamento mensal",
+    label: "Fechamento",
     shortLabel: "Fechar",
     icon: BarChart3,
   },
-  { href: "/app/obrigacoes", label: "Obrigações", shortLabel: "Tarefas", icon: CalendarCheck },
-  { href: "/app/configuracoes", label: "Configurações", shortLabel: "Conta", icon: Settings },
+  { href: "/app/obrigacoes", label: "Obrigacoes", shortLabel: "Tarefas", icon: CalendarCheck },
+  { href: "/app/configuracoes", label: "Configuracoes", shortLabel: "Config", icon: Settings },
 ];
 
 export function AppSidebar({ profile }: AppSidebarProps) {
@@ -57,19 +57,27 @@ export function AppSidebar({ profile }: AppSidebarProps) {
 
   return (
     <>
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-neutral-200 bg-white md:flex md:flex-col">
-        <div className="flex h-full flex-col p-4">
-          <Link className="mb-8 flex items-center gap-3 px-2 pt-2" href="/app/dashboard">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-emerald-700 text-white shadow-sm">
+      {/* Desktop Sidebar */}
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-sidebar-border bg-sidebar md:flex md:flex-col">
+        <div className="flex h-full flex-col px-4 py-6">
+          {/* Logo */}
+          <Link
+            className="mb-8 flex items-center gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-sidebar-accent"
+            href="/app/dashboard"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
               <ReceiptText className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-base font-semibold text-neutral-950">FechouMEI</p>
-              <p className="text-xs text-neutral-500">Financeiro do mês</p>
+              <p className="text-base font-semibold tracking-tight text-sidebar-foreground">
+                FechouMEI
+              </p>
+              <p className="text-xs text-muted-foreground">Controle financeiro</p>
             </div>
           </Link>
 
-          <nav className="space-y-1">
+          {/* Navigation */}
+          <nav className="flex-1 space-y-1">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
@@ -77,76 +85,102 @@ export function AppSidebar({ profile }: AppSidebarProps) {
                 <Link
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-950",
-                    isActive && "bg-emerald-50 text-emerald-800 shadow-sm",
+                    "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                    isActive
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
                   )}
                   href={item.href}
                   key={item.href}
                   prefetch
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon
+                    className={cn(
+                      "h-[18px] w-[18px] transition-colors",
+                      isActive
+                        ? "text-sidebar-primary"
+                        : "text-muted-foreground group-hover:text-sidebar-foreground",
+                    )}
+                  />
                   {item.label}
                 </Link>
               );
             })}
           </nav>
 
-          <div className="mt-auto space-y-4 rounded-lg border border-neutral-200 bg-neutral-50 p-3 shadow-sm">
+          {/* User Profile Card */}
+          <div className="mt-auto space-y-3 rounded-xl border border-sidebar-border bg-muted/30 p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white text-sm font-semibold text-neutral-900 shadow-sm">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-sm font-semibold text-primary">
                 {initials || "ME"}
               </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-neutral-950">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-sidebar-foreground">
                   {profile?.full_name ?? "Sua conta"}
                 </p>
-                <p className="truncate text-xs text-neutral-500">
+                <p className="truncate text-xs text-muted-foreground">
                   {profile?.main_category ?? "MEI"}
                 </p>
               </div>
             </div>
-            <Button className="w-full justify-start" onClick={handleSignOut} variant="outline">
+            <Button
+              className="w-full justify-start gap-2"
+              onClick={handleSignOut}
+              variant="ghost"
+              size="sm"
+            >
               <LogOut className="h-4 w-4" />
-              Sair
+              Sair da conta
             </Button>
           </div>
         </div>
       </aside>
 
-      <header className="sticky top-0 z-20 border-b border-neutral-200 bg-white/95 px-3 py-3 shadow-sm backdrop-blur md:hidden">
+      {/* Mobile Header */}
+      <header className="sticky top-0 z-20 border-b border-border bg-card/95 px-4 py-3 backdrop-blur-md md:hidden">
         <div className="flex items-center justify-between gap-3">
-          <Link className="flex items-center gap-2 font-semibold text-neutral-950" href="/app/dashboard">
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-700 text-white">
+          <Link
+            className="flex items-center gap-2.5"
+            href="/app/dashboard"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
               <ReceiptText className="h-4 w-4" />
             </span>
-            FechouMEI
+            <span className="text-base font-semibold tracking-tight text-foreground">
+              FechouMEI
+            </span>
           </Link>
-          <Button onClick={handleSignOut} size="sm" variant="outline">
-            Sair
+          <Button onClick={handleSignOut} size="sm" variant="ghost">
+            <LogOut className="h-4 w-4" />
           </Button>
         </div>
       </header>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-neutral-200 bg-white/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href;
-          const Icon = item.icon;
-          return (
-            <Link
-              aria-current={isActive ? "page" : undefined}
-              className={cn(
-                "flex min-h-14 flex-col items-center justify-center gap-1 rounded-md px-1 text-[11px] font-medium text-neutral-500 transition-colors",
-                isActive && "bg-emerald-50 text-emerald-800 shadow-sm",
-              )}
-              href={item.href}
-              key={item.href}
-              prefetch
-            >
-              <Icon className="h-4 w-4" />
-              <span className="max-w-full truncate">{item.shortLabel}</span>
-            </Link>
-          );
-        })}
+      {/* Mobile Bottom Navigation */}
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5 backdrop-blur-md md:hidden">
+        <div className="grid grid-cols-5 gap-1">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            const Icon = item.icon;
+            return (
+              <Link
+                aria-current={isActive ? "page" : undefined}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1 rounded-xl py-2 text-[10px] font-medium transition-all duration-200",
+                  isActive
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground active:bg-accent/50",
+                )}
+                href={item.href}
+                key={item.href}
+                prefetch
+              >
+                <Icon className={cn("h-5 w-5", isActive && "text-primary")} />
+                <span className="max-w-full truncate">{item.shortLabel}</span>
+              </Link>
+            );
+          })}
+        </div>
       </nav>
     </>
   );

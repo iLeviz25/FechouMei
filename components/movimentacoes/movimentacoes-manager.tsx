@@ -278,164 +278,192 @@ export function MovimentacoesManager({ movements }: MovimentacoesManagerProps) {
 
   return (
     <div className="space-y-5 sm:space-y-6">
+      {/* Header */}
       <div className="space-y-2">
-        <Badge variant="success" className="w-fit">
-          Movimentações
-        </Badge>
-        <h1 className="text-2xl font-semibold text-neutral-950 sm:text-3xl">Entradas e despesas</h1>
-        <p className="max-w-2xl text-sm leading-6 text-neutral-600">
-          Registre o básico do mês para começar a acompanhar seu fluxo financeiro.
+        <p className="text-sm font-medium text-muted-foreground">Movimentacoes</p>
+        <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+          Entradas e despesas
+        </h1>
+        <p className="max-w-xl text-pretty text-sm leading-relaxed text-muted-foreground">
+          Registre o basico do mes para acompanhar seu fluxo financeiro.
         </p>
       </div>
 
+      {/* Summary Cards */}
       <section className="grid gap-3 sm:grid-cols-3">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-neutral-500">Entradas</p>
-            <p className="mt-1 text-xl font-semibold text-emerald-700">{toCurrency(summary.income)}</p>
+        <Card className="transition-shadow hover:shadow-card-hover">
+          <CardContent className="p-5">
+            <p className="text-sm font-medium text-muted-foreground">Entradas</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight text-emerald-600">
+              {toCurrency(summary.income)}
+            </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-neutral-500">Despesas</p>
-            <p className="mt-1 text-xl font-semibold text-red-600">{toCurrency(summary.expense)}</p>
+        <Card className="transition-shadow hover:shadow-card-hover">
+          <CardContent className="p-5">
+            <p className="text-sm font-medium text-muted-foreground">Despesas</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight text-red-600">
+              {toCurrency(summary.expense)}
+            </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-neutral-500">Saldo</p>
-            <p className="mt-1 text-xl font-semibold text-neutral-950">{toCurrency(balance)}</p>
+        <Card className="transition-shadow hover:shadow-card-hover">
+          <CardContent className="p-5">
+            <p className="text-sm font-medium text-muted-foreground">Saldo</p>
+            <p className={`mt-1 text-2xl font-semibold tracking-tight ${balance >= 0 ? "text-foreground" : "text-red-600"}`}>
+              {toCurrency(balance)}
+            </p>
           </CardContent>
         </Card>
       </section>
 
+      {/* New Movement Form */}
       <Card>
-        <CardHeader className="p-4 sm:p-6">
-          <CardTitle>Nova movimentação</CardTitle>
-          <CardDescription>Use uma descrição curta e uma categoria simples.</CardDescription>
+        <CardHeader className="p-5 sm:p-6">
+          <CardTitle>Nova movimentacao</CardTitle>
+          <CardDescription>Use uma descricao curta e uma categoria simples.</CardDescription>
         </CardHeader>
-        <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-          <form className="space-y-4" onSubmit={handleCreate}>
+        <CardContent className="p-5 pt-0 sm:p-6 sm:pt-0">
+          <form className="space-y-5" onSubmit={handleCreate}>
             <MovementFields form={createForm} idPrefix="create" onChange={updateCreateField} />
 
             {feedback ? (
-              <p
+              <div
                 className={
                   feedback.ok
-                    ? "rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700"
-                    : "rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                    ? "rounded-xl border border-primary/20 bg-accent px-4 py-3 text-sm text-accent-foreground"
+                    : "rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive"
                 }
               >
                 {feedback.message}
-              </p>
+              </div>
             ) : null}
 
-            <Button className="w-full sm:w-auto" disabled={isPending} type="submit">
+            <Button className="w-full sm:w-auto gap-2" disabled={isPending} type="submit" size="lg">
               {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              Adicionar
+              Adicionar movimentacao
             </Button>
           </form>
         </CardContent>
       </Card>
 
-      <section className="space-y-3">
+      {/* Movements List */}
+      <section className="space-y-4">
         <div>
-          <h2 className="text-lg font-semibold text-neutral-950">Últimas movimentações</h2>
-          <p className="text-sm text-neutral-500">{movements.length} registro(s)</p>
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">Ultimas movimentacoes</h2>
+          <p className="text-sm text-muted-foreground">{movements.length} registro(s)</p>
         </div>
 
         {movements.length === 0 ? (
           <Card>
-            <CardContent className="p-4 text-sm leading-6 text-neutral-600">
-              Nenhuma movimentação registrada ainda. Adicione a primeira entrada ou despesa para começar.
+            <CardContent className="p-6 text-center">
+              <p className="font-medium text-foreground">Nenhuma movimentacao registrada ainda.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Adicione a primeira entrada ou despesa para comecar.
+              </p>
             </CardContent>
           </Card>
         ) : (
-          movements.map((movement) => {
-            const isEditing = editingId === movement.id;
-            return (
-              <Card className={isEditing ? "border-emerald-300 bg-emerald-50/40" : undefined} key={movement.id}>
-                <CardContent className="space-y-4 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant={movement.type === "entrada" ? "success" : "secondary"}>
-                          {movement.type === "entrada" ? "Entrada" : "Despesa"}
-                        </Badge>
-                        <span className="text-xs text-neutral-500">{toDate(movement.occurred_on)}</span>
+          <div className="space-y-3">
+            {movements.map((movement) => {
+              const isEditing = editingId === movement.id;
+              return (
+                <Card
+                  className={isEditing ? "border-primary/30 bg-accent/30" : "transition-shadow hover:shadow-card-hover"}
+                  key={movement.id}
+                >
+                  <CardContent className="space-y-4 p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant={movement.type === "entrada" ? "success" : "muted"}>
+                            {movement.type === "entrada" ? "Entrada" : "Despesa"}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">{toDate(movement.occurred_on)}</span>
+                        </div>
+                        <p className="mt-2 truncate font-medium text-foreground">{movement.description}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{movement.category}</p>
                       </div>
-                      <p className="mt-2 truncate font-medium text-neutral-950">{movement.description}</p>
-                      <p className="mt-1 text-sm text-neutral-500">{movement.category}</p>
+                      <p
+                        className={`shrink-0 text-lg font-semibold ${
+                          movement.type === "entrada" ? "text-emerald-600" : "text-red-600"
+                        }`}
+                      >
+                        {toCurrency(movement.amount)}
+                      </p>
                     </div>
-                    <p
-                      className={
-                        movement.type === "entrada"
-                          ? "shrink-0 font-semibold text-emerald-700"
-                          : "shrink-0 font-semibold text-red-600"
-                      }
-                    >
-                      {toCurrency(movement.amount)}
-                    </p>
-                  </div>
 
-                  {isEditing ? (
-                    <form className="space-y-4 rounded-md border bg-white p-3" onSubmit={(event) => handleUpdate(movement.id, event)}>
-                      <div className="flex items-center justify-between gap-3">
-                        <Badge variant="success" className="w-fit">
-                          Editando este registro
-                        </Badge>
-                        <Button onClick={cancelEdit} size="sm" type="button" variant="ghost">
-                          <X className="h-4 w-4" />
-                          Cancelar
+                    {isEditing ? (
+                      <form
+                        className="space-y-4 rounded-xl border border-border bg-card p-4"
+                        onSubmit={(event) => handleUpdate(movement.id, event)}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <Badge variant="success" className="w-fit">
+                            Editando este registro
+                          </Badge>
+                          <Button onClick={cancelEdit} size="sm" type="button" variant="ghost">
+                            <X className="h-4 w-4" />
+                            Cancelar
+                          </Button>
+                        </div>
+                        <MovementFields form={editForm} idPrefix={`edit-${movement.id}`} onChange={updateEditField} />
+                        <Button className="w-full sm:w-auto gap-2" disabled={isPending} type="submit">
+                          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
+                          Salvar edicao
+                        </Button>
+                      </form>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button
+                          className="flex-1"
+                          onClick={() => startEdit(movement)}
+                          size="sm"
+                          type="button"
+                          variant="outline"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Editar
+                        </Button>
+                        <Button
+                          className="flex-1"
+                          disabled={isPending}
+                          onClick={() => requestDelete(movement)}
+                          size="sm"
+                          type="button"
+                          variant="outline"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Excluir
                         </Button>
                       </div>
-                      <MovementFields form={editForm} idPrefix={`edit-${movement.id}`} onChange={updateEditField} />
-                      <Button className="w-full sm:w-auto" disabled={isPending} type="submit">
-                        {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
-                        Salvar edição
-                      </Button>
-                    </form>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button onClick={() => startEdit(movement)} size="sm" type="button" variant="outline">
-                        <Pencil className="h-4 w-4" />
-                        Editar
-                      </Button>
-                      <Button
-                        disabled={isPending}
-                        onClick={() => requestDelete(movement)}
-                        size="sm"
-                        type="button"
-                        variant="outline"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Excluir
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         )}
       </section>
 
+      {/* Delete Confirmation Modal */}
       {pendingDelete ? (
         <div
           aria-labelledby="delete-movement-title"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-end bg-black/45 p-3 sm:items-center sm:justify-center sm:p-4"
+          className="fixed inset-0 z-50 flex items-end bg-foreground/50 p-4 backdrop-blur-sm sm:items-center sm:justify-center"
           role="dialog"
         >
-          <div className="w-full rounded-md bg-white p-4 shadow-lg sm:max-w-sm">
-            <h2 className="text-base font-semibold text-neutral-950" id="delete-movement-title">
-              Excluir movimentação?
+          <div className="w-full rounded-2xl bg-card p-6 shadow-elevated sm:max-w-sm">
+            <h2 className="text-lg font-semibold text-foreground" id="delete-movement-title">
+              Excluir movimentacao?
             </h2>
-            <p className="mt-2 text-sm leading-6 text-neutral-600">
-              Você está excluindo "{pendingDelete.description}". Esta ação não pode ser desfeita.
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              Voce esta excluindo &quot;{pendingDelete.description}&quot;. Esta acao nao pode ser desfeita.
             </p>
-            <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="mt-6 flex gap-3">
               <Button
+                className="flex-1"
                 disabled={isPending}
                 onClick={() => setPendingDelete(null)}
                 type="button"
@@ -443,7 +471,13 @@ export function MovimentacoesManager({ movements }: MovimentacoesManagerProps) {
               >
                 Cancelar
               </Button>
-              <Button disabled={isPending} onClick={confirmDelete} type="button" variant="destructive">
+              <Button
+                className="flex-1"
+                disabled={isPending}
+                onClick={confirmDelete}
+                type="button"
+                variant="destructive"
+              >
                 {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                 Excluir
               </Button>
@@ -475,16 +509,16 @@ function OptionGroup({
 }) {
   return (
     <>
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="flex flex-wrap gap-2">
         {options.map((option) => {
           const selected = option.value === value;
           return (
             <button
               aria-pressed={selected}
-              className={`w-full rounded-md border px-3 py-2 text-left text-sm transition-colors ${
+              className={`rounded-lg border px-3.5 py-2 text-sm font-medium transition-all duration-200 ${
                 selected
-                  ? "border-emerald-300 bg-emerald-50 text-emerald-800"
-                  : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300"
+                  ? "border-primary/30 bg-accent text-accent-foreground shadow-sm"
+                  : "border-border bg-card text-muted-foreground hover:border-border/80 hover:bg-muted/50 hover:text-foreground"
               }`}
               key={option.value}
               name={name}
@@ -497,7 +531,7 @@ function OptionGroup({
         })}
       </div>
       {required && !value ? (
-        <p className="text-xs text-neutral-500">Selecione uma opção para continuar.</p>
+        <p className="text-xs text-muted-foreground">Selecione uma opcao para continuar.</p>
       ) : null}
     </>
   );

@@ -41,27 +41,46 @@ export function ObrigacoesChecklist({ items, monthKey }: ObrigacoesChecklistProp
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       {localItems.map((item) => {
         const disabled = isPending && pendingKey === item.key;
         return (
           <label
-            className="flex items-start gap-3 rounded-md border p-3 text-sm text-neutral-700"
+            className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 text-sm transition-all duration-200 ${
+              item.done
+                ? "border-primary/20 bg-accent/50"
+                : "border-border/60 bg-card hover:border-border hover:bg-muted/30"
+            }`}
             key={item.key}
           >
-            <input
-              checked={item.done}
-              className="mt-1 h-4 w-4 accent-emerald-600"
-              disabled={disabled}
-              onChange={() => handleToggle(item)}
-              type="checkbox"
-            />
-            <span className={item.done ? "text-neutral-500 line-through" : undefined}>{item.label}</span>
+            <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
+              <input
+                checked={item.done}
+                className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border-2 border-border bg-card transition-colors checked:border-primary checked:bg-primary"
+                disabled={disabled}
+                onChange={() => handleToggle(item)}
+                type="checkbox"
+              />
+              {item.done && (
+                <svg
+                  className="pointer-events-none absolute h-3 w-3 text-primary-foreground"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </div>
+            <span className={item.done ? "text-muted-foreground line-through" : "text-foreground"}>
+              {item.label}
+            </span>
           </label>
         );
       })}
       {isPending && pendingKey ? (
-        <p className="text-xs text-neutral-500">Salvando atualização...</p>
+        <p className="text-xs text-muted-foreground">Salvando atualizacao...</p>
       ) : null}
     </div>
   );

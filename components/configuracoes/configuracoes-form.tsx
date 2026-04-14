@@ -183,22 +183,24 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="space-y-2">
-        <Badge variant="success" className="w-fit">
-          Configurações
-        </Badge>
-        <h1 className="text-2xl font-semibold text-neutral-950 sm:text-3xl">Conta e preferências</h1>
-        <p className="max-w-2xl text-sm leading-6 text-neutral-600">
-          Atualize seus dados, troque a senha e controle a segurança da conta.
+        <p className="text-sm font-medium text-muted-foreground">Configuracoes</p>
+        <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+          Conta e preferencias
+        </h1>
+        <p className="max-w-xl text-pretty text-sm leading-relaxed text-muted-foreground">
+          Atualize seus dados, troque a senha e controle a seguranca da conta.
         </p>
       </div>
 
+      {/* Profile Card */}
       <Card>
-        <CardHeader className="p-4 sm:p-6">
+        <CardHeader className="p-5 sm:p-6">
           <CardTitle>Dados do perfil</CardTitle>
-          <CardDescription>As mesmas informações do onboarding, agora editáveis.</CardDescription>
+          <CardDescription>As mesmas informacoes do onboarding, agora editaveis.</CardDescription>
         </CardHeader>
-        <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+        <CardContent className="p-5 pt-0 sm:p-6 sm:pt-0">
           <form className="space-y-5" onSubmit={handleSaveProfile}>
             <div className="grid gap-5 md:grid-cols-2">
               <div className="space-y-2">
@@ -251,26 +253,27 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
             </div>
 
             {profileMessage ? (
-              <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+              <div className="rounded-xl border border-primary/20 bg-accent px-4 py-3 text-sm text-accent-foreground">
                 {profileMessage}
-              </p>
+              </div>
             ) : null}
 
-            <Button className="w-full sm:w-auto" disabled={isSavingProfile} type="submit">
+            <Button className="w-full sm:w-auto gap-2" disabled={isSavingProfile} type="submit" size="lg">
               {isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Salvar alterações
+              Salvar alteracoes
             </Button>
           </form>
         </CardContent>
       </Card>
 
+      {/* Password Card */}
       <Card>
-        <CardHeader className="p-4 sm:p-6">
+        <CardHeader className="p-5 sm:p-6">
           <CardTitle>Trocar senha</CardTitle>
           <CardDescription>Crie uma nova senha para acessar sua conta.</CardDescription>
         </CardHeader>
-        <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-          <form className="space-y-4" onSubmit={handleUpdatePassword}>
+        <CardContent className="p-5 pt-0 sm:p-6 sm:pt-0">
+          <form className="space-y-5" onSubmit={handleUpdatePassword}>
             <div className="space-y-2">
               <Label htmlFor="password">Nova senha</Label>
               <Input
@@ -278,7 +281,7 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
                 autoComplete="new-password"
                 minLength={6}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="Mínimo de 6 caracteres"
+                placeholder="Minimo de 6 caracteres"
                 required
                 type="password"
                 value={password}
@@ -299,12 +302,12 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
             </div>
 
             {passwordMessage ? (
-              <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+              <div className="rounded-xl border border-primary/20 bg-accent px-4 py-3 text-sm text-accent-foreground">
                 {passwordMessage}
-              </p>
+              </div>
             ) : null}
 
-            <Button className="w-full sm:w-auto" disabled={isUpdatingPassword} type="submit">
+            <Button className="w-full sm:w-auto gap-2" disabled={isUpdatingPassword} type="submit" size="lg">
               {isUpdatingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Atualizar senha
             </Button>
@@ -312,43 +315,45 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
         </CardContent>
       </Card>
 
+      {/* Session Card */}
       <Card>
-        <CardHeader className="p-4 sm:p-6">
-          <CardTitle>Sessão</CardTitle>
-          <CardDescription>Se quiser sair do app, finalize a sessão por aqui.</CardDescription>
+        <CardHeader className="p-5 sm:p-6">
+          <CardTitle>Sessao</CardTitle>
+          <CardDescription>Se quiser sair do app, finalize a sessao por aqui.</CardDescription>
         </CardHeader>
-        <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-          <Button className="w-full sm:w-auto" onClick={handleSignOut} variant="outline">
+        <CardContent className="p-5 pt-0 sm:p-6 sm:pt-0">
+          <Button className="w-full sm:w-auto gap-2" onClick={handleSignOut} variant="outline" size="lg">
             <LogOut className="h-4 w-4" />
             Sair da conta
           </Button>
         </CardContent>
       </Card>
 
-      <Card className="border-red-200">
-        <CardHeader className="p-4 sm:p-6">
-          <div className="flex items-start gap-3">
-            <div className="rounded-md bg-red-50 p-2 text-red-700">
+      {/* Danger Zone Card */}
+      <Card className="border-destructive/30">
+        <CardHeader className="p-5 sm:p-6">
+          <div className="flex items-start gap-4">
+            <div className="rounded-xl bg-destructive/10 p-3 text-destructive">
               <AlertTriangle className="h-5 w-5" />
             </div>
             <div>
-              <CardTitle>Excluir conta</CardTitle>
+              <CardTitle className="text-destructive">Excluir conta</CardTitle>
               <CardDescription>
-                Esta ação remove seus dados do FechouMEI. A conta de autenticação do Supabase
-                não é removida automaticamente nesta etapa.
+                Esta acao remove seus dados do FechouMEI. A conta de autenticacao do Supabase
+                nao e removida automaticamente nesta etapa.
               </CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
-          <Button className="w-full sm:w-auto" onClick={() => setDeleteStep(1)} variant="destructive">
+        <CardContent className="p-5 pt-0 sm:p-6 sm:pt-0">
+          <Button className="w-full sm:w-auto gap-2" onClick={() => setDeleteStep(1)} variant="destructive" size="lg">
             <Trash2 className="h-4 w-4" />
             Excluir conta
           </Button>
           {deleteMessage ? (
-            <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
               {deleteMessage}
-            </p>
+            </div>
           ) : null}
         </CardContent>
       </Card>
@@ -393,16 +398,16 @@ function OptionGroup({
   value: string;
 }) {
   return (
-    <div className="grid gap-2 sm:grid-cols-2">
+    <div className="flex flex-wrap gap-2">
       {options.map((option) => {
         const selected = option.value === value;
         return (
           <button
             aria-pressed={selected}
-            className={`w-full rounded-md border px-3 py-2 text-left text-sm transition-colors ${
+            className={`rounded-lg border px-3.5 py-2 text-sm font-medium transition-all duration-200 ${
               selected
-                ? "border-emerald-300 bg-emerald-50 text-emerald-800"
-                : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300"
+                ? "border-primary/30 bg-accent text-accent-foreground shadow-sm"
+                : "border-border bg-card text-muted-foreground hover:border-border/80 hover:bg-muted/50 hover:text-foreground"
             }`}
             key={option.value}
             name={name}

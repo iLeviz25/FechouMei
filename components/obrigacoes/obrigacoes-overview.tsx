@@ -54,21 +54,23 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel }: Obrigaco
 
   return (
     <div className="space-y-5 sm:space-y-6">
+      {/* Header */}
       <div className="space-y-2">
-        <Badge variant="success" className="w-fit">
-          Obrigações
-        </Badge>
-        <h1 className="text-2xl font-semibold text-neutral-950 sm:text-3xl">Organização do MEI</h1>
-        <p className="max-w-2xl text-sm leading-6 text-neutral-600">
-          Um resumo simples das obrigações principais e o checklist do mês.
+        <p className="text-sm font-medium text-muted-foreground">Obrigacoes</p>
+        <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+          Organizacao do MEI
+        </h1>
+        <p className="max-w-xl text-pretty text-sm leading-relaxed text-muted-foreground">
+          Um resumo simples das obrigacoes principais e o checklist do mes.
         </p>
       </div>
 
+      {/* Status Card */}
       <Card>
-        <CardHeader className="p-4 sm:p-6">
+        <CardHeader className="p-5 sm:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle>Status do mês</CardTitle>
+              <CardTitle>Status do mes</CardTitle>
               <CardDescription>Referente a {monthLabel}.</CardDescription>
             </div>
             <Badge variant={statusVariant} className="w-fit">
@@ -76,45 +78,57 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel }: Obrigaco
             </Badge>
           </div>
         </CardHeader>
-        <CardContent className="grid gap-3 p-4 pt-0 sm:grid-cols-3 sm:p-6 sm:pt-0">
-          <div className="rounded-md border p-3">
-            <p className="text-sm text-neutral-500">Checklist concluído</p>
-            <p className="mt-2 text-sm font-medium text-neutral-950">
+        <CardContent className="grid gap-3 p-5 pt-0 sm:grid-cols-3 sm:p-6 sm:pt-0">
+          <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
+            <p className="text-sm font-medium text-muted-foreground">Checklist concluido</p>
+            <p className="mt-2 text-lg font-semibold text-foreground">
               {doneCount} de {total}
             </p>
           </div>
-          <div className="rounded-md border p-3">
-            <p className="text-sm text-neutral-500">Pendências</p>
-            <p className="mt-2 text-sm font-medium text-neutral-950">{Math.max(total - doneCount, 0)}</p>
+          <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
+            <p className="text-sm font-medium text-muted-foreground">Pendencias</p>
+            <p className="mt-2 text-lg font-semibold text-foreground">{Math.max(total - doneCount, 0)}</p>
           </div>
-          <div className="rounded-md border p-3">
-            <p className="text-sm text-neutral-500">Referência</p>
-            <p className="mt-2 text-sm font-medium text-neutral-950">{monthLabel}</p>
+          <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
+            <p className="text-sm font-medium text-muted-foreground">Referencia</p>
+            <p className="mt-2 text-lg font-semibold text-foreground">{monthLabel}</p>
           </div>
         </CardContent>
       </Card>
 
+      {/* Obligations Cards */}
       <section className="grid gap-3 sm:grid-cols-2">
         {obligations.map((item) => (
-          <Card key={item.title}>
-            <CardContent className="space-y-2 p-4">
-              <p className="text-sm font-semibold text-neutral-950">{item.title}</p>
-              <p className="text-sm text-neutral-500">{item.description}</p>
-              <div className="flex flex-wrap gap-2 text-xs text-neutral-500">
-                <span className="rounded-md border px-2 py-1">Frequência: {item.frequency}</span>
-                <span className="rounded-md border px-2 py-1">Status: {item.status}</span>
+          <Card key={item.title} className="transition-shadow hover:shadow-card-hover">
+            <CardContent className="p-5">
+              <p className="font-semibold text-foreground">{item.title}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Badge variant="muted">{item.frequency}</Badge>
+                <Badge
+                  variant={
+                    item.status === "Pago" || item.status === "Entregue"
+                      ? "success"
+                      : item.status === "Atrasado"
+                        ? "danger"
+                        : "secondary"
+                  }
+                >
+                  {item.status}
+                </Badge>
               </div>
             </CardContent>
           </Card>
         ))}
       </section>
 
+      {/* Checklist Card */}
       <Card>
-        <CardHeader className="p-4 sm:p-6">
-          <CardTitle>Checklist do mês</CardTitle>
-          <CardDescription>Marque o que já foi feito para manter o mês em dia.</CardDescription>
+        <CardHeader className="p-5 sm:p-6">
+          <CardTitle>Checklist do mes</CardTitle>
+          <CardDescription>Marque o que ja foi feito para manter o mes em dia.</CardDescription>
         </CardHeader>
-        <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+        <CardContent className="p-5 pt-0 sm:p-6 sm:pt-0">
           <ObrigacoesChecklist items={checklist} monthKey={monthKey} />
         </CardContent>
       </Card>

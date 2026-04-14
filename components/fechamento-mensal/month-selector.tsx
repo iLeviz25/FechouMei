@@ -34,11 +34,14 @@ export function MonthSelector({ monthValue, yearValue, nextHref, previousHref }:
 
   return (
     <div className="flex flex-col gap-3 sm:items-end">
-      <form className="flex flex-wrap gap-2" onSubmit={handleSubmit}>
-        <label className="text-xs text-neutral-500">
-          Mês
+      <form className="flex flex-wrap items-end gap-2" onSubmit={handleSubmit}>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground" htmlFor="monthValue">
+            Mes
+          </label>
           <select
-            className="mt-1 w-28 rounded-md border border-input bg-background px-2 py-1 text-sm"
+            className="h-10 w-24 rounded-lg border border-input bg-card px-3 text-sm transition-colors hover:border-border/80 focus:outline-none focus:ring-2 focus:ring-ring"
+            id="monthValue"
             name="monthValue"
             onChange={(event) => setSelectedMonth(event.target.value)}
             value={selectedMonth}
@@ -62,11 +65,14 @@ export function MonthSelector({ monthValue, yearValue, nextHref, previousHref }:
               </option>
             ))}
           </select>
-        </label>
-        <label className="text-xs text-neutral-500">
-          Ano
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground" htmlFor="year">
+            Ano
+          </label>
           <select
-            className="mt-1 w-24 rounded-md border border-input bg-background px-2 py-1 text-sm"
+            className="h-10 w-20 rounded-lg border border-input bg-card px-3 text-sm transition-colors hover:border-border/80 focus:outline-none focus:ring-2 focus:ring-ring"
+            id="year"
             name="year"
             onChange={(event) => setSelectedYear(event.target.value)}
             value={selectedYear}
@@ -77,17 +83,17 @@ export function MonthSelector({ monthValue, yearValue, nextHref, previousHref }:
               </option>
             ))}
           </select>
-        </label>
-        <Button size="sm" type="submit" variant="outline">
-          Ver mês
+        </div>
+        <Button size="default" type="submit" variant="outline">
+          Ver mes
         </Button>
       </form>
       <div className="flex gap-2">
-        <Button asChild size="sm" variant="outline">
-          <Link href={previousHref}>Mês anterior</Link>
+        <Button asChild size="sm" variant="ghost">
+          <Link href={previousHref}>Mes anterior</Link>
         </Button>
-        <Button asChild size="sm" variant="outline">
-          <Link href={nextHref}>Próximo mês</Link>
+        <Button asChild size="sm" variant="ghost">
+          <Link href={nextHref}>Proximo mes</Link>
         </Button>
       </div>
     </div>
