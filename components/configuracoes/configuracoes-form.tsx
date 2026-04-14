@@ -440,17 +440,17 @@ function ConfirmDialog({
   return (
     <div
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-end bg-black/45 p-3 sm:items-center sm:justify-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end bg-foreground/50 p-4 backdrop-blur-sm sm:items-center sm:justify-center"
       role="dialog"
     >
-      <div className="w-full rounded-md bg-white p-4 shadow-lg sm:max-w-sm">
-        <h2 className="text-base font-semibold text-neutral-950">{title}</h2>
-        <p className="mt-2 text-sm leading-6 text-neutral-600">{description}</p>
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <Button onClick={onCancel} type="button" variant="outline">
+      <div className="w-full rounded-2xl bg-card p-6 shadow-elevated sm:max-w-sm">
+        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p>
+        <div className="mt-6 flex gap-3">
+          <Button className="flex-1" onClick={onCancel} type="button" variant="outline">
             Cancelar
           </Button>
-          <Button disabled={isLoading} onClick={onConfirm} type="button" variant="destructive">
+          <Button className="flex-1" disabled={isLoading} onClick={onConfirm} type="button" variant="destructive">
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {confirmLabel}
           </Button>

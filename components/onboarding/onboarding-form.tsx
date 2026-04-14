@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -99,76 +100,74 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
 
   return (
     <form className="space-y-6" onSubmit={handleSubmit}>
-      <div className="grid gap-5 md:grid-cols-2">
-        <Card className="md:col-span-2">
-          <CardContent className="grid gap-5 p-4 sm:p-6 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Nome</Label>
-              <Input
-                id="fullName"
-                autoComplete="name"
-                onChange={(event) => setFullName(event.target.value)}
-                placeholder="Como podemos te chamar?"
-                required
-                value={fullName}
-              />
-            </div>
+      <Card>
+        <CardContent className="grid gap-5 p-5 sm:p-6 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="fullName">Nome</Label>
+            <Input
+              id="fullName"
+              autoComplete="name"
+              onChange={(event) => setFullName(event.target.value)}
+              placeholder="Como podemos te chamar?"
+              required
+              value={fullName}
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="workType">Tipo de trabalho</Label>
-              <OptionGroup
-                name="workType"
-                onChange={setWorkType}
-                options={workTypeOptions.map((option) => ({ label: option, value: option }))}
-                value={workType}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label>Tipo de trabalho</Label>
+            <OptionGroup
+              name="workType"
+              onChange={setWorkType}
+              options={workTypeOptions.map((option) => ({ label: option, value: option }))}
+              value={workType}
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="businessMode">Atua com</Label>
-              <OptionGroup
-                name="businessMode"
-                onChange={setBusinessMode}
-                options={businessModeOptions}
-                value={businessMode}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label>Atua com</Label>
+            <OptionGroup
+              name="businessMode"
+              onChange={setBusinessMode}
+              options={businessModeOptions}
+              value={businessMode}
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="mainCategory">Categoria principal</Label>
-              <OptionGroup
-                name="mainCategory"
-                onChange={setMainCategory}
-                options={categoryOptions.map((option) => ({ label: option, value: option }))}
-                value={mainCategory}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label>Categoria principal</Label>
+            <OptionGroup
+              name="mainCategory"
+              onChange={setMainCategory}
+              options={categoryOptions.map((option) => ({ label: option, value: option }))}
+              value={mainCategory}
+            />
+          </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="mainGoal">Objetivo principal no app</Label>
-              <OptionGroup
-                name="mainGoal"
-                onChange={setMainGoal}
-                options={goalOptions.map((option) => ({ label: option, value: option }))}
-                value={mainGoal}
-              />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Objetivo principal no app</Label>
+            <OptionGroup
+              name="mainGoal"
+              onChange={setMainGoal}
+              options={goalOptions.map((option) => ({ label: option, value: option }))}
+              value={mainGoal}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {message ? (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {message}
-        </p>
+        </div>
       ) : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-neutral-600">
-          Essas respostas ajustam o painel inicial. Você poderá revisar depois.
+        <p className="text-sm text-muted-foreground">
+          Essas respostas ajustam o painel inicial. Voce podera revisar depois.
         </p>
-        <Button className="w-full sm:w-auto" disabled={isSubmitting} type="submit">
-          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+        <Button className="w-full gap-2 sm:w-auto" disabled={isSubmitting} size="lg" type="submit">
+          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
           Finalizar onboarding
         </Button>
       </div>
