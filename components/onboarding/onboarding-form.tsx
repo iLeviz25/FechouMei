@@ -64,7 +64,7 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
   const [workType, setWorkType] = useState(profile?.work_type ?? workTypeOptions[0]);
   const [businessMode, setBusinessMode] = useState(profile?.business_mode ?? "servico");
   const [mainCategory, setMainCategory] = useState(profile?.main_category ?? categoryOptions[0]);
-  const [mainGoal, setMainGoal] = useState(profile?.main_goal ?? goalOptions[0]);
+  const [mainGoal, setMainGoal] = useState(profile?.main_goal ?? "");
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -77,6 +77,17 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage(null);
+
+    if (!isLastStep) {
+      handleNext();
+      return;
+    }
+
+    if (!mainGoal) {
+      setMessage("Escolha o objetivo principal para finalizar.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -225,9 +236,11 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
                       </span>
                       <span className="min-w-0">
                         <span className="block font-semibold">{step.label}</span>
-                        <span className="mt-0.5 block truncate text-xs text-neutral-500">
-                          {getStepValue(step.id)}
-                        </span>
+                        {getStepValue(step.id) ? (
+                          <span className="mt-0.5 block truncate text-xs text-neutral-500">
+                            {getStepValue(step.id)}
+                          </span>
+                        ) : null}
                       </span>
                     </button>
                   );
@@ -289,7 +302,7 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
                     </Button>
 
                     {isLastStep ? (
-                      <Button className="min-h-11 sm:min-w-48" disabled={isSubmitting} type="submit">
+                      <Button className="min-h-11 sm:min-w-48" disabled={isSubmitting || !mainGoal} type="submit">
                         {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                         Finalizar onboarding
                       </Button>
