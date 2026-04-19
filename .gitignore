@@ -1,7 +1,6 @@
 .next
 node_modules
 .env.local
-docker/evolution/.env
 out
 dist
 *.log
