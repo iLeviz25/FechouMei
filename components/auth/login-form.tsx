@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getAuthErrorMessage, getProfileErrorMessage, normalizeAuthEmail } from "@/lib/auth/errors";
 import { createClient } from "@/lib/supabase/client";
 
 type LoginFormProps = {
@@ -30,36 +31,64 @@ export function LoginForm({ initialMessage, initialTone = "danger", redirectedFr
     setMessageTone("danger");
     setIsSubmitting(true);
 
-    const supabase = createClient();
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const normalizedEmail = normalizeAuthEmail(email);
 
-    if (error || !data.user) {
-      setMessage(error?.message ?? "Não foi possível entrar agora.");
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
+
+      if (error || !data.user) {
+        setMessage(getAuthErrorMessage(error, "Não foi possível entrar agora."));
+        setIsSubmitting(false);
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("onboarding_completed")
+        .eq("id", data.user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        setMessage(getProfileErrorMessage());
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!profile) {
+        const { error: createProfileError } = await supabase.from("profiles").upsert(
+          {
+            id: data.user.id,
+            full_name:
+              typeof data.user.user_metadata?.full_name === "string"
+                ? data.user.user_metadata.full_name
+                : null,
+            onboarding_completed: false,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "id" },
+        );
+
+        if (createProfileError) {
+          setMessage(getProfileErrorMessage());
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      const safeRedirect = redirectedFrom?.startsWith("/app/") ? redirectedFrom : null;
+      const destination =
+        profile?.onboarding_completed ? safeRedirect ?? "/app/dashboard" : "/onboarding";
+
+      router.replace(destination);
+      router.refresh();
+    } catch (error) {
+      setMessage(getAuthErrorMessage(error, "Não foi possível entrar agora."));
       setIsSubmitting(false);
-      return;
     }
-
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("onboarding_completed")
-      .eq("id", data.user.id)
-      .maybeSingle();
-
-    if (profileError) {
-      setMessage(profileError.message);
-      setIsSubmitting(false);
-      return;
-    }
-
-    const safeRedirect = redirectedFrom?.startsWith("/app/") ? redirectedFrom : null;
-    const destination =
-      profile?.onboarding_completed ? safeRedirect ?? "/app/dashboard" : "/onboarding";
-
-    router.replace(destination);
-    router.refresh();
   }
 
   return (

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getAuthErrorMessage } from "@/lib/auth/errors";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -24,25 +25,37 @@ export function ResetPasswordForm() {
     let isMounted = true;
 
     async function checkSession() {
-      const supabase = createClient();
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
 
-      if (!isMounted) {
-        return;
-      }
+        if (!isMounted) {
+          return;
+        }
 
-      if (error || !user) {
+        if (error || !user) {
+          setCanReset(false);
+          setMessageTone("danger");
+          setMessage("Abra o link de recuperação enviado por e-mail para criar uma nova senha.");
+        } else {
+          setCanReset(true);
+        }
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
         setCanReset(false);
         setMessageTone("danger");
-        setMessage("Abra o link de recuperação enviado por e-mail para criar uma nova senha.");
-      } else {
-        setCanReset(true);
+        setMessage(getAuthErrorMessage(error, "Não foi possível validar o link de recuperação."));
+      } finally {
+        if (isMounted) {
+          setIsCheckingSession(false);
+        }
       }
-
-      setIsCheckingSession(false);
     }
 
     void checkSession();
@@ -76,24 +89,30 @@ export function ResetPasswordForm() {
 
     setIsSubmitting(true);
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({ password });
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({ password });
 
-    if (error) {
+      if (error) {
+        setIsSubmitting(false);
+        setMessageTone("danger");
+        setMessage(getAuthErrorMessage(error, "Não foi possível redefinir a senha agora."));
+        return;
+      }
+
+      await supabase.auth.signOut();
+
+      setPassword("");
+      setConfirmPassword("");
+      setIsSuccess(true);
+      setIsSubmitting(false);
+      setMessageTone("success");
+      setMessage("Senha redefinida com sucesso. Entre novamente com a nova senha.");
+    } catch (error) {
       setIsSubmitting(false);
       setMessageTone("danger");
-      setMessage(error.message);
-      return;
+      setMessage(getAuthErrorMessage(error, "Não foi possível redefinir a senha agora."));
     }
-
-    await supabase.auth.signOut();
-
-    setPassword("");
-    setConfirmPassword("");
-    setIsSuccess(true);
-    setIsSubmitting(false);
-    setMessageTone("success");
-    setMessage("Senha redefinida com sucesso. Entre novamente com a nova senha.");
   }
 
   return (

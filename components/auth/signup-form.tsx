@@ -7,6 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  getAuthErrorMessage,
+  getProfileErrorMessage,
+  isDuplicateSignupResult,
+  normalizeAuthEmail,
+} from "@/lib/auth/errors";
 import { createClient } from "@/lib/supabase/client";
 
 export function SignupForm() {
@@ -21,50 +27,65 @@ export function SignupForm() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage(null);
+    setIsSuccess(false);
     setIsSubmitting(true);
 
-    const supabase = createClient();
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
+    const normalizedEmail = normalizeAuthEmail(email);
+    const normalizedName = fullName.trim();
+
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password,
+        options: {
+          data: {
+            full_name: normalizedName,
+          },
         },
-      },
-    });
+      });
 
-    if (error) {
-      setMessage(error.message);
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (data.user && data.session) {
-      const { error: profileError } = await supabase.from("profiles").upsert(
-        {
-          id: data.user.id,
-          full_name: fullName,
-          onboarding_completed: false,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "id" },
-      );
-
-      if (profileError) {
-        setMessage(profileError.message);
+      if (error) {
+        setMessage(getAuthErrorMessage(error));
         setIsSubmitting(false);
         return;
       }
 
-      router.replace("/onboarding");
-      router.refresh();
-      return;
-    }
+      if (isDuplicateSignupResult(data.user)) {
+        setMessage(getAuthErrorMessage({ message: "User already registered" }));
+        setIsSubmitting(false);
+        return;
+      }
 
-    setIsSuccess(true);
-    setMessage("Conta criada. Confirme seu e-mail para liberar o primeiro acesso.");
-    setIsSubmitting(false);
+      if (data.user && data.session) {
+        const { error: profileError } = await supabase.from("profiles").upsert(
+          {
+            id: data.user.id,
+            full_name: normalizedName,
+            onboarding_completed: false,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "id" },
+        );
+
+        if (profileError) {
+          setMessage(getProfileErrorMessage());
+          setIsSubmitting(false);
+          return;
+        }
+
+        router.replace("/onboarding");
+        router.refresh();
+        return;
+      }
+
+      setIsSuccess(true);
+      setMessage("Conta criada. Confirme seu e-mail para liberar o primeiro acesso.");
+      setIsSubmitting(false);
+    } catch (error) {
+      setMessage(getAuthErrorMessage(error));
+      setIsSubmitting(false);
+    }
   }
 
   return (

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getAuthErrorMessage, getProfileErrorMessage } from "@/lib/auth/errors";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/types/database";
 
@@ -61,40 +62,45 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
     setMessage(null);
     setIsSubmitting(true);
 
-    const supabase = createClient();
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-    if (userError || !user) {
-      router.replace("/login");
+      if (userError || !user) {
+        router.replace("/login");
+        router.refresh();
+        return;
+      }
+
+      const { error } = await supabase.from("profiles").upsert(
+        {
+          id: user.id,
+          full_name: fullName.trim(),
+          work_type: workType,
+          business_mode: businessMode,
+          main_category: mainCategory,
+          main_goal: mainGoal,
+          onboarding_completed: true,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" },
+      );
+
+      if (error) {
+        setMessage(getProfileErrorMessage());
+        setIsSubmitting(false);
+        return;
+      }
+
+      router.replace("/app/dashboard");
       router.refresh();
-      return;
-    }
-
-    const { error } = await supabase.from("profiles").upsert(
-      {
-        id: user.id,
-        full_name: fullName,
-        work_type: workType,
-        business_mode: businessMode,
-        main_category: mainCategory,
-        main_goal: mainGoal,
-        onboarding_completed: true,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "id" },
-    );
-
-    if (error) {
-      setMessage(error.message);
+    } catch (error) {
+      setMessage(getAuthErrorMessage(error, "Não foi possível finalizar o onboarding agora."));
       setIsSubmitting(false);
-      return;
     }
-
-    router.replace("/app/dashboard");
-    router.refresh();
   }
 
   return (

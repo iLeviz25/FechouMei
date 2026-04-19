@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getAuthErrorMessage, normalizeAuthEmail } from "@/lib/auth/errors";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +26,7 @@ export function PasswordRecoveryForm() {
     event.preventDefault();
     setMessage(null);
 
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = normalizeAuthEmail(email);
 
     if (!normalizedEmail) {
       setMessageTone("danger");
@@ -35,21 +36,27 @@ export function PasswordRecoveryForm() {
 
     setIsSubmitting(true);
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-      redirectTo: getRecoveryRedirectUrl(),
-    });
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+        redirectTo: getRecoveryRedirectUrl(),
+      });
 
-    setIsSubmitting(false);
+      setIsSubmitting(false);
 
-    if (error) {
+      if (error) {
+        setMessageTone("danger");
+        setMessage(getAuthErrorMessage(error, "Não foi possível enviar o link agora."));
+        return;
+      }
+
+      setMessageTone("success");
+      setMessage("Enviamos um link de redefinição. Verifique sua caixa de entrada e o spam.");
+    } catch (error) {
+      setIsSubmitting(false);
       setMessageTone("danger");
-      setMessage(error.message);
-      return;
+      setMessage(getAuthErrorMessage(error, "Não foi possível enviar o link agora."));
     }
-
-    setMessageTone("success");
-    setMessage("Enviamos um link de redefinição. Verifique sua caixa de entrada e o spam.");
   }
 
   return (
