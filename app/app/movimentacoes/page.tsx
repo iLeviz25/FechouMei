@@ -1,7 +1,17 @@
+import { Suspense } from "react";
+import { RouteTransitionPending } from "@/components/app/route-transition-pending";
 import { MovimentacoesManager } from "@/components/movimentacoes/movimentacoes-manager";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function MovimentacoesPage() {
+export default function MovimentacoesPage() {
+  return (
+    <Suspense fallback={<RouteTransitionPending label="Carregando entradas e despesas" />}>
+      <MovimentacoesData />
+    </Suspense>
+  );
+}
+
+async function MovimentacoesData() {
   const supabase = await createClient();
 
   const { data: movements, error } = await supabase

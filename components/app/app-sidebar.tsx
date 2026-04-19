@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -7,6 +8,7 @@ import {
   CalendarCheck,
   LayoutDashboard,
   LogOut,
+  MessageCircle,
   ReceiptText,
   Settings,
   WalletCards,
@@ -21,11 +23,11 @@ type AppSidebarProps = {
 };
 
 const navItems = [
-  { href: "/app/dashboard", label: "Dashboard", shortLabel: "Início", icon: LayoutDashboard },
+  { href: "/app/dashboard", label: "Início", shortLabel: "Início", icon: LayoutDashboard },
   {
     href: "/app/movimentacoes",
-    label: "Movimentações",
-    shortLabel: "Mov.",
+    label: "Entradas e despesas",
+    shortLabel: "Lançar",
     icon: WalletCards,
   },
   {
@@ -34,19 +36,56 @@ const navItems = [
     shortLabel: "Fechar",
     icon: BarChart3,
   },
-  { href: "/app/obrigacoes", label: "Obrigações", shortLabel: "Tarefas", icon: CalendarCheck },
+  { href: "/app/obrigacoes", label: "Obrigações do mês", shortLabel: "Tarefas", icon: CalendarCheck },
+  { href: "/app/agente", label: "Agente", shortLabel: "Agente", icon: MessageCircle },
   { href: "/app/configuracoes", label: "Configurações", shortLabel: "Conta", icon: Settings },
 ];
 
 export function AppSidebar({ profile }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const visiblePathname = pendingHref ?? pathname;
   const initials = (profile?.full_name ?? "MEI")
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("");
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      navItems.forEach((item) => router.prefetch(item.href));
+    }, 150);
+
+    return () => window.clearTimeout(timeout);
+  }, [router]);
+
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!pendingHref) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setPendingHref(null);
+    }, 4000);
+
+    return () => window.clearTimeout(timeout);
+  }, [pendingHref]);
+
+  function warmRoute(href: string) {
+    router.prefetch(href);
+  }
+
+  function markRoutePending(href: string) {
+    if (href !== pathname) {
+      setPendingHref(href);
+    }
+  }
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -57,21 +96,39 @@ export function AppSidebar({ profile }: AppSidebarProps) {
 
   return (
     <>
+      {pendingHref ? (
+        <div
+          aria-label="Carregando rota"
+          aria-valuetext="Carregando"
+          className="pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 bg-transparent"
+          role="progressbar"
+        >
+          <div className="h-full w-full origin-left bg-emerald-500/70 shadow-[0_0_12px_rgba(16,185,129,0.45)] animate-pulse" />
+        </div>
+      ) : null}
+
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-neutral-200 bg-white md:flex md:flex-col">
         <div className="flex h-full flex-col p-4">
-          <Link className="mb-8 flex items-center gap-3 px-2 pt-2" href="/app/dashboard">
+          <Link
+            className="mb-8 flex items-center gap-3 px-2 pt-2"
+            href="/app/dashboard"
+            onClick={() => markRoutePending("/app/dashboard")}
+            onFocus={() => warmRoute("/app/dashboard")}
+            onPointerEnter={() => warmRoute("/app/dashboard")}
+            prefetch
+          >
             <div className="flex h-10 w-10 items-center justify-center rounded-md bg-emerald-700 text-white shadow-sm">
               <ReceiptText className="h-5 w-5" />
             </div>
             <div>
               <p className="text-base font-semibold text-neutral-950">FechouMEI</p>
-              <p className="text-xs text-neutral-500">Financeiro do mês</p>
+              <p className="text-xs text-neutral-500">MEI organizado</p>
             </div>
           </Link>
 
           <nav className="space-y-1">
             {navItems.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = visiblePathname === item.href;
               const Icon = item.icon;
               return (
                 <Link
@@ -82,6 +139,9 @@ export function AppSidebar({ profile }: AppSidebarProps) {
                   )}
                   href={item.href}
                   key={item.href}
+                  onClick={() => markRoutePending(item.href)}
+                  onFocus={() => warmRoute(item.href)}
+                  onPointerEnter={() => warmRoute(item.href)}
                   prefetch
                 >
                   <Icon className="h-4 w-4" />
@@ -115,7 +175,15 @@ export function AppSidebar({ profile }: AppSidebarProps) {
 
       <header className="sticky top-0 z-20 border-b border-neutral-200 bg-white/95 px-3 py-3 shadow-sm backdrop-blur md:hidden">
         <div className="flex items-center justify-between gap-3">
-          <Link className="flex items-center gap-2 font-semibold text-neutral-950" href="/app/dashboard">
+          <Link
+            className="flex items-center gap-2 font-semibold text-neutral-950"
+            href="/app/dashboard"
+            onClick={() => markRoutePending("/app/dashboard")}
+            onFocus={() => warmRoute("/app/dashboard")}
+            onPointerEnter={() => warmRoute("/app/dashboard")}
+            onTouchStart={() => warmRoute("/app/dashboard")}
+            prefetch
+          >
             <span className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-700 text-white">
               <ReceiptText className="h-4 w-4" />
             </span>
@@ -127,9 +195,9 @@ export function AppSidebar({ profile }: AppSidebarProps) {
         </div>
       </header>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-neutral-200 bg-white/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-neutral-200 bg-white/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = visiblePathname === item.href;
           const Icon = item.icon;
           return (
             <Link
@@ -140,6 +208,10 @@ export function AppSidebar({ profile }: AppSidebarProps) {
               )}
               href={item.href}
               key={item.href}
+              onClick={() => markRoutePending(item.href)}
+              onFocus={() => warmRoute(item.href)}
+              onPointerEnter={() => warmRoute(item.href)}
+              onTouchStart={() => warmRoute(item.href)}
               prefetch
             >
               <Icon className="h-4 w-4" />

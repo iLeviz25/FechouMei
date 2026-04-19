@@ -1,6 +1,7 @@
-import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { RouteTransitionPending } from "@/components/app/route-transition-pending";
 import { DashboardOverview } from "@/components/dashboard/dashboard-overview";
-import { getCurrentUserProfile } from "@/lib/profile";
+import { createClient } from "@/lib/supabase/server";
 
 function toDateInputValue(date: Date) {
   const year = date.getFullYear();
@@ -9,16 +10,16 @@ function toDateInputValue(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-export default async function DashboardPage() {
-  const { profile, profileError, supabase, user } = await getCurrentUserProfile();
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<RouteTransitionPending label="Carregando visão geral" />}>
+      <DashboardData />
+    </Suspense>
+  );
+}
 
-  if (!user) {
-    redirect("/login");
-  }
-
-  if (profileError) {
-    throw new Error(`Erro ao carregar perfil: ${profileError.message}`);
-  }
+async function DashboardData() {
+  const supabase = await createClient();
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -82,7 +83,6 @@ export default async function DashboardPage() {
       dasDone={(checklistResult.data ?? []).some(
         (item) => item.item_key === "pagar-das" && item.done,
       )}
-      profile={profile}
       recentMovements={recentResult.data ?? []}
       {...totals}
     />

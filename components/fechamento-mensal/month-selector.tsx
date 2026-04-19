@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 
 type MonthSelectorProps = {
   monthValue: string;
@@ -11,6 +13,21 @@ type MonthSelectorProps = {
   nextHref: string;
   previousHref: string;
 };
+
+const monthOptions = [
+  { label: "Janeiro", value: "01" },
+  { label: "Fevereiro", value: "02" },
+  { label: "Março", value: "03" },
+  { label: "Abril", value: "04" },
+  { label: "Maio", value: "05" },
+  { label: "Junho", value: "06" },
+  { label: "Julho", value: "07" },
+  { label: "Agosto", value: "08" },
+  { label: "Setembro", value: "09" },
+  { label: "Outubro", value: "10" },
+  { label: "Novembro", value: "11" },
+  { label: "Dezembro", value: "12" },
+];
 
 export function MonthSelector({ monthValue, yearValue, nextHref, previousHref }: MonthSelectorProps) {
   const router = useRouter();
@@ -26,47 +43,37 @@ export function MonthSelector({ monthValue, yearValue, nextHref, previousHref }:
     setSelectedYear(yearValue);
   }, [monthValue, yearValue]);
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const monthParam = `${selectedYear}-${selectedMonth}`;
     router.push(`/app/fechamento-mensal?month=${monthParam}`);
   }
 
   return (
-    <div className="flex flex-col gap-3 sm:items-end">
-      <form className="flex flex-wrap gap-2" onSubmit={handleSubmit}>
-        <label className="text-xs text-neutral-500">
+    <div className="rounded-md border border-neutral-200/80 bg-neutral-50/80 p-2 shadow-none">
+      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
+        Mês do fechamento
+      </p>
+      <form className="grid grid-cols-[minmax(0,1fr)_72px_64px] gap-1" onSubmit={handleSubmit}>
+        <label className="space-y-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
           Mês
-          <select
-            className="mt-1 w-28 rounded-md border border-input bg-background px-2 py-1 text-sm"
+          <Select
+            className="h-7 border-neutral-200 bg-white px-2 text-xs shadow-none focus-visible:ring-emerald-200"
             name="monthValue"
             onChange={(event) => setSelectedMonth(event.target.value)}
             value={selectedMonth}
           >
-            {[
-              "01",
-              "02",
-              "03",
-              "04",
-              "05",
-              "06",
-              "07",
-              "08",
-              "09",
-              "10",
-              "11",
-              "12",
-            ].map((month) => (
-              <option key={month} value={month}>
-                {month}
+            {monthOptions.map((month) => (
+              <option key={month.value} value={month.value}>
+                {month.label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
-        <label className="text-xs text-neutral-500">
+        <label className="space-y-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
           Ano
-          <select
-            className="mt-1 w-24 rounded-md border border-input bg-background px-2 py-1 text-sm"
+          <Select
+            className="h-7 border-neutral-200 bg-white px-2 text-xs shadow-none focus-visible:ring-emerald-200"
             name="year"
             onChange={(event) => setSelectedYear(event.target.value)}
             value={selectedYear}
@@ -76,18 +83,25 @@ export function MonthSelector({ monthValue, yearValue, nextHref, previousHref }:
                 {year}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
-        <Button size="sm" type="submit" variant="outline">
-          Ver mês
+        <Button className="h-7 self-end border-neutral-200 bg-white px-2 text-[11px]" size="sm" type="submit" variant="outline">
+          Aplicar
         </Button>
       </form>
-      <div className="flex gap-2">
-        <Button asChild size="sm" variant="outline">
-          <Link href={previousHref}>Mês anterior</Link>
+
+      <div className="mt-1 grid grid-cols-2 gap-1 border-t border-neutral-200/70 pt-1">
+        <Button asChild className="h-7 bg-transparent px-1.5 text-[11px] font-medium text-neutral-500 hover:bg-white hover:text-neutral-700" size="sm" variant="ghost">
+          <Link href={previousHref}>
+            <ChevronLeft className="h-3.5 w-3.5" />
+            Mês anterior
+          </Link>
         </Button>
-        <Button asChild size="sm" variant="outline">
-          <Link href={nextHref}>Próximo mês</Link>
+        <Button asChild className="h-7 bg-transparent px-1.5 text-[11px] font-medium text-neutral-500 hover:bg-white hover:text-neutral-700" size="sm" variant="ghost">
+          <Link href={nextHref}>
+            Próximo mês
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Link>
         </Button>
       </div>
     </div>

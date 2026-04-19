@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { RouteTransitionPending } from "@/components/app/route-transition-pending";
 import { FechamentoMensalOverview } from "@/components/fechamento-mensal/fechamento-mensal-overview";
 import { createClient } from "@/lib/supabase/server";
 
@@ -9,7 +11,15 @@ type FechamentoMensalPageProps = {
   }>;
 };
 
-export default async function FechamentoMensalPage({ searchParams }: FechamentoMensalPageProps) {
+export default function FechamentoMensalPage({ searchParams }: FechamentoMensalPageProps) {
+  return (
+    <Suspense fallback={<RouteTransitionPending label="Carregando fechamento mensal" />}>
+      <FechamentoMensalData searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps) {
   const supabase = await createClient();
   const resolvedSearchParams = await searchParams;
   const selectedMonth = resolveMonth({

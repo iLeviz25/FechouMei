@@ -1,6 +1,12 @@
+import type { ReactNode } from "react";
+import { ArrowDownLeft, ArrowUpRight, CalendarDays, ListChecks, Wallet } from "lucide-react";
+import Link from "next/link";
+import { MovementsCsvExportButton } from "@/components/app/movements-csv-export-button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MonthSelector } from "@/components/fechamento-mensal/month-selector";
+import { cn } from "@/lib/utils";
 import type { Movimentacao } from "@/types/database";
 
 type MonthlyMovement = Pick<
@@ -72,154 +78,311 @@ export function FechamentoMensalOverview({
     { byCategory: {} as Record<string, number>, top: null as null | { category: string; amount: number } },
   );
 
-  return (
-    <div className="space-y-5 sm:space-y-6">
-      <div className="space-y-2">
-        <Badge variant="success" className="w-fit">
-          Fechamento mensal
-        </Badge>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-neutral-950 sm:text-3xl">
-              Resumo de {monthLabel}
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">
-              Veja rapidamente quanto entrou, quanto saiu e o que compôs o fechamento.
-            </p>
-          </div>
-          <MonthSelector
-            monthValue={monthValue}
-            nextHref={nextHref}
-            previousHref={previousHref}
-            yearValue={yearValue}
-          />
-        </div>
-      </div>
+  const summaryCards = [
+    {
+      detail: "Total de entradas registradas no mês",
+      icon: ArrowUpRight,
+      label: "Entradas no mês",
+      tone: "income" as const,
+      value: toCurrency(monthlyIncome),
+    },
+    {
+      detail: "Total de despesas registradas no mês",
+      icon: ArrowDownLeft,
+      label: "Despesas no mês",
+      tone: "expense" as const,
+      value: toCurrency(monthlyExpense),
+    },
+    {
+      detail: balance >= 0 ? "Entradas menos despesas" : "Despesas acima das entradas",
+      icon: Wallet,
+      label: "Saldo do mês",
+      tone: balance >= 0 ? ("balance" as const) : ("expense" as const),
+      value: toCurrency(balance),
+    },
+    {
+      detail: "Entradas e despesas deste mês",
+      icon: ListChecks,
+      label: "Registros do mês",
+      tone: "neutral" as const,
+      value: String(movements.length),
+    },
+  ];
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-neutral-500">Entradas do mês</p>
-            <p className="mt-1 text-xl font-semibold text-emerald-700">{toCurrency(monthlyIncome)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-neutral-500">Despesas do mês</p>
-            <p className="mt-1 text-xl font-semibold text-red-600">{toCurrency(monthlyExpense)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-neutral-500">Saldo do mês</p>
-            <p className="mt-1 text-xl font-semibold text-neutral-950">{toCurrency(balance)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-neutral-500">Movimentações do mês</p>
-            <p className="mt-1 text-xl font-semibold text-neutral-950">{movements.length}</p>
-          </CardContent>
-        </Card>
+  const comparisonItems = [
+    { label: "Entradas", value: monthlyIncome, delta: incomeDelta },
+    { label: "Despesas", value: monthlyExpense, delta: expenseDelta },
+    { label: "Saldo", value: balance, delta: balanceDelta },
+  ];
+
+  return (
+    <div className="space-y-3.5 pb-6 sm:space-y-4">
+      <header className="space-y-3">
+        <div className="grid gap-3 lg:grid-cols-[1fr_300px] lg:items-start">
+          <div className="space-y-2">
+            <Badge variant="success" className="w-fit px-2.5 py-0.5">
+              Fechamento mensal
+            </Badge>
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-neutral-950 sm:text-[1.75rem]">
+                Fechamento de {monthLabel}
+              </h1>
+              <p className="mt-1.5 max-w-2xl text-sm leading-6 text-neutral-600">
+                Confira se os registros do mês fazem sentido antes de dar o mês como organizado.
+              </p>
+            </div>
+          </div>
+          <div className="w-full lg:justify-self-end">
+            <MonthSelector
+              monthValue={monthValue}
+              nextHref={nextHref}
+              previousHref={previousHref}
+              yearValue={yearValue}
+            />
+          </div>
+        </div>
+      </header>
+
+      <section className="space-y-2.5">
+        <div className="px-0.5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Comparação</p>
+          <h2 className="mt-0.5 text-lg font-semibold text-neutral-950">Como este mês se compara</h2>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-[1.02fr_0.98fr] lg:items-start">
+          <Card className="overflow-hidden border-neutral-200 bg-white shadow-[0_10px_28px_rgba(15,23,42,0.065)]">
+            <CardHeader className="p-4 pb-2.5 sm:p-4 sm:pb-2.5">
+              <CardTitle className="text-neutral-950">Comparação com o mês anterior</CardTitle>
+              <CardDescription className="mt-1">Diferença entre o mês escolhido e o mês anterior.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-2.5 p-4 pt-0 sm:grid-cols-3 sm:p-4 sm:pt-0">
+              {comparisonItems.map((item) => (
+                <ComparisonCard
+                  delta={item.delta}
+                  key={item.label}
+                  label={item.label}
+                  value={toCurrency(item.value)}
+                />
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card className="overflow-hidden border-neutral-200 bg-white shadow-[0_10px_28px_rgba(15,23,42,0.065)]">
+            <CardHeader className="p-4 pb-2.5 sm:p-4 sm:pb-2.5">
+              <CardTitle className="text-neutral-950">Maiores impactos</CardTitle>
+              <CardDescription className="mt-1">Entradas, despesas e categoria que mais mudam o resultado.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-2.5 p-4 pt-0 sm:grid-cols-3 sm:p-4 sm:pt-0">
+              <CompositionItem
+                label="Maior entrada"
+                title={biggestIncome ? biggestIncome.description : "Sem entradas"}
+                value={biggestIncome ? toCurrency(biggestIncome.amount) : "R$ 0,00"}
+              />
+              <CompositionItem
+                label="Maior despesa"
+                title={biggestExpense ? biggestExpense.description : "Sem despesas"}
+                value={biggestExpense ? toCurrency(biggestExpense.amount) : "R$ 0,00"}
+              />
+              <CompositionItem
+                label="Categoria com mais gasto"
+                title={topExpenseCategory.top ? topExpenseCategory.top.category : "Sem despesas"}
+                value={topExpenseCategory.top ? toCurrency(topExpenseCategory.top.amount) : "R$ 0,00"}
+              />
+            </CardContent>
+          </Card>
+        </div>
       </section>
 
-      <Card>
-        <CardHeader className="p-4 sm:p-6">
-          <CardTitle>Comparação com o mês anterior</CardTitle>
-          <CardDescription>Variação em relação ao mês anterior.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 p-4 pt-0 sm:grid-cols-3 sm:p-6 sm:pt-0">
-          {[
-            { label: "Entradas", value: monthlyIncome, delta: incomeDelta },
-            { label: "Despesas", value: monthlyExpense, delta: expenseDelta },
-            { label: "Saldo", value: balance, delta: balanceDelta },
-          ].map((item) => {
-            const isPositive = item.delta >= 0;
-            const deltaLabel = `${isPositive ? "↑" : "↓"} ${toCurrency(Math.abs(item.delta))}`;
+      <section className="space-y-2">
+        <div className="px-0.5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Resultado</p>
+          <h2 className="mt-0.5 text-base font-semibold text-neutral-950">Resumo do mês escolhido</h2>
+        </div>
+        <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+          {summaryCards.map((card) => {
+            const Icon = card.icon;
             return (
-              <div className="rounded-md border p-3" key={item.label}>
-                <p className="text-sm text-neutral-500">{item.label}</p>
-                <p className="mt-2 text-sm font-medium text-neutral-950">{toCurrency(item.value)}</p>
-                <p className={`mt-1 text-xs ${isPositive ? "text-emerald-700" : "text-red-600"}`}>
-                  {item.delta === 0 ? "Sem variação vs mês anterior" : `${deltaLabel} vs mês anterior`}
-                </p>
-              </div>
+              <SummaryCard
+                detail={card.detail}
+                icon={<Icon className="h-4 w-4" />}
+                key={card.label}
+                label={card.label}
+                tone={card.tone}
+                value={card.value}
+              />
             );
           })}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      <Card>
-        <CardHeader className="p-4 sm:p-6">
-          <CardTitle>Composição do mês</CardTitle>
-          <CardDescription>O que mais pesou no resultado do mês.</CardDescription>
+      <Card className="border-neutral-200 bg-white shadow-[0_5px_18px_rgba(15,23,42,0.04)]">
+        <CardHeader className="p-3.5 pb-2.5 sm:p-4 sm:pb-2.5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <CardTitle className="text-base text-neutral-950">Registros que formam o fechamento</CardTitle>
+              <CardDescription className="mt-1">
+                Entradas e despesas usadas nos totais acima.
+              </CardDescription>
+            </div>
+            <div className="flex w-full shrink-0 flex-col items-stretch gap-2 sm:w-auto sm:items-end">
+              <Badge variant="secondary" className="shrink-0">
+                {movements.length} registro(s)
+              </Badge>
+              <MovementsCsvExportButton
+                className="w-full sm:w-auto"
+                filename={`fechoumei-fechamento-${yearValue}-${monthValue}.csv`}
+                label="Exportar mês em CSV"
+                movements={movements}
+              />
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="grid gap-3 p-4 pt-0 sm:grid-cols-3 sm:p-6 sm:pt-0">
-          <div className="rounded-md border p-3">
-            <p className="text-sm text-neutral-500">Maior entrada</p>
-            <p className="mt-2 text-sm font-medium text-neutral-950">
-              {biggestIncome ? biggestIncome.description : "Sem entradas"}
-            </p>
-            <p className="mt-1 text-xs text-neutral-500">
-              {biggestIncome ? toCurrency(biggestIncome.amount) : "R$ 0,00"}
-            </p>
-          </div>
-          <div className="rounded-md border p-3">
-            <p className="text-sm text-neutral-500">Maior despesa</p>
-            <p className="mt-2 text-sm font-medium text-neutral-950">
-              {biggestExpense ? biggestExpense.description : "Sem despesas"}
-            </p>
-            <p className="mt-1 text-xs text-neutral-500">
-              {biggestExpense ? toCurrency(biggestExpense.amount) : "R$ 0,00"}
-            </p>
-          </div>
-          <div className="rounded-md border p-3">
-            <p className="text-sm text-neutral-500">Categoria com mais gasto</p>
-            <p className="mt-2 text-sm font-medium text-neutral-950">
-              {topExpenseCategory.top ? topExpenseCategory.top.category : "Sem despesas"}
-            </p>
-            <p className="mt-1 text-xs text-neutral-500">
-              {topExpenseCategory.top ? toCurrency(topExpenseCategory.top.amount) : "R$ 0,00"}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="p-4 sm:p-6">
-          <CardTitle>Movimentações do mês</CardTitle>
-          <CardDescription>Resumo simples das entradas e despesas registradas.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3 p-4 pt-0 sm:p-6 sm:pt-0">
+        <CardContent className="space-y-2 p-4 pt-0 sm:p-4 sm:pt-0">
           {movements.length === 0 ? (
-            <p className="text-sm leading-6 text-neutral-600">
-              Nenhuma movimentação registrada neste mês. Selecione outro mês ou lance entradas e despesas para fechar.
-            </p>
+            <div className="rounded-md border border-dashed border-neutral-300 bg-neutral-50/70 p-4">
+              <p className="text-sm font-medium text-neutral-950">Nenhum registro encontrado para este mês.</p>
+              <p className="mt-1 text-sm leading-6 text-neutral-600">
+                Se o mês está correto, lance entradas e despesas com data dentro deste período.
+                Assim o fechamento passa a mostrar os totais e a lista usada no CSV.
+              </p>
+              <Button asChild className="mt-4 h-9 w-full sm:w-auto" size="sm">
+                <Link href="/app/movimentacoes">Lançar entrada ou despesa</Link>
+              </Button>
+            </div>
           ) : (
-            movements.map((movement) => (
-              <div className="rounded-md border p-3" key={movement.id}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-neutral-950">{movement.description}</p>
-                    <p className="mt-1 text-xs text-neutral-500">
-                      {movement.type === "entrada" ? "Entrada" : "Despesa"} · {toDate(movement.occurred_on)}
-                    </p>
-                  </div>
-                  <p
-                    className={
-                      movement.type === "entrada"
-                        ? "shrink-0 text-sm font-semibold text-emerald-700"
-                        : "shrink-0 text-sm font-semibold text-red-600"
-                    }
-                  >
-                    {toCurrency(movement.amount)}
-                  </p>
-                </div>
-              </div>
-            ))
+            <div className="max-h-[18rem] space-y-2 overflow-y-auto overflow-x-hidden pr-1 overscroll-contain sm:max-h-[20rem] lg:max-h-[21rem]">
+              {movements.map((movement) => (
+                <MovementRow key={movement.id} movement={movement} />
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function SummaryCard({
+  detail,
+  icon,
+  label,
+  tone,
+  value,
+}: {
+  detail: string;
+  icon: ReactNode;
+  label: string;
+  tone: "income" | "expense" | "balance" | "neutral";
+  value: string;
+}) {
+  return (
+    <Card className="relative overflow-hidden border-neutral-200 bg-white/95 shadow-[0_3px_14px_rgba(15,23,42,0.04)]">
+      <div
+        className={cn(
+          "absolute inset-x-0 top-0 h-0.5",
+          tone === "income" && "bg-emerald-600",
+          tone === "expense" && "bg-red-500",
+          tone === "balance" && "bg-neutral-800",
+          tone === "neutral" && "bg-amber-500",
+        )}
+      />
+      <CardContent className="p-3.5">
+        <div className="flex items-start justify-between gap-3 pt-1">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">{label}</p>
+            <p
+              className={cn(
+                "mt-1.5 break-words text-lg font-bold leading-tight tabular-nums text-neutral-950",
+                tone === "income" && "text-emerald-700",
+                tone === "expense" && "text-red-600",
+              )}
+            >
+              {value}
+            </p>
+          </div>
+          <span
+            className={cn(
+              "flex h-8 w-8 shrink-0 items-center justify-center rounded-md border",
+              tone === "income" && "border-emerald-100 bg-emerald-50 text-emerald-700",
+              tone === "expense" && "border-red-100 bg-red-50 text-red-700",
+              tone === "balance" && "border-neutral-200 bg-neutral-50 text-neutral-800",
+              tone === "neutral" && "border-amber-100 bg-amber-50 text-amber-700",
+            )}
+          >
+            {icon}
+          </span>
+        </div>
+        <p className="mt-1.5 text-xs leading-5 text-neutral-600">{detail}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ComparisonCard({ delta, label, value }: { delta: number; label: string; value: string }) {
+  const isPositive = delta >= 0;
+  const deltaLabel = `${isPositive ? "+" : "-"} ${toCurrency(Math.abs(delta))}`;
+
+  return (
+    <div className="rounded-md border border-neutral-200 bg-neutral-50/70 p-2.5">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">{label}</p>
+      <p className="mt-1.5 text-base font-bold tabular-nums text-neutral-950">{value}</p>
+      <p className={cn("mt-1 text-xs font-semibold", isPositive ? "text-emerald-700" : "text-red-600")}>
+        {delta === 0 ? "Sem mudança em relação ao mês anterior" : `${deltaLabel} em relação ao mês anterior`}
+      </p>
+    </div>
+  );
+}
+
+function CompositionItem({ label, title, value }: { label: string; title: string; value: string }) {
+  return (
+    <div className="rounded-md border border-neutral-200 bg-neutral-50/70 p-2.5">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">{label}</p>
+      <p className="mt-1.5 truncate text-sm font-semibold text-neutral-950">{title}</p>
+      <p className="mt-1 text-xs font-semibold tabular-nums text-neutral-500">{value}</p>
+    </div>
+  );
+}
+
+function MovementRow({ movement }: { movement: MonthlyMovement }) {
+  const isIncome = movement.type === "entrada";
+
+  return (
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-md border border-neutral-200 bg-white p-2.5 pl-4 shadow-[0_4px_14px_rgba(15,23,42,0.04)]",
+        "before:absolute before:inset-y-0 before:left-0 before:w-1",
+        isIncome ? "before:bg-emerald-500" : "before:bg-red-400",
+      )}
+    >
+      <div className="grid grid-cols-[1fr_auto] gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge
+              variant={isIncome ? "success" : "danger"}
+              className={cn(
+                "px-2 py-0.5 text-[11px]",
+                isIncome ? "text-emerald-800" : "text-red-700",
+              )}
+            >
+              {isIncome ? "Entrada" : "Despesa"}
+            </Badge>
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-neutral-500">
+              <CalendarDays className="h-3.5 w-3.5" />
+              {toDate(movement.occurred_on)}
+            </span>
+          </div>
+          <p className="mt-1 truncate text-sm font-semibold text-neutral-950">{movement.description}</p>
+          <p className="mt-0.5 text-xs font-medium text-neutral-500">{movement.category}</p>
+        </div>
+        <p
+          className={cn(
+            "shrink-0 pt-0.5 text-right text-sm font-bold tabular-nums",
+            isIncome ? "text-emerald-700" : "text-red-600",
+          )}
+        >
+          {toCurrency(movement.amount)}
+        </p>
+      </div>
     </div>
   );
 }

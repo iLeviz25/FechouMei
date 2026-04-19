@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
@@ -10,19 +11,23 @@ import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 
 type LoginFormProps = {
+  initialMessage?: string;
+  initialTone?: "success" | "danger";
   redirectedFrom?: string;
 };
 
-export function LoginForm({ redirectedFrom }: LoginFormProps) {
+export function LoginForm({ initialMessage, initialTone = "danger", redirectedFrom }: LoginFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(initialMessage ?? null);
+  const [messageTone, setMessageTone] = useState<"success" | "danger">(initialTone);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage(null);
+    setMessageTone("danger");
     setIsSubmitting(true);
 
     const supabase = createClient();
@@ -76,7 +81,12 @@ export function LoginForm({ redirectedFrom }: LoginFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Senha</Label>
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="password">Senha</Label>
+              <Link className="text-xs font-semibold text-emerald-700 hover:text-emerald-800" href="/recuperar-senha">
+                Esqueci minha senha
+              </Link>
+            </div>
             <Input
               id="password"
               autoComplete="current-password"
@@ -90,7 +100,13 @@ export function LoginForm({ redirectedFrom }: LoginFormProps) {
           </div>
 
           {message ? (
-            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p
+              className={
+                messageTone === "success"
+                  ? "rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm leading-6 text-emerald-700"
+                  : "rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm leading-6 text-red-700"
+              }
+            >
               {message}
             </p>
           ) : null}

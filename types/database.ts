@@ -9,6 +9,250 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      agent_conversations: {
+        Row: {
+          id: string;
+          user_id: string;
+          channel: "playground" | "whatsapp";
+          status: "idle" | "collecting" | "awaiting_confirmation";
+          pending_action: string | null;
+          draft: Json;
+          missing_fields: string[];
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          channel?: "playground" | "whatsapp";
+          status?: "idle" | "collecting" | "awaiting_confirmation";
+          pending_action?: string | null;
+          draft?: Json;
+          missing_fields?: string[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          channel?: "playground" | "whatsapp";
+          status?: "idle" | "collecting" | "awaiting_confirmation";
+          pending_action?: string | null;
+          draft?: Json;
+          missing_fields?: string[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_conversations_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      agent_messages: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          user_id: string;
+          role: "user" | "agent";
+          content: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          conversation_id: string;
+          user_id: string;
+          role: "user" | "agent";
+          content: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          conversation_id?: string;
+          user_id?: string;
+          role?: "user" | "agent";
+          content?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_messages_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agent_messages_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      agent_action_events: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          user_id: string;
+          action: string;
+          status: "collecting" | "confirmation_requested" | "executed" | "cancelled" | "failed";
+          confirmation: "not_required" | "requested" | "confirmed" | "cancelled" | null;
+          summary: string | null;
+          error: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          conversation_id: string;
+          user_id: string;
+          action: string;
+          status: "collecting" | "confirmation_requested" | "executed" | "cancelled" | "failed";
+          confirmation?: "not_required" | "requested" | "confirmed" | "cancelled" | null;
+          summary?: string | null;
+          error?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          conversation_id?: string;
+          user_id?: string;
+          action?: string;
+          status?: "collecting" | "confirmation_requested" | "executed" | "cancelled" | "failed";
+          confirmation?: "not_required" | "requested" | "confirmed" | "cancelled" | null;
+          summary?: string | null;
+          error?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_action_events_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agent_action_events_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      agent_channel_events: {
+        Row: {
+          id: string;
+          channel: "whatsapp";
+          direction: "inbound";
+          provider: string;
+          external_message_id: string;
+          provider_instance: string | null;
+          remote_id: string | null;
+          user_id: string | null;
+          conversation_id: string | null;
+          status: "received" | "processed" | "discarded" | "failed";
+          summary: string | null;
+          error: string | null;
+          message_text: string | null;
+          created_at: string;
+          processed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          channel?: "whatsapp";
+          direction?: "inbound";
+          provider?: string;
+          external_message_id: string;
+          provider_instance?: string | null;
+          remote_id?: string | null;
+          user_id?: string | null;
+          conversation_id?: string | null;
+          status: "received" | "processed" | "discarded" | "failed";
+          summary?: string | null;
+          error?: string | null;
+          message_text?: string | null;
+          created_at?: string;
+          processed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          channel?: "whatsapp";
+          direction?: "inbound";
+          provider?: string;
+          external_message_id?: string;
+          provider_instance?: string | null;
+          remote_id?: string | null;
+          user_id?: string | null;
+          conversation_id?: string | null;
+          status?: "received" | "processed" | "discarded" | "failed";
+          summary?: string | null;
+          error?: string | null;
+          message_text?: string | null;
+          created_at?: string;
+          processed_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_channel_events_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_conversations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agent_channel_events_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      reminder_preferences: {
+        Row: {
+          user_id: string;
+          das_monthly_enabled: boolean;
+          dasn_annual_enabled: boolean;
+          monthly_review_enabled: boolean;
+          receipts_enabled: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          das_monthly_enabled?: boolean;
+          dasn_annual_enabled?: boolean;
+          monthly_review_enabled?: boolean;
+          receipts_enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          das_monthly_enabled?: boolean;
+          dasn_annual_enabled?: boolean;
+          monthly_review_enabled?: boolean;
+          receipts_enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reminder_preferences_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       obrigacoes_checklist: {
         Row: {
           id: string;
@@ -145,3 +389,8 @@ export type Database = {
 
 export type Movimentacao = Database["public"]["Tables"]["movimentacoes"]["Row"];
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+export type ReminderPreferences = Database["public"]["Tables"]["reminder_preferences"]["Row"];
+export type AgentConversation = Database["public"]["Tables"]["agent_conversations"]["Row"];
+export type AgentPersistedMessage = Database["public"]["Tables"]["agent_messages"]["Row"];
+export type AgentActionEvent = Database["public"]["Tables"]["agent_action_events"]["Row"];
+export type AgentChannelEvent = Database["public"]["Tables"]["agent_channel_events"]["Row"];
