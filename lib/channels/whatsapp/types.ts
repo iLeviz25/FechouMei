@@ -22,13 +22,12 @@ export type WhatsAppNormalizedInboundMessage = {
 };
 
 export type WhatsAppChannelConfig = {
-  allowedRemoteNumber: string;
+  assistantNumber: string;
   enabled: boolean;
   evolutionApiKey: string;
   evolutionApiUrl: string;
   instanceName: string;
   maxReplyLength: number;
-  testUserId: string;
 };
 
 export type WhatsAppInboundEventRecord = {

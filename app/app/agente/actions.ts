@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { runAgentTurn } from "@/lib/agent/orchestrator";
 import {
   clearAgentConversationSnapshot,
@@ -8,6 +9,13 @@ import {
   persistAgentTurn,
 } from "@/lib/agent/persistence";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
+import {
+  getWhatsAppAssistantActivationSnapshot,
+  startWhatsAppAssistantActivation,
+  unlinkWhatsAppAssistant,
+  type WhatsAppAssistantActivationSnapshot,
+} from "@/lib/channels/whatsapp/activation";
 import { emptyAgentState } from "@/lib/agent/utils";
 import type {
   AgentConversationSnapshot,
@@ -25,10 +33,24 @@ async function getAgentContext() {
   } = await supabase.auth.getUser();
 
   if (error || !user) {
-    throw new Error("Faça login novamente para usar o agente.");
+    throw new Error("Faça login novamente para usar o assistente.");
   }
 
   return { supabase, userId: user.id };
+}
+
+async function getWhatsAppActivationContext() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    throw new Error("Faça login novamente para usar o assistente.");
+  }
+
+  return { supabase: createServiceRoleClient(), userId: user.id };
 }
 
 export async function getAgentConversation(): Promise<AgentConversationSnapshot> {
@@ -43,6 +65,25 @@ export async function getAgentConversation(): Promise<AgentConversationSnapshot>
 
     throw error;
   }
+}
+
+export async function getWhatsAppActivation(): Promise<WhatsAppAssistantActivationSnapshot> {
+  const context = await getWhatsAppActivationContext();
+  return getWhatsAppAssistantActivationSnapshot(context);
+}
+
+export async function startWhatsAppActivation(): Promise<WhatsAppAssistantActivationSnapshot> {
+  const context = await getWhatsAppActivationContext();
+  const snapshot = await startWhatsAppAssistantActivation(context);
+  revalidatePath("/app/agente");
+  return snapshot;
+}
+
+export async function disconnectWhatsAppAssistant(): Promise<WhatsAppAssistantActivationSnapshot> {
+  const context = await getWhatsAppActivationContext();
+  const snapshot = await unlinkWhatsAppAssistant(context);
+  revalidatePath("/app/agente");
+  return snapshot;
 }
 
 export async function sendAgentMessage({

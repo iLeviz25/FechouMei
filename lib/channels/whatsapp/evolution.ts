@@ -3,6 +3,7 @@ import type {
   WhatsAppChannelConfig,
   WhatsAppNormalizedInboundMessage,
 } from "@/lib/channels/whatsapp/types";
+import { getWhatsAppAssistantNumber } from "@/lib/channels/whatsapp/activation";
 
 const defaultMaxReplyLength = 900;
 const evolutionProvider = "evolution";
@@ -21,18 +22,16 @@ export function getWhatsAppChannelConfig(): WhatsAppChannelConfig {
   const evolutionApiUrl = process.env.EVOLUTION_API_BASE_URL?.trim();
   const evolutionApiKey = process.env.EVOLUTION_API_KEY?.trim();
   const instanceName = process.env.EVOLUTION_API_INSTANCE?.trim();
-  const testUserId = process.env.WHATSAPP_TEST_USER_ID?.trim();
-  const allowedRemoteNumber = normalizePhoneNumber(process.env.WHATSAPP_TEST_REMOTE_NUMBER);
+  const assistantNumber = getWhatsAppAssistantNumber();
 
   if (!enabled) {
     return {
-      allowedRemoteNumber: allowedRemoteNumber ?? "",
+      assistantNumber,
       enabled: false,
       evolutionApiKey: evolutionApiKey ?? "",
       evolutionApiUrl: evolutionApiUrl ?? "",
       instanceName: instanceName ?? "",
       maxReplyLength: defaultMaxReplyLength,
-      testUserId: testUserId ?? "",
     };
   }
 
@@ -48,14 +47,6 @@ export function getWhatsAppChannelConfig(): WhatsAppChannelConfig {
     issues.push("faltando EVOLUTION_API_INSTANCE");
   }
 
-  if (!testUserId) {
-    issues.push("faltando WHATSAPP_TEST_USER_ID");
-  }
-
-  if (!allowedRemoteNumber) {
-    issues.push("faltando WHATSAPP_TEST_REMOTE_NUMBER");
-  }
-
   if (issues.length > 0) {
     throw new WhatsAppChannelConfigError(
       process.env.NODE_ENV === "production"
@@ -65,20 +56,17 @@ export function getWhatsAppChannelConfig(): WhatsAppChannelConfig {
   }
 
   const maxReplyLength = Number.parseInt(process.env.WHATSAPP_MAX_REPLY_LENGTH?.trim() ?? "", 10);
-  const configuredAllowedRemoteNumber = allowedRemoteNumber!;
   const configuredEvolutionApiKey = evolutionApiKey!;
   const configuredEvolutionApiUrl = evolutionApiUrl!.replace(/\/$/, "");
   const configuredInstanceName = instanceName!;
-  const configuredTestUserId = testUserId!;
 
   return {
-    allowedRemoteNumber: configuredAllowedRemoteNumber,
+    assistantNumber,
     enabled: true,
     evolutionApiKey: configuredEvolutionApiKey,
     evolutionApiUrl: configuredEvolutionApiUrl,
     instanceName: configuredInstanceName,
     maxReplyLength: Number.isFinite(maxReplyLength) && maxReplyLength >= 280 ? maxReplyLength : defaultMaxReplyLength,
-    testUserId: configuredTestUserId,
   };
 }
 

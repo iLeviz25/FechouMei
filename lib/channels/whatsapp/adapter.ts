@@ -19,6 +19,7 @@ import {
   createInboundWhatsAppEvent,
   updateInboundWhatsAppEvent,
 } from "@/lib/channels/whatsapp/persistence";
+import { resolveWhatsAppInboundUser } from "@/lib/channels/whatsapp/activation";
 import {
   WhatsAppChannelConfigError,
   getRemoteNumberFromJid,
@@ -301,7 +302,6 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
 
   if (
     remoteNumber &&
-    remoteNumber === config.allowedRemoteNumber &&
     (!normalized.event || normalized.event === "messages.upsert") &&
     (!normalized.instance || normalized.instance === config.instanceName) &&
     !normalized.isFromMe &&
@@ -317,15 +317,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
   }
 
   const admin = createServiceRoleClient();
-  const persistenceContext = {
-    channel: "whatsapp" as const,
-    supabase: admin,
-    userId: config.testUserId,
-  };
-  const executionContext = {
-    supabase: admin,
-    userId: config.testUserId,
-  };
+  let resolvedUserId: string | null = null;
 
   const createdEvent = await createInboundWhatsAppEvent(
     { supabase: admin },
@@ -336,7 +328,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
       remoteId: normalized.remoteJid,
       status: "received",
       summary: getInboundReceivedSummary(normalized),
-      userId: config.testUserId,
+      userId: null,
     },
   );
 
@@ -362,7 +354,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
       remoteId: normalized.remoteJid,
       status: "discarded",
       summary: `${summary} (${reason}).`,
-      userId: config.testUserId,
+      userId: resolvedUserId,
     });
 
     trace.finish("discarded", {
@@ -395,28 +387,93 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
     return discard("missing_remote_number", "Mensagem ignorada sem remetente identificável");
   }
 
-  if (remoteNumber !== config.allowedRemoteNumber) {
-    presenceController?.stop("unauthorized_sender");
-    await safeUpdateInboundEvent({
-      error: null,
+  const userResolution = await resolveWhatsAppInboundUser({
+    context: { supabase: admin },
+    messageText: normalized.text,
+    remoteJid: normalized.remoteJid,
+    remoteNumber,
+  });
+
+  if (userResolution.kind === "activated") {
+    resolvedUserId = userResolution.userId;
+    await replyAndFinishWhatsAppTurn({
+      config,
       externalMessageId,
       instance: normalized.instance,
       messageText: normalized.text,
+      presenceController,
+      reason: "whatsapp_activated",
       remoteId: normalized.remoteJid,
-      status: "discarded",
-      summary: "Mensagem descartada de número fora do teste local configurado.",
-      userId: null,
-    });
-
-    trace.finish("discarded", {
-      reason: "unauthorized_sender",
+      remoteNumber,
+      reply: "Pronto, seu WhatsApp foi vinculado ao FechouMEI. Agora você já pode falar comigo por aqui.",
+      status: "processed",
+      summary: "WhatsApp vinculado por codigo de ativacao.",
+      trace,
+      userId: resolvedUserId,
     });
 
     return {
-      body: { ok: true, reason: "unauthorized_sender" },
+      body: { ok: true, status: "activated" },
       status: 200,
     };
   }
+
+  if (userResolution.kind === "expired_activation_code" || userResolution.kind === "invalid_activation_code") {
+    await replyAndFinishWhatsAppTurn({
+      config,
+      externalMessageId,
+      instance: normalized.instance,
+      messageText: normalized.text,
+      presenceController,
+      reason: userResolution.kind,
+      remoteId: normalized.remoteJid,
+      remoteNumber,
+      reply: "Esse código de ativação não está válido. Abra o app FechouMEI e gere uma nova ativação do Assistente virtual.",
+      status: "discarded",
+      summary: `Codigo de ativacao ${userResolution.kind === "expired_activation_code" ? "expirado" : "invalido"}.`,
+      trace,
+      userId: userResolution.kind === "expired_activation_code" ? userResolution.userId : null,
+    });
+
+    return {
+      body: { ok: true, reason: userResolution.kind },
+      status: 200,
+    };
+  }
+
+  if (userResolution.kind === "unlinked") {
+    await replyAndFinishWhatsAppTurn({
+      config,
+      externalMessageId,
+      instance: normalized.instance,
+      messageText: normalized.text,
+      presenceController,
+      reason: "whatsapp_not_linked",
+      remoteId: normalized.remoteJid,
+      remoteNumber,
+      reply: "Para usar o Assistente virtual pelo WhatsApp, abra o app FechouMEI e gere seu código de ativação.",
+      status: "discarded",
+      summary: "Mensagem recebida de numero ainda nao vinculado.",
+      trace,
+      userId: null,
+    });
+
+    return {
+      body: { ok: true, reason: "whatsapp_not_linked" },
+      status: 200,
+    };
+  }
+
+  resolvedUserId = userResolution.userId;
+  const persistenceContext = {
+    channel: "whatsapp" as const,
+    supabase: admin,
+    userId: resolvedUserId,
+  };
+  const executionContext = {
+    supabase: admin,
+    userId: resolvedUserId,
+  };
 
   let conversationId: string | null = null;
   let agentInputText = normalized.text;
@@ -435,7 +492,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
         metadata: getAudioMetadataSummary(normalized.audio),
         remoteId: normalized.remoteJid,
         stage: "audio_detected",
-        userId: config.testUserId,
+        userId: resolvedUserId,
       });
 
       audioStage = "media_download_started";
@@ -449,7 +506,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
         metadata: getAudioMetadataSummary(normalized.audio),
         remoteId: normalized.remoteJid,
         stage: audioStage,
-        userId: config.testUserId,
+        userId: resolvedUserId,
       });
 
       const downloadedAudio = await downloadWhatsAppAudio({
@@ -469,7 +526,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
         metadata: `mime=${downloadedAudio.mimeType}; bytes=${downloadedAudio.buffer.length}`,
         remoteId: normalized.remoteJid,
         stage: audioStage,
-        userId: config.testUserId,
+        userId: resolvedUserId,
       });
 
       const cooldownKey = getAudioCooldownKey(config.instanceName, remoteNumber);
@@ -485,7 +542,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
             audioStage = stage;
           },
           remoteId: normalized.remoteJid,
-          userId: config.testUserId,
+          userId: resolvedUserId,
           userKey: cooldownKey,
         });
 
@@ -508,7 +565,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
               metadata: formatTranscriptionStageMetadata(event),
               remoteId: normalized.remoteJid,
               stage: event.stage,
-              userId: config.testUserId,
+              userId: resolvedUserId,
             });
           },
         });
@@ -530,7 +587,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
         metadata: `preview=${summarizeReplyForChannelLog(agentInputText)}`,
         remoteId: normalized.remoteJid,
         stage: audioStage,
-        userId: config.testUserId,
+        userId: resolvedUserId,
       });
     } catch (error) {
       audioStage = getAudioFailureStage(error, audioStage);
@@ -585,7 +642,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
         remoteId: normalized.remoteJid,
         status: "failed",
         summary: getAudioFailureSummary(error, audioStage),
-        userId: config.testUserId,
+        userId: resolvedUserId,
       });
 
       trace.mark("total_audio_pipeline_elapsed_ms", {
@@ -635,7 +692,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
         metadata: `preview=${summarizeReplyForChannelLog(agentInputText)}`,
         remoteId: normalized.remoteJid,
         stage: audioStage,
-        userId: config.testUserId,
+        userId: resolvedUserId,
       });
     }
 
@@ -669,7 +726,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
         metadata: `reply=${summarizeReplyForChannelLog(result.reply)}`,
         remoteId: normalized.remoteJid,
         stage: audioStage,
-        userId: config.testUserId,
+        userId: resolvedUserId,
       });
     }
 
@@ -711,7 +768,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
       remoteId: normalized.remoteJid,
       status: "processed",
       summary: getProcessedSummary(result.reply, audioWasTranscribed, agentInputText),
-      userId: config.testUserId,
+      userId: resolvedUserId,
     });
 
     trace.finish("processed", {
@@ -789,7 +846,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
       remoteId: normalized.remoteJid,
       status: "failed",
       summary: "Falha ao processar a mensagem inbound do WhatsApp local.",
-      userId: config.testUserId,
+      userId: resolvedUserId,
     });
 
     trace.finish("failed", {
@@ -815,6 +872,102 @@ function getInboundReceivedSummary(normalized: ReturnType<typeof normalizeEvolut
   ].filter(Boolean);
 
   return `Evento inbound de audio recebido pelo canal local do WhatsApp${metadata.length > 0 ? ` (${metadata.join(", ")})` : ""}.`;
+}
+
+async function replyAndFinishWhatsAppTurn({
+  config,
+  externalMessageId,
+  instance,
+  messageText,
+  presenceController,
+  reason,
+  remoteId,
+  remoteNumber,
+  reply,
+  status,
+  summary,
+  trace,
+  userId,
+}: {
+  config: ReturnType<typeof getWhatsAppChannelConfig>;
+  externalMessageId: string;
+  instance?: string | null;
+  messageText?: string | null;
+  presenceController: WhatsAppPresenceController | null;
+  reason: string;
+  remoteId?: string | null;
+  remoteNumber: string;
+  reply: string;
+  status: "processed" | "discarded" | "failed";
+  summary: string;
+  trace: WhatsAppLatencyTrace;
+  userId?: string | null;
+}) {
+  let sendError: string | null = null;
+
+  trace.mark("response_build_started", {
+    reason,
+  });
+  trace.mark("response_build_finished", {
+    characters: reply.length,
+    reason,
+  });
+  trace.mark("response_send_started", {
+    reason,
+  });
+  presenceController?.stop("response_send_started");
+
+  try {
+    trace.mark("provider_send_request_started", {
+      channel: "whatsapp",
+      reason,
+    });
+    await sendWhatsAppTextReply({
+      config,
+      remoteNumber,
+      reply,
+    });
+    trace.mark("provider_send_request_finished", {
+      channel: "whatsapp",
+      reason,
+    });
+    trace.mark("response_send_finished", {
+      reason,
+    });
+  } catch (error) {
+    sendError = summarizeError(error);
+    trace.mark("provider_send_request_finished", {
+      channel: "whatsapp",
+      error: sendError,
+      reason,
+      status: "failed",
+    });
+    trace.mark("response_send_finished", {
+      error: sendError,
+      reason,
+      status: "failed",
+    });
+    console.error("WhatsApp channel failed to send activation/status reply.", {
+      error,
+      externalMessageId,
+      reason,
+    });
+  }
+
+  await safeUpdateInboundEvent({
+    error: sendError,
+    externalMessageId,
+    instance,
+    messageText,
+    remoteId,
+    status: sendError ? "failed" : status,
+    summary,
+    userId,
+  });
+
+  trace.finish(sendError ? "failed" : status, {
+    reason,
+  });
 }
 
 function getProcessedSummary(reply: string, audioWasTranscribed: boolean, transcript?: string | null) {

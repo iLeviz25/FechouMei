@@ -215,6 +215,56 @@ export type Database = {
           },
         ];
       };
+      whatsapp_assistant_links: {
+        Row: {
+          id: string;
+          user_id: string;
+          phone_number: string | null;
+          remote_jid: string | null;
+          status: "pending" | "linked" | "expired" | "revoked";
+          activation_code: string | null;
+          activation_expires_at: string | null;
+          linked_at: string | null;
+          last_inbound_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          phone_number?: string | null;
+          remote_jid?: string | null;
+          status?: "pending" | "linked" | "expired" | "revoked";
+          activation_code?: string | null;
+          activation_expires_at?: string | null;
+          linked_at?: string | null;
+          last_inbound_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          phone_number?: string | null;
+          remote_jid?: string | null;
+          status?: "pending" | "linked" | "expired" | "revoked";
+          activation_code?: string | null;
+          activation_expires_at?: string | null;
+          linked_at?: string | null;
+          last_inbound_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_assistant_links_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       reminder_preferences: {
         Row: {
           user_id: string;
@@ -394,3 +444,4 @@ export type AgentConversation = Database["public"]["Tables"]["agent_conversation
 export type AgentPersistedMessage = Database["public"]["Tables"]["agent_messages"]["Row"];
 export type AgentActionEvent = Database["public"]["Tables"]["agent_action_events"]["Row"];
 export type AgentChannelEvent = Database["public"]["Tables"]["agent_channel_events"]["Row"];
+export type WhatsAppAssistantLink = Database["public"]["Tables"]["whatsapp_assistant_links"]["Row"];
