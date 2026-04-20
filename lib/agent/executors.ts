@@ -6,6 +6,7 @@ import type {
   AgentMovementDraft,
   AgentQuickPeriodQuery,
   AgentReminderPreferenceUpdate,
+  AgentSpecificMovementQuery,
   AgentTransactionEditDraft,
   MovementType,
   ReminderPreferenceKey,
@@ -17,6 +18,7 @@ import {
   getCurrentMonthRange,
   getCurrentYearRange,
   toCurrency,
+  toDateInputValue,
 } from "@/lib/agent/utils";
 import {
   buildOccurredAtFromDateInput,
@@ -234,6 +236,71 @@ export async function getLatestTransactionReply(
   }
 
   return `Sua última ${getTargetLabel(target, movement.type)} foi: ${formatMovementForReply(movement)}.`;
+}
+
+type SpecificMovementRow = AgentDeleteTarget & {
+  created_at?: string | null;
+};
+
+export async function executeSpecificMovementQuery(
+  context: AgentExecutionContext,
+  query: AgentSpecificMovementQuery,
+) {
+  const range = resolveSpecificMovementRange(query);
+  const targetLimit = query.order === "nth" ? Math.max(query.ordinal ?? 1, 1) : query.limit ?? 1;
+  let request = context.supabase
+    .from("movimentacoes")
+    .select("id, type, amount, description, category, occurred_on, created_at")
+    .eq("user_id", context.userId);
+
+  if (query.type) {
+    request = request.eq("type", query.type);
+  }
+
+  if (query.category) {
+    request = request.eq("category", normalizeMovementCategory(query.category));
+  }
+
+  if (range) {
+    request = request.gte("occurred_on", range.start).lte("occurred_on", range.end);
+  }
+
+  if (query.searchTerm) {
+    request = request.ilike("description", `%${escapeIlikeValue(query.searchTerm)}%`);
+  }
+
+  if (query.order === "highest" || query.order === "lowest") {
+    request = request.order("amount", { ascending: query.order === "lowest" });
+  } else {
+    const ascending = query.order === "first" || query.order === "nth";
+    request = request
+      .order("occurred_on", { ascending })
+      .order("created_at", { ascending });
+  }
+
+  const { data, error } = await request.limit(Math.max(targetLimit, 1));
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const rows = normalizeSpecificMovementRows(data ?? []);
+
+  if (rows.length === 0) {
+    return getSpecificMovementNotFoundReply(query);
+  }
+
+  if ((query.limit ?? 1) > 1 && query.order === "latest") {
+    return getSpecificMovementListReply(query, rows);
+  }
+
+  const selected = query.order === "nth" ? rows[(query.ordinal ?? 1) - 1] : rows[0];
+
+  if (!selected) {
+    return getSpecificMovementNotFoundReply(query);
+  }
+
+  return getSpecificMovementReply(query, selected);
 }
 
 export async function executeTransactionEdit(
@@ -859,6 +926,177 @@ function getMissingLatestMovementReply(target: TransactionTargetKind) {
   }
 
   return "Não encontrei movimentações registradas ainda.";
+}
+
+function normalizeSpecificMovementRows(rows: Array<{
+  amount: number | string;
+  category: string | null;
+  created_at?: string | null;
+  description: string | null;
+  id: string;
+  occurred_on: string;
+  type: string;
+}>): SpecificMovementRow[] {
+  return rows
+    .map((row) => ({
+      amount: Number(row.amount),
+      category: row.category ?? "",
+      created_at: row.created_at,
+      description: row.description ?? "",
+      id: row.id,
+      occurred_on: row.occurred_on,
+      type: row.type,
+    }))
+    .filter((row) =>
+      (row.type === "entrada" || row.type === "despesa") &&
+      Number.isFinite(row.amount) &&
+      Boolean(row.id) &&
+      Boolean(row.occurred_on),
+    )
+    .map((row) => ({
+      ...row,
+      type: row.type as MovementType,
+    }));
+}
+
+function getSpecificMovementReply(query: AgentSpecificMovementQuery, movement: SpecificMovementRow) {
+  const descriptor = getSpecificMovementDescriptor(query, movement);
+
+  if (query.requestedField === "date") {
+    return `${descriptor} foi em ${formatDateLabel(movement.occurred_on)}, no valor de ${toCurrency(movement.amount)}.`;
+  }
+
+  if (query.requestedField === "amount") {
+    return `${descriptor} foi de ${toCurrency(movement.amount)}, em ${formatDateLabel(movement.occurred_on)}.`;
+  }
+
+  const connector = movement.type === "entrada" ? "de" : "com";
+  return `${descriptor} foi ${toCurrency(movement.amount)} ${connector} ${movement.description}, em ${formatDateLabel(movement.occurred_on)}.`;
+}
+
+function getSpecificMovementListReply(query: AgentSpecificMovementQuery, rows: SpecificMovementRow[]) {
+  const label = getQueryTargetLabel(query);
+  const items = rows.map((row, index) => {
+    const connector = row.type === "entrada" ? "de" : "com";
+    return `${index + 1}. ${toCurrency(row.amount)} ${connector} ${row.description}, ${formatDateLabel(row.occurred_on)}`;
+  });
+
+  return `Encontrei estas ${label}: ${items.join("; ")}.`;
+}
+
+function getSpecificMovementNotFoundReply(query: AgentSpecificMovementQuery) {
+  return `NÃ£o encontrei ${getQueryTargetLabel(query)}${getQueryFilterLabel(query)}.`;
+}
+
+function getSpecificMovementDescriptor(query: AgentSpecificMovementQuery, movement: SpecificMovementRow) {
+  const typeLabel = movement.type === "entrada" ? "entrada" : "despesa";
+  const base =
+    query.order === "highest"
+      ? `Sua maior ${typeLabel}`
+      : query.order === "lowest"
+        ? `Sua menor ${typeLabel}`
+        : query.order === "latest"
+          ? `Sua Ãºltima ${typeLabel}`
+          : query.order === "nth"
+            ? `Sua ${getOrdinalLabel(query.ordinal ?? 2)} ${typeLabel}`
+            : `Sua primeira ${typeLabel}`;
+
+  return `${base}${getQueryFilterLabel(query)}`;
+}
+
+function getQueryTargetLabel(query: AgentSpecificMovementQuery) {
+  if (query.type === "entrada") {
+    return query.limit && query.limit > 1 ? "entradas" : "entrada";
+  }
+
+  if (query.type === "despesa") {
+    return query.limit && query.limit > 1 ? "despesas" : "despesa";
+  }
+
+  return query.limit && query.limit > 1 ? "movimentaÃ§Ãµes" : "movimentaÃ§Ã£o";
+}
+
+function getQueryFilterLabel(query: AgentSpecificMovementQuery) {
+  if (query.searchTerm) {
+    return ` de ${query.searchTerm}`;
+  }
+
+  if (query.category) {
+    return ` de ${query.category.toLocaleUpperCase("pt-BR")}`;
+  }
+
+  if (query.month) {
+    return " no perÃ­odo pedido";
+  }
+
+  if (query.period) {
+    return query.period === "this_week" ? " desta semana" : " deste mÃªs";
+  }
+
+  return "";
+}
+
+function getOrdinalLabel(ordinal: number) {
+  if (ordinal === 2) {
+    return "segunda";
+  }
+
+  if (ordinal === 3) {
+    return "terceira";
+  }
+
+  return `${ordinal}Âª`;
+}
+
+function resolveSpecificMovementRange(query: AgentSpecificMovementQuery): AgentDateRange | null {
+  const now = new Date();
+
+  if (query.month) {
+    const year = query.year ?? now.getFullYear();
+    const start = new Date(year, query.month - 1, 1);
+    const end = new Date(year, query.month, 0);
+    return {
+      end: toDateInputValue(end),
+      start: toDateInputValue(start),
+    };
+  }
+
+  if (query.period === "this_month") {
+    const month = getCurrentMonthRange(now);
+    return {
+      end: month.end,
+      start: month.start,
+    };
+  }
+
+  if (query.period === "this_week") {
+    const start = startOfWeek(now);
+    const end = addDays(start, 6);
+    return {
+      end: toDateInputValue(end),
+      start: toDateInputValue(start),
+    };
+  }
+
+  return null;
+}
+
+function escapeIlikeValue(value: string) {
+  return value.replace(/[%_]/g, "\\$&").trim();
+}
+
+function startOfWeek(date: Date) {
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = start.getDay();
+  const offset = day === 0 ? -6 : 1 - day;
+  start.setDate(start.getDate() + offset);
+  return start;
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  next.setDate(next.getDate() + days);
+  return next;
 }
 
 function getTargetLabel(target: TransactionTargetKind, type: "entrada" | "despesa") {

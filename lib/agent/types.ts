@@ -9,6 +9,7 @@ export type AgentActionId =
   | "obligations_status"
   | "recent_transactions"
   | "latest_transaction"
+  | "specific_movement_query"
   | "mark_obligation"
   | "reminder_preferences_status"
   | "update_reminder_preferences"
@@ -99,6 +100,19 @@ export type AgentQuickPeriodQuery =
       metric: "income" | "expense";
       type: "weekly_extreme";
     };
+
+export type AgentSpecificMovementQuery = {
+  category?: string;
+  limit?: number;
+  month?: number;
+  order: "first" | "latest" | "nth" | "highest" | "lowest";
+  ordinal?: number;
+  period?: "this_month" | "this_week";
+  requestedField?: "full" | "date" | "amount";
+  searchTerm?: string;
+  type?: MovementType;
+  year?: number;
+};
 
 export type AgentMovementDraft = {
   type?: MovementType;

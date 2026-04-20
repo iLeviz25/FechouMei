@@ -11,6 +11,7 @@ export const agentActionCatalog: AgentActionDefinition[] = [
   { id: "obligations_status", label: "Obrigacoes", status: "implemented", changesData: false, description: "Consulta pendencias principais do mes." },
   { id: "recent_transactions", label: "Movimentacoes recentes", status: "implemented", changesData: false, description: "Lista as ultimas movimentacoes do usuario." },
   { id: "latest_transaction", label: "Ultima movimentacao", status: "implemented", changesData: false, description: "Consulta a ultima movimentacao, entrada ou despesa." },
+  { id: "specific_movement_query", label: "Consulta especifica de movimentacao", status: "implemented", changesData: false, description: "Consulta movimentacoes por tipo, categoria, descricao, periodo, ordem ou valor." },
   { id: "mark_obligation", label: "Marcar obrigacao", status: "implemented", changesData: true, description: "Marca uma obrigacao do checklist como concluida." },
   { id: "reminder_preferences_status", label: "Consultar lembretes", status: "implemented", changesData: false, description: "Consulta as preferencias simples de lembrete." },
   { id: "update_reminder_preferences", label: "Atualizar lembretes", status: "implemented", changesData: true, description: "Ativa ou desativa preferencias simples de lembrete." },

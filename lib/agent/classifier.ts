@@ -5,6 +5,7 @@ import type {
   AgentMovementDraft,
   AgentQuickPeriodQuery,
   AgentReminderPreferenceUpdate,
+  AgentSpecificMovementQuery,
   AgentTransactionEditDraft,
   MovementField,
   TransactionTargetKind,
@@ -17,6 +18,7 @@ import {
   parseTransactionMessages,
 } from "@/lib/agent/transaction-parser";
 import { parseQuickPeriodQuery } from "@/lib/agent/period-queries";
+import { parseSpecificMovementQuery } from "@/lib/agent/movement-queries";
 import { normalizeSpokenAgentMessage } from "@/lib/agent/spoken-text";
 import { detectConfirmation, parseAmountFromText, toCurrency } from "@/lib/agent/utils";
 
@@ -35,6 +37,7 @@ export type DeterministicClassification = {
   readActions?: AgentActionId[];
   reply?: string;
   reminderUpdate?: AgentReminderPreferenceUpdate;
+  specificMovementQuery?: AgentSpecificMovementQuery;
   transactionTarget?: TransactionTargetKind;
 };
 
@@ -80,6 +83,27 @@ export function classifyDeterministically(
   }
 
   const latestTransactionTarget = getLatestTransactionTarget(normalized);
+
+  const specificMovementQuery = parseSpecificMovementQuery(spokenMessage);
+
+  if (specificMovementQuery) {
+    if (
+      /(dessa categoria|desse categoria|da categoria|de categoria)/.test(normalized) &&
+      !specificMovementQuery.category &&
+      !specificMovementQuery.searchTerm
+    ) {
+      return {
+        kind: "unsupported_or_unknown",
+        reply: "Qual categoria vocÃª quer consultar?",
+      };
+    }
+
+    return {
+      action: "specific_movement_query",
+      kind: state.status === "idle" ? "read_query" : "interruption",
+      specificMovementQuery,
+    };
+  }
 
   if (latestTransactionTarget) {
     return {

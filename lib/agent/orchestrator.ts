@@ -18,6 +18,7 @@ import {
   executeQuickPeriodQuery,
   executeReadAction,
   executeReminderPreferencesUpdate,
+  executeSpecificMovementQuery,
   executeTransactionEdit,
   executeTransactionDeletion,
   formatMovementForDeletion,
@@ -322,6 +323,15 @@ async function handleDeterministicClassification({
 
   if (result.action === "quick_period_query" && result.periodQuery) {
     const reply = await executeQuickPeriodQuery(context, result.periodQuery);
+
+    return {
+      reply: appendResumeHint(reply, currentState),
+      state: currentState,
+    };
+  }
+
+  if (result.action === "specific_movement_query" && result.specificMovementQuery) {
+    const reply = await executeSpecificMovementQuery(context, result.specificMovementQuery);
 
     return {
       reply: appendResumeHint(reply, currentState),
@@ -1975,6 +1985,7 @@ function isReadAction(actionId: AgentActionId) {
     "obligations_status",
     "recent_transactions",
     "latest_transaction",
+    "specific_movement_query",
     "reminder_preferences_status",
     "export_transactions",
     "profile_overview",
