@@ -9,6 +9,7 @@ export type CsvMovement = {
   amount: number;
   category: string;
   description: string;
+  occurred_at?: string;
   occurred_on: string;
   type: string;
 };
@@ -22,6 +23,7 @@ type MovementsCsvExportButtonProps = {
 
 const columns = [
   { header: "data", value: (movement: CsvMovement) => movement.occurred_on },
+  { header: "data_hora", value: (movement: CsvMovement) => movement.occurred_at ?? "" },
   { header: "tipo", value: (movement: CsvMovement) => movement.type },
   { header: "descrição", value: (movement: CsvMovement) => movement.description },
   { header: "categoria", value: (movement: CsvMovement) => movement.category },

@@ -19,12 +19,13 @@ import { cn } from "@/lib/utils";
 import type { Movimentacao } from "@/types/database";
 
 type MovimentacoesManagerProps = {
+  initialBalance: number;
   movements: MovementItem[];
 };
 
 type MovementItem = Pick<
   Movimentacao,
-  "amount" | "category" | "description" | "id" | "occurred_on" | "type"
+  "amount" | "category" | "description" | "id" | "occurred_at" | "occurred_on" | "type"
 >;
 
 type FormState = {
@@ -49,15 +50,15 @@ const emptyForm: FormState = {
 };
 
 const categories = [
-  "Cliente",
-  "Serviço",
-  "Venda",
-  "Material",
-  "Ferramenta",
-  "Imposto",
-  "Transporte",
-  "Alimentação",
-  "Outro",
+  "CLIENTE",
+  "SERVIÇO",
+  "VENDA",
+  "MATERIAL",
+  "FERRAMENTA",
+  "IMPOSTO",
+  "TRANSPORTE",
+  "ALIMENTAÇÃO",
+  "OUTRO",
 ];
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -71,6 +72,14 @@ function toCurrency(value: number) {
 
 function toDate(value: string) {
   return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
+}
+
+function toDateTime(value: string) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "America/Sao_Paulo",
+  }).format(new Date(value));
 }
 
 function toDateInputValue(date: Date) {
@@ -293,7 +302,7 @@ function MovementFields({
   );
 }
 
-export function MovimentacoesManager({ movements }: MovimentacoesManagerProps) {
+export function MovimentacoesManager({ initialBalance, movements }: MovimentacoesManagerProps) {
   const [createForm, setCreateForm] = useState<FormState>(emptyForm);
   const [editForm, setEditForm] = useState<FormState>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -319,12 +328,13 @@ export function MovimentacoesManager({ movements }: MovimentacoesManagerProps) {
     );
   }, [movements]);
 
-  const balance = summary.income - summary.expense;
+  const safeInitialBalance = Number.isFinite(initialBalance) ? initialBalance : 0;
+  const balance = safeInitialBalance + summary.income - summary.expense;
   const categoryOptions = useMemo(() => {
-    const knownCategories = new Set(categories);
+    const knownCategories = new Set(categories.map(normalizeSearchValue));
     const extraCategories = movements
       .map((movement) => movement.category)
-      .filter((category) => category && !knownCategories.has(category))
+      .filter((category) => category && !knownCategories.has(normalizeSearchValue(category)))
       .sort((a, b) => a.localeCompare(b, "pt-BR"));
 
     return [...categories, ...extraCategories];
@@ -484,7 +494,7 @@ export function MovimentacoesManager({ movements }: MovimentacoesManagerProps) {
         />
         <SummaryCard
           icon={<CalendarDays className="h-4 w-4" />}
-          label="Saldo registrado"
+          label="Saldo atual"
           tone={balance >= 0 ? "balance" : "expense"}
           value={toCurrency(balance)}
         />
@@ -681,7 +691,7 @@ export function MovimentacoesManager({ movements }: MovimentacoesManagerProps) {
                             </Badge>
                             <span className="inline-flex items-center gap-1 text-xs font-medium text-neutral-500">
                               <CalendarDays className="h-3.5 w-3.5" />
-                              {toDate(movement.occurred_on)}
+                              {movement.occurred_at ? toDateTime(movement.occurred_at) : toDate(movement.occurred_on)}
                             </span>
                           </div>
                           <p className="mt-1.5 truncate text-sm font-semibold text-neutral-950 sm:text-base">

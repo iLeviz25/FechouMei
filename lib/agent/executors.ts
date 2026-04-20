@@ -19,6 +19,11 @@ import {
   toCurrency,
 } from "@/lib/agent/utils";
 import {
+  buildOccurredAtFromDateInput,
+  normalizeMovementCategory,
+  normalizeMovementDescription,
+} from "@/lib/movements/normalization";
+import {
   buildQuickPeriodReply,
   buildWeeklyExtremeReply,
   filterMovementsByRange,
@@ -62,6 +67,10 @@ type AgentDateRange = {
   start: string;
 };
 
+type BalanceProfileRow = {
+  initial_balance: number | string | null;
+};
+
 export async function executeMovementRegistration(
   context: AgentExecutionContext,
   draft: Required<AgentMovementDraft>,
@@ -70,8 +79,9 @@ export async function executeMovementRegistration(
     .from("movimentacoes")
     .insert({
       amount: draft.amount,
-      category: draft.category,
-      description: draft.description,
+      category: normalizeMovementCategory(draft.category),
+      description: normalizeMovementDescription(draft.description),
+      occurred_at: buildOccurredAtFromDateInput(draft.occurred_on),
       occurred_on: draft.occurred_on,
       type: draft.type,
       user_id: context.userId,
@@ -102,8 +112,9 @@ export async function executeMovementBatchRegistration(
     .insert(
       drafts.map((draft) => ({
         amount: draft.amount,
-        category: draft.category,
-        description: draft.description,
+        category: normalizeMovementCategory(draft.category),
+        description: normalizeMovementDescription(draft.description),
+        occurred_at: buildOccurredAtFromDateInput(draft.occurred_on),
         occurred_on: draft.occurred_on,
         type: draft.type,
         user_id: context.userId,
@@ -235,6 +246,7 @@ export async function executeTransactionEdit(
     amount?: number;
     category?: string;
     description?: string;
+    occurred_at?: string;
     occurred_on?: string;
   } = {};
 
@@ -243,15 +255,16 @@ export async function executeTransactionEdit(
   }
 
   if (edit.category?.trim()) {
-    update.category = edit.category.trim();
+    update.category = normalizeMovementCategory(edit.category);
   }
 
   if (edit.description?.trim()) {
-    update.description = edit.description.trim();
+    update.description = normalizeMovementDescription(edit.description);
   }
 
   if (edit.occurred_on?.trim()) {
     update.occurred_on = edit.occurred_on.trim();
+    update.occurred_at = buildOccurredAtFromDateInput(edit.occurred_on.trim());
   }
 
   if (Object.keys(update).length === 0) {
@@ -292,7 +305,7 @@ function getTransactionEditSuccessReply(
   targetKind: TransactionTargetKind,
 ) {
   const targetLabel = getEditTargetLabel(targetKind);
-  const changedFields = Object.keys(edit);
+  const changedFields = Object.keys(edit).filter((field) => field !== "occurred_at");
 
   if (changedFields.length === 1 && typeof edit.amount === "number") {
     return `Pronto, mudei o valor da sua ${targetLabel} de ${toCurrency(previous.amount)} para ${toCurrency(updated.amount)}.`;
@@ -319,6 +332,7 @@ function assertTransactionEditPersisted(
     amount?: number;
     category?: string;
     description?: string;
+    occurred_at?: string;
     occurred_on?: string;
   },
 ) {
@@ -462,6 +476,31 @@ export async function executeReminderPreferencesUpdate(
   return update.enabled
     ? "Pronto, ativei seus lembretes no app. Ainda não há envio externo nesta etapa."
     : "Pronto, desativei seus lembretes.";
+}
+
+export async function executeInitialBalanceUpdate(context: AgentExecutionContext, amount: number) {
+  if (!Number.isFinite(amount) || amount < 0) {
+    return "Me diga um valor válido para o saldo inicial.";
+  }
+
+  const normalizedAmount = Math.round(amount * 100) / 100;
+  const { error } = await context.supabase
+    .from("profiles")
+    .update({
+      initial_balance: normalizedAmount,
+    })
+    .eq("id", context.userId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/app/dashboard");
+  revalidatePath("/app/fechamento-mensal");
+  revalidatePath("/app/movimentacoes");
+  revalidatePath("/app/configuracoes");
+
+  return `Pronto, defini seu saldo inicial em ${toCurrency(normalizedAmount)}. Isso não entrou como receita nem afeta o limite do MEI.`;
 }
 
 export async function executeReadAction(context: AgentExecutionContext, actionId: AgentActionId) {
@@ -636,23 +675,35 @@ async function getMonthlySummary({ supabase, userId }: AgentExecutionContext) {
   const totals = summarizeMovements(data ?? []);
   const balance = totals.income - totals.expense;
 
-  return `Em ${month.label}: entradas ${toCurrency(totals.income)}, despesas ${toCurrency(totals.expense)} e saldo ${toCurrency(balance)}.`;
+  return `Em ${month.label}: entradas ${toCurrency(totals.income)}, despesas ${toCurrency(totals.expense)} e resultado do mês ${toCurrency(balance)}.`;
 }
 
 async function getDashboardOverview(context: AgentExecutionContext) {
   const month = getCurrentMonthRange();
   const year = getCurrentYearRange();
-  const { data, error } = await context.supabase
-    .from("movimentacoes")
-    .select("type, amount, occurred_on")
-    .gte("occurred_on", year.start)
-    .lte("occurred_on", year.end);
+  const [yearResult, allResult, initialBalance] = await Promise.all([
+    context.supabase
+      .from("movimentacoes")
+      .select("type, amount, occurred_on")
+      .eq("user_id", context.userId)
+      .gte("occurred_on", year.start)
+      .lte("occurred_on", year.end),
+    context.supabase
+      .from("movimentacoes")
+      .select("type, amount")
+      .eq("user_id", context.userId),
+    getInitialBalance(context),
+  ]);
 
-  if (error) {
-    throw new Error(error.message);
+  if (yearResult.error) {
+    throw new Error(yearResult.error.message);
   }
 
-  const totals = (data ?? []).reduce(
+  if (allResult.error) {
+    throw new Error(allResult.error.message);
+  }
+
+  const totals = (yearResult.data ?? []).reduce(
     (acc, movement) => {
       const isCurrentMonth = movement.occurred_on >= month.start && movement.occurred_on <= month.end;
 
@@ -671,16 +722,18 @@ async function getDashboardOverview(context: AgentExecutionContext) {
     { annualIncome: 0, monthlyExpense: 0, monthlyIncome: 0 },
   );
 
-  const balance = totals.monthlyIncome - totals.monthlyExpense;
+  const monthBalance = totals.monthlyIncome - totals.monthlyExpense;
+  const cashBalance = getCashBalance(initialBalance, allResult.data ?? []);
 
-  return `Visão geral: ${toCurrency(totals.monthlyIncome)} em entradas, ${toCurrency(totals.monthlyExpense)} em despesas, saldo ${toCurrency(balance)} e faturamento anual ${toCurrency(totals.annualIncome)}.`;
+  return `Visão geral: ${toCurrency(totals.monthlyIncome)} em entradas do mês, ${toCurrency(totals.monthlyExpense)} em despesas do mês, resultado do mês ${toCurrency(monthBalance)}, saldo atual ${toCurrency(cashBalance)} e faturamento anual ${toCurrency(totals.annualIncome)}.`;
 }
 
-async function getMeiLimit({ supabase }: AgentExecutionContext) {
+async function getMeiLimit({ supabase, userId }: AgentExecutionContext) {
   const year = getCurrentYearRange();
   const { data, error } = await supabase
     .from("movimentacoes")
     .select("amount")
+    .eq("user_id", userId)
     .eq("type", "entrada")
     .gte("occurred_on", year.start)
     .lte("occurred_on", year.end);
@@ -696,11 +749,12 @@ async function getMeiLimit({ supabase }: AgentExecutionContext) {
   return `Você usou ${usedPercent.toFixed(1).replace(".", ",")}% do limite do MEI: ${toCurrency(annualIncome)} no ano e ${toCurrency(remaining)} restantes.`;
 }
 
-async function getObligationsStatus({ supabase }: AgentExecutionContext) {
+async function getObligationsStatus({ supabase, userId }: AgentExecutionContext) {
   const month = getCurrentMonthRange();
   const { data, error } = await supabase
     .from("obrigacoes_checklist")
     .select("item_key, done")
+    .eq("user_id", userId)
     .eq("month", month.key);
 
   if (error) {
@@ -719,10 +773,11 @@ async function getObligationsStatus({ supabase }: AgentExecutionContext) {
   return `Pendências principais: ${pending.slice(0, 4).join(", ")}${pending.length > 4 ? "..." : "."}`;
 }
 
-async function getRecentTransactions({ supabase }: AgentExecutionContext) {
+async function getRecentTransactions({ supabase, userId }: AgentExecutionContext) {
   const { data, error } = await supabase
     .from("movimentacoes")
     .select("type, description, amount, occurred_on, category")
+    .eq("user_id", userId)
     .order("occurred_on", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(5);
@@ -831,4 +886,40 @@ function summarizeMovements(movements: Array<{ amount: number; type: "entrada" |
     },
     { expense: 0, income: 0 },
   );
+}
+
+async function getInitialBalance(context: AgentExecutionContext) {
+  const { data, error } = await context.supabase
+    .from("profiles")
+    .select("initial_balance")
+    .eq("id", context.userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return normalizeInitialBalance(data);
+}
+
+function normalizeInitialBalance(profile: BalanceProfileRow | null) {
+  const value = Number(profile?.initial_balance ?? 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function getCashBalance(
+  initialBalance: number,
+  movements: Array<{ amount: number; type: "entrada" | "despesa" }>,
+) {
+  return movements.reduce((balance, movement) => {
+    if (movement.type === "entrada") {
+      return balance + movement.amount;
+    }
+
+    if (movement.type === "despesa") {
+      return balance - movement.amount;
+    }
+
+    return balance;
+  }, initialBalance);
 }

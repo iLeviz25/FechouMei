@@ -12,6 +12,7 @@ export type AgentActionId =
   | "mark_obligation"
   | "reminder_preferences_status"
   | "update_reminder_preferences"
+  | "set_initial_balance"
   | "edit_transaction"
   | "delete_transaction"
   | "quick_period_query"

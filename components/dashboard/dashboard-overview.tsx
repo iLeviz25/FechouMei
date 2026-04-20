@@ -19,12 +19,13 @@ import type { Movimentacao } from "@/types/database";
 
 type RecentMovement = Pick<
   Movimentacao,
-  "amount" | "description" | "id" | "occurred_on" | "type"
+  "amount" | "description" | "id" | "occurred_at" | "occurred_on" | "type"
 >;
 
 type DashboardOverviewProps = {
   annualIncome: number;
   checklistDoneCount: number;
+  currentBalance: number;
   dasDone: boolean;
   monthlyIncome: number;
   monthlyExpense: number;
@@ -48,9 +49,18 @@ function toDate(value: string) {
   return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
 }
 
+function toDateTime(value: string) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "America/Sao_Paulo",
+  }).format(new Date(value));
+}
+
 export function DashboardOverview({
   annualIncome,
   checklistDoneCount,
+  currentBalance,
   dasDone,
   monthlyExpense,
   monthlyIncome,
@@ -98,13 +108,13 @@ export function DashboardOverview({
       valueTone: "text-red-700",
     },
     {
-      bar: balance >= 0 ? "bg-neutral-800" : "bg-red-500",
-      detail: balance >= 0 ? "Entradas menos despesas" : "Despesas acima das entradas",
+      bar: currentBalance >= 0 ? "bg-neutral-800" : "bg-red-500",
+      detail: "Saldo inicial mais movimentações",
       icon: Wallet,
-      iconTone: balance >= 0 ? "border-neutral-200 bg-neutral-50 text-neutral-800" : "border-red-100 bg-red-50 text-red-700",
-      title: "Saldo do mês",
-      value: toCurrency(balance),
-      valueTone: balance >= 0 ? "text-neutral-950" : "text-red-700",
+      iconTone: currentBalance >= 0 ? "border-neutral-200 bg-neutral-50 text-neutral-800" : "border-red-100 bg-red-50 text-red-700",
+      title: "Saldo atual",
+      value: toCurrency(currentBalance),
+      valueTone: currentBalance >= 0 ? "text-neutral-950" : "text-red-700",
     },
     {
       bar: "bg-amber-500",
@@ -294,7 +304,7 @@ export function DashboardOverview({
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-neutral-950">{movement.description}</p>
                         <p className="mt-1 text-xs font-medium text-neutral-500">
-                          {isIncome ? "Entrada" : "Despesa"} · {toDate(movement.occurred_on)}
+                          {isIncome ? "Entrada" : "Despesa"} · {movement.occurred_at ? toDateTime(movement.occurred_at) : toDate(movement.occurred_on)}
                         </p>
                       </div>
                       <p

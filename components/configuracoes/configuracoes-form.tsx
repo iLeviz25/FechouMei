@@ -25,10 +25,10 @@ import { cn } from "@/lib/utils";
 import type { Profile } from "@/types/database";
 
 type ConfiguracoesFormProps = {
-  profile: Pick<Profile, "full_name" | "work_type" | "business_mode" | "main_category" | "main_goal"> | null;
+  profile: Pick<Profile, "full_name" | "work_type" | "business_mode" | "main_category" | "main_goal" | "initial_balance"> | null;
 };
 
-type EditableField = "fullName" | "businessMode" | "workType" | "mainCategory" | "mainGoal";
+type EditableField = "fullName" | "businessMode" | "workType" | "mainCategory" | "mainGoal" | "initialBalance";
 
 type ProfileValues = {
   fullName: string;
@@ -37,6 +37,7 @@ type ProfileValues = {
   businessMode: string;
   mainCategory: string;
   customMainCategory: string;
+  initialBalance: string;
   mainGoal: string;
 };
 
@@ -132,6 +133,7 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
           business_mode: draft.businessMode,
           main_category: resolveOtherValue(draft.mainCategory, draft.customMainCategory),
           main_goal: draft.mainGoal,
+          initial_balance: parseOptionalAmount(draft.initialBalance) ?? 0,
           onboarding_completed: true,
           updated_at: new Date().toISOString(),
         },
@@ -372,6 +374,27 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
               onSave={saveProfileField}
               value={values.mainGoal || "Não informado"}
             />
+            <EditableProfileRow
+              description="Base de caixa usada para calcular o saldo atual, sem entrar como receita."
+              editor={
+                <OtherInput
+                  inputMode="decimal"
+                  label="Saldo inicial"
+                  onBlur={() => updateDraft({ initialBalance: formatOptionalAmount(parseOptionalAmount(draft.initialBalance)) })}
+                  onChange={(initialBalance) => updateDraft({ initialBalance: normalizeAmountInput(initialBalance) })}
+                  placeholder="Ex.: 2000,00"
+                  value={draft.initialBalance}
+                />
+              }
+              field="initialBalance"
+              isEditing={editingField === "initialBalance"}
+              isSaving={isSavingProfile}
+              label="Saldo inicial"
+              onCancel={cancelEdit}
+              onEdit={beginEdit}
+              onSave={saveProfileField}
+              value={formatInitialBalanceLabel(values.initialBalance)}
+            />
           </CardContent>
         </Card>
 
@@ -546,6 +569,7 @@ function getInitialProfileValues(
     customMainCategory: getCustomValue(profile?.main_category, categoryOptions),
     customWorkType: getCustomValue(profile?.work_type, workTypeOptions),
     fullName: profile?.full_name ?? "",
+    initialBalance: formatOptionalAmount(profile?.initial_balance),
     mainCategory: getKnownOrOther(profile?.main_category, categoryOptions, categoryOptions[0]),
     mainGoal: profile?.main_goal ?? goalOptions[0],
     workType: getKnownOrOther(profile?.work_type, workTypeOptions, workTypeOptions[0]),
@@ -563,6 +587,10 @@ function validateProfileDraft(values: ProfileValues, field: EditableField) {
 
   if (field === "mainCategory" && values.mainCategory === "Outro" && !values.customMainCategory.trim()) {
     return "Escreva qual é a sua categoria principal.";
+  }
+
+  if (field === "initialBalance" && parseOptionalAmount(values.initialBalance) === null) {
+    return "Use um saldo inicial válido, como 2000 ou 1200,50.";
   }
 
   return null;
@@ -712,12 +740,16 @@ function OptionGroup({
 }
 
 function OtherInput({
+  inputMode,
   label,
+  onBlur,
   onChange,
   placeholder,
   value,
 }: {
+  inputMode?: "text" | "decimal";
   label: string;
+  onBlur?: () => void;
   onChange: (value: string) => void;
   placeholder: string;
   value: string;
@@ -727,6 +759,8 @@ function OtherInput({
       <span className="text-sm font-semibold text-emerald-900">{label}</span>
       <Input
         className="h-11 border-emerald-200 bg-white focus-visible:ring-emerald-200"
+        inputMode={inputMode}
+        onBlur={onBlur}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         value={value}
@@ -849,4 +883,57 @@ function getCustomValue(value: string | null | undefined, options: string[]) {
 
 function resolveOtherValue(value: string, customValue: string) {
   return value === "Outro" ? customValue.trim() : value;
+}
+
+function normalizeAmountInput(value: string) {
+  const cleaned = value.replace(/[^\d,.]/g, "");
+  const hasComma = cleaned.includes(",");
+  const separator = hasComma ? "," : ".";
+  const parts = cleaned.split(hasComma ? "," : ".");
+
+  if (parts.length === 1) {
+    return parts[0];
+  }
+
+  const integerPart = parts[0];
+  const decimalPart = parts.slice(1).join("").slice(0, 2);
+  return `${integerPart}${separator}${decimalPart}`;
+}
+
+function parseOptionalAmount(value: string | number | null | undefined) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value >= 0 ? value : null;
+  }
+
+  const trimmed = String(value ?? "").trim();
+
+  if (!trimmed) {
+    return 0;
+  }
+
+  if (!/^\d+([,.]\d{1,2})?$/.test(trimmed)) {
+    return null;
+  }
+
+  const amount = Number(trimmed.replace(",", "."));
+  return Number.isFinite(amount) && amount >= 0 ? Math.round(amount * 100) / 100 : null;
+}
+
+function formatOptionalAmount(value: string | number | null | undefined) {
+  const amount = parseOptionalAmount(value);
+
+  if (!amount) {
+    return "";
+  }
+
+  return amount.toFixed(2).replace(".", ",");
+}
+
+function formatInitialBalanceLabel(value: string) {
+  const amount = parseOptionalAmount(value) ?? 0;
+
+  return new Intl.NumberFormat("pt-BR", {
+    currency: "BRL",
+    style: "currency",
+  }).format(amount);
 }

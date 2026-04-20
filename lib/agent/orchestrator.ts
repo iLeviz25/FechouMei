@@ -11,6 +11,7 @@ import { getActionDefinition, implementedAgentActions } from "@/lib/agent/catalo
 import { getReliableMovementMissingFields } from "@/lib/agent/draft-sufficiency";
 import {
   type AgentExecutionContext,
+  executeInitialBalanceUpdate,
   executeMarkObligation,
   executeMovementBatchRegistration,
   executeMovementRegistration,
@@ -436,6 +437,43 @@ async function handleDeterministicClassification({
         error,
         reply: "Não consegui atualizar seus lembretes agora. Tente novamente em instantes.",
         summary: "Falha ao atualizar preferências de lembrete.",
+      });
+    }
+  }
+
+  if (result.action === "set_initial_balance") {
+    if (currentState.status !== "idle") {
+      return {
+        reply: "Você já tem algo pendente. Cancele antes de mudar o saldo inicial.",
+        state: currentState,
+      };
+    }
+
+    if (typeof result.initialBalanceAmount !== "number") {
+      return {
+        reply: "Qual valor você quer usar como saldo inicial?",
+        state: currentState,
+      };
+    }
+
+    try {
+      const reply = await executeInitialBalanceUpdate(context, result.initialBalanceAmount);
+
+      return {
+        actionTrace: makeActionTrace("set_initial_balance", "executed", {
+          confirmation: "not_required",
+          summary: reply,
+        }),
+        reply,
+        state: emptyAgentState(),
+      };
+    } catch (error) {
+      return makeWriteFailureResult({
+        action: "set_initial_balance",
+        confirmation: "not_required",
+        error,
+        reply: "Não consegui atualizar seu saldo inicial agora. Tente novamente em instantes.",
+        summary: "Falha ao atualizar saldo inicial.",
       });
     }
   }
@@ -1950,6 +1988,7 @@ function isWriteAction(actionId: AgentActionId) {
     "register_movements_batch",
     "mark_obligation",
     "update_reminder_preferences",
+    "set_initial_balance",
     "edit_transaction",
     "delete_transaction",
   ].includes(actionId);

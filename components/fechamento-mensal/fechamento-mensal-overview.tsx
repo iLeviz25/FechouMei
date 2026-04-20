@@ -11,13 +11,14 @@ import type { Movimentacao } from "@/types/database";
 
 type MonthlyMovement = Pick<
   Movimentacao,
-  "amount" | "category" | "description" | "id" | "occurred_on" | "type"
+  "amount" | "category" | "description" | "id" | "occurred_at" | "occurred_on" | "type"
 >;
 
 type FechamentoMensalOverviewProps = {
   monthLabel: string;
   monthValue: string;
   yearValue: string;
+  balanceUntilMonth: number;
   monthlyExpense: number;
   monthlyIncome: number;
   previousMonthlyExpense: number;
@@ -40,7 +41,16 @@ function toDate(value: string) {
   return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
 }
 
+function toDateTime(value: string) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "America/Sao_Paulo",
+  }).format(new Date(value));
+}
+
 export function FechamentoMensalOverview({
+  balanceUntilMonth,
   monthLabel,
   monthValue,
   yearValue,
@@ -94,18 +104,18 @@ export function FechamentoMensalOverview({
       value: toCurrency(monthlyExpense),
     },
     {
-      detail: balance >= 0 ? "Entradas menos despesas" : "Despesas acima das entradas",
+      detail: balance >= 0 ? "Entradas menos despesas, sem saldo inicial" : "Despesas acima das entradas",
       icon: Wallet,
-      label: "Saldo do mês",
+      label: "Resultado do mês",
       tone: balance >= 0 ? ("balance" as const) : ("expense" as const),
       value: toCurrency(balance),
     },
     {
-      detail: "Entradas e despesas deste mês",
+      detail: "Saldo inicial mais registros até este mês",
       icon: ListChecks,
-      label: "Registros do mês",
-      tone: "neutral" as const,
-      value: String(movements.length),
+      label: "Saldo estimado",
+      tone: balanceUntilMonth >= 0 ? ("balance" as const) : ("expense" as const),
+      value: toCurrency(balanceUntilMonth),
     },
   ];
 
@@ -368,7 +378,7 @@ function MovementRow({ movement }: { movement: MonthlyMovement }) {
             </Badge>
             <span className="inline-flex items-center gap-1 text-xs font-medium text-neutral-500">
               <CalendarDays className="h-3.5 w-3.5" />
-              {toDate(movement.occurred_on)}
+              {movement.occurred_at ? toDateTime(movement.occurred_at) : toDate(movement.occurred_on)}
             </span>
           </div>
           <p className="mt-1 truncate text-sm font-semibold text-neutral-950">{movement.description}</p>

@@ -14,15 +14,30 @@ export default function MovimentacoesPage() {
 async function MovimentacoesData() {
   const supabase = await createClient();
 
-  const { data: movements, error } = await supabase
-    .from("movimentacoes")
-    .select("id, type, description, amount, occurred_on, category")
-    .order("occurred_on", { ascending: false })
-    .order("created_at", { ascending: false });
+  const [movementsResult, profileResult] = await Promise.all([
+    supabase
+      .from("movimentacoes")
+      .select("id, type, description, amount, occurred_on, occurred_at, category")
+      .order("occurred_at", { ascending: false })
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("profiles")
+      .select("initial_balance")
+      .maybeSingle(),
+  ]);
 
-  if (error) {
-    throw new Error(`Erro ao carregar movimentações: ${error.message}`);
+  if (movementsResult.error) {
+    throw new Error(`Erro ao carregar movimentações: ${movementsResult.error.message}`);
   }
 
-  return <MovimentacoesManager movements={movements ?? []} />;
+  if (profileResult.error) {
+    throw new Error(`Erro ao carregar saldo inicial: ${profileResult.error.message}`);
+  }
+
+  return (
+    <MovimentacoesManager
+      initialBalance={Number(profileResult.data?.initial_balance ?? 0)}
+      movements={movementsResult.data ?? []}
+    />
+  );
 }

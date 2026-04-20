@@ -14,6 +14,7 @@ export const agentActionCatalog: AgentActionDefinition[] = [
   { id: "mark_obligation", label: "Marcar obrigacao", status: "implemented", changesData: true, description: "Marca uma obrigacao do checklist como concluida." },
   { id: "reminder_preferences_status", label: "Consultar lembretes", status: "implemented", changesData: false, description: "Consulta as preferencias simples de lembrete." },
   { id: "update_reminder_preferences", label: "Atualizar lembretes", status: "implemented", changesData: true, description: "Ativa ou desativa preferencias simples de lembrete." },
+  { id: "set_initial_balance", label: "Definir saldo inicial", status: "implemented", changesData: true, description: "Atualiza a base inicial de caixa do usuario sem criar movimentacao." },
   { id: "edit_transaction", label: "Editar movimentacao", status: "implemented", changesData: true, description: "Edita rapidamente a ultima movimentacao, entrada ou despesa." },
   { id: "delete_transaction", label: "Excluir movimentacao", status: "implemented", changesData: true, description: "Exclui a ultima movimentacao apos confirmacao." },
   { id: "export_transactions", label: "Exportar dados", status: "planned", changesData: false, description: "Exporta movimentacoes em CSV pelo agente." },

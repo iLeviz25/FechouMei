@@ -1,6 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  buildOccurredAtFromDateInput,
+  normalizeMovementCategory,
+  normalizeMovementDescription,
+} from "@/lib/movements/normalization";
 import { createClient } from "@/lib/supabase/server";
 
 export type MovementActionResult = {
@@ -13,6 +18,7 @@ type MovementInput = {
   description: string;
   amount: number;
   occurred_on: string;
+  occurred_at: string;
   category: string;
 };
 
@@ -49,7 +55,14 @@ function readMovementInput(formData: FormData): MovementInput {
     throw new Error("Informe uma categoria.");
   }
 
-  return { type, description, amount, occurred_on, category };
+  return {
+    type,
+    description: normalizeMovementDescription(description),
+    amount,
+    occurred_on,
+    occurred_at: buildOccurredAtFromDateInput(occurred_on),
+    category: normalizeMovementCategory(category),
+  };
 }
 
 async function getUserId() {

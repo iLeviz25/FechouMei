@@ -63,6 +63,16 @@ export function RealtimeAppRefresh({ userId }: RealtimeAppRefreshProps) {
         },
         scheduleRefresh,
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          filter: `id=eq.${userId}`,
+          schema: "public",
+          table: "profiles",
+        },
+        scheduleRefresh,
+      )
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
           console.warn("Atualizacao em tempo real do app ficou indisponivel.", {

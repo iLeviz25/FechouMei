@@ -30,7 +30,7 @@ async function DashboardData() {
   const monthEndValue = toDateInputValue(monthEnd);
   const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-  const [yearResult, recentResult, checklistResult] = await Promise.all([
+  const [yearResult, allMovementsResult, recentResult, checklistResult, profileResult] = await Promise.all([
     supabase
       .from("movimentacoes")
       .select("type, amount, occurred_on")
@@ -38,18 +38,29 @@ async function DashboardData() {
       .lte("occurred_on", toDateInputValue(yearEnd)),
     supabase
       .from("movimentacoes")
-      .select("id, type, description, amount, occurred_on")
-      .order("occurred_on", { ascending: false })
+      .select("type, amount"),
+    supabase
+      .from("movimentacoes")
+      .select("id, type, description, amount, occurred_on, occurred_at")
+      .order("occurred_at", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(4),
     supabase
       .from("obrigacoes_checklist")
       .select("item_key, done")
       .eq("month", monthKey),
+    supabase
+      .from("profiles")
+      .select("initial_balance")
+      .maybeSingle(),
   ]);
 
   if (yearResult.error) {
     throw new Error(`Erro ao carregar resumo anual: ${yearResult.error.message}`);
+  }
+
+  if (allMovementsResult.error) {
+    throw new Error(`Erro ao carregar saldo atual: ${allMovementsResult.error.message}`);
   }
 
   if (recentResult.error) {
@@ -58,6 +69,10 @@ async function DashboardData() {
 
   if (checklistResult.error) {
     throw new Error(`Erro ao carregar obrigações do mês: ${checklistResult.error.message}`);
+  }
+
+  if (profileResult.error) {
+    throw new Error(`Erro ao carregar saldo inicial: ${profileResult.error.message}`);
   }
 
   const totals = (yearResult.data ?? []).reduce(
@@ -76,10 +91,23 @@ async function DashboardData() {
     },
     { annualIncome: 0, monthlyExpense: 0, monthlyIncome: 0 },
   );
+  const initialBalance = Number(profileResult.data?.initial_balance ?? 0);
+  const currentBalance = (allMovementsResult.data ?? []).reduce((balance, movement) => {
+    if (movement.type === "entrada") {
+      return balance + movement.amount;
+    }
+
+    if (movement.type === "despesa") {
+      return balance - movement.amount;
+    }
+
+    return balance;
+  }, Number.isFinite(initialBalance) ? initialBalance : 0);
 
   return (
     <DashboardOverview
       checklistDoneCount={(checklistResult.data ?? []).filter((item) => item.done).length}
+      currentBalance={currentBalance}
       dasDone={(checklistResult.data ?? []).some(
         (item) => item.item_key === "pagar-das" && item.done,
       )}

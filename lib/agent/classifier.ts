@@ -26,6 +26,7 @@ export type DeterministicClassification = {
   draft?: AgentMovementDraft;
   drafts?: AgentMovementDraft[];
   editDraft?: AgentTransactionEditDraft;
+  initialBalanceAmount?: number;
   kind: AgentMessageKind;
   missingFields?: MovementField[];
   obligationKey?: string;
@@ -120,6 +121,23 @@ export function classifyDeterministically(
       action: "update_reminder_preferences",
       kind: state.status === "idle" ? "write_action" : "interruption",
       reminderUpdate,
+    };
+  }
+
+  const initialBalanceUpdate = getInitialBalanceUpdate(spokenMessage, normalized);
+
+  if (initialBalanceUpdate) {
+    if (initialBalanceUpdate.amount !== null) {
+      return {
+        action: "set_initial_balance",
+        initialBalanceAmount: initialBalanceUpdate.amount,
+        kind: state.status === "idle" ? "write_action" : "interruption",
+      };
+    }
+
+    return {
+      kind: "unsupported_or_unknown",
+      reply: "Qual valor você quer usar como saldo inicial?",
     };
   }
 
@@ -575,6 +593,22 @@ function getReminderUpdate(normalized: string): AgentReminderPreferenceUpdate | 
   }
 
   return null;
+}
+
+function getInitialBalanceUpdate(message: string, normalized: string): { amount: number | null } | null {
+  const hasInitialBalanceCue =
+    /(saldo inicial|caixa inicial|base inicial|saldo de partida|caixa de partida)/.test(normalized) ||
+    /(comecei|comecar|começar|inicio|iniciei).*(com|saldo|caixa)/.test(normalized) ||
+    /(definir|define|atualizar|atualiza|ajustar|ajusta|colocar|coloca|registrar|registra).*(saldo|caixa)/.test(normalized) ||
+    /\bmeu saldo (e|eh|é|para|pra)\b/.test(normalized);
+
+  if (!hasInitialBalanceCue) {
+    return null;
+  }
+
+  return {
+    amount: parseAmountFromText(message),
+  };
 }
 
 function getReadAction(normalized: string): AgentActionId | null {

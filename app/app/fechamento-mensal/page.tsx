@@ -38,19 +38,27 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
   const previousMonthStartValue = toDateInputValue(previousMonthStart);
   const previousMonthEndValue = toDateInputValue(previousMonthEnd);
 
-  const [movementsResult, previousMonthResult] = await Promise.all([
+  const [movementsResult, previousMonthResult, balanceUntilMonthResult, profileResult] = await Promise.all([
     supabase
       .from("movimentacoes")
-      .select("id, type, description, amount, occurred_on, category")
+      .select("id, type, description, amount, occurred_on, occurred_at, category")
       .gte("occurred_on", monthStartValue)
       .lte("occurred_on", monthEndValue)
-      .order("occurred_on", { ascending: false })
+      .order("occurred_at", { ascending: false })
       .order("created_at", { ascending: false }),
     supabase
       .from("movimentacoes")
       .select("type, amount")
       .gte("occurred_on", previousMonthStartValue)
       .lte("occurred_on", previousMonthEndValue),
+    supabase
+      .from("movimentacoes")
+      .select("type, amount")
+      .lte("occurred_on", monthEndValue),
+    supabase
+      .from("profiles")
+      .select("initial_balance")
+      .maybeSingle(),
   ]);
 
   if (movementsResult.error) {
@@ -59,6 +67,14 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
 
   if (previousMonthResult.error) {
     throw new Error(`Erro ao carregar comparação do mês anterior: ${previousMonthResult.error.message}`);
+  }
+
+  if (balanceUntilMonthResult.error) {
+    throw new Error(`Erro ao carregar saldo do fechamento: ${balanceUntilMonthResult.error.message}`);
+  }
+
+  if (profileResult.error) {
+    throw new Error(`Erro ao carregar saldo inicial: ${profileResult.error.message}`);
   }
 
   const movements = movementsResult.data ?? [];
@@ -85,6 +101,18 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
     },
     { monthlyExpense: 0, monthlyIncome: 0 },
   );
+  const initialBalance = Number(profileResult.data?.initial_balance ?? 0);
+  const balanceUntilMonth = (balanceUntilMonthResult.data ?? []).reduce((balance, movement) => {
+    if (movement.type === "entrada") {
+      return balance + movement.amount;
+    }
+
+    if (movement.type === "despesa") {
+      return balance - movement.amount;
+    }
+
+    return balance;
+  }, Number.isFinite(initialBalance) ? initialBalance : 0);
 
   const monthLabel = formatMonthLabel(selectedMonth);
   const nextMonth = addMonths(selectedMonth, 1);
@@ -94,6 +122,7 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
       monthLabel={monthLabel}
       monthValue={String(selectedMonth.getMonth() + 1).padStart(2, "0")}
       yearValue={String(selectedMonth.getFullYear())}
+      balanceUntilMonth={balanceUntilMonth}
       monthlyExpense={totals.monthlyExpense}
       monthlyIncome={totals.monthlyIncome}
       previousMonthlyExpense={previousTotals.monthlyExpense}

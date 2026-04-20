@@ -349,6 +349,7 @@ export type Database = {
           description: string;
           amount: number;
           occurred_on: string;
+          occurred_at: string;
           category: string;
           created_at: string;
           updated_at: string;
@@ -360,6 +361,7 @@ export type Database = {
           description: string;
           amount: number;
           occurred_on?: string;
+          occurred_at?: string;
           category: string;
           created_at?: string;
           updated_at?: string;
@@ -371,6 +373,7 @@ export type Database = {
           description?: string;
           amount?: number;
           occurred_on?: string;
+          occurred_at?: string;
           category?: string;
           created_at?: string;
           updated_at?: string;
@@ -393,6 +396,7 @@ export type Database = {
           business_mode: string | null;
           main_category: string | null;
           main_goal: string | null;
+          initial_balance: number;
           onboarding_completed: boolean;
           created_at: string;
           updated_at: string;
@@ -404,6 +408,7 @@ export type Database = {
           business_mode?: string | null;
           main_category?: string | null;
           main_goal?: string | null;
+          initial_balance?: number;
           onboarding_completed?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -415,6 +420,7 @@ export type Database = {
           business_mode?: string | null;
           main_category?: string | null;
           main_goal?: string | null;
+          initial_balance?: number;
           onboarding_completed?: boolean;
           created_at?: string;
           updated_at?: string;

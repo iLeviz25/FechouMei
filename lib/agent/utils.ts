@@ -207,6 +207,20 @@ export function mergeDraftWithPlainAnswer(
 }
 
 export function parseAmountFromText(message: string) {
+  const multiplierMatch = message
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .match(/(?:r\$\s*)?(\d+(?:[,.]\d+)?)\s*(mil|milhao|milhoes)\b/);
+
+  if (multiplierMatch) {
+    const baseValue = Number(multiplierMatch[1].replace(",", "."));
+    const multiplier = multiplierMatch[2] === "mil" ? 1_000 : 1_000_000;
+    const value = baseValue * multiplier;
+
+    return Number.isFinite(value) && value > 0 ? Math.round(value * 100) / 100 : null;
+  }
+
   const match = message.match(/(?:r\$\s*)?((?:\d{1,3}(?:\.\d{3})+)|\d+)(?:[,.](\d{1,2}))?/i);
 
   if (!match) {

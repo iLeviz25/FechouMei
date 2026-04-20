@@ -68,6 +68,7 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
   const [mainCategory, setMainCategory] = useState(getKnownOrOther(profile?.main_category, categoryOptions, categoryOptions[0]));
   const [customMainCategory, setCustomMainCategory] = useState(getCustomValue(profile?.main_category, categoryOptions));
   const [mainGoal, setMainGoal] = useState(profile?.main_goal ?? "");
+  const [initialBalance, setInitialBalance] = useState(formatOptionalAmount(profile?.initial_balance));
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -103,6 +104,13 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
       return;
     }
 
+    const parsedInitialBalance = parseOptionalAmount(initialBalance);
+
+    if (parsedInitialBalance === null) {
+      setMessage("Use um saldo inicial válido, como 2000 ou 1200,50.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -126,6 +134,7 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
           business_mode: businessMode,
           main_category: resolveOtherValue(mainCategory, customMainCategory),
           main_goal: mainGoal,
+          initial_balance: parsedInitialBalance,
           onboarding_completed: true,
           updated_at: new Date().toISOString(),
         },
@@ -317,6 +326,13 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
                       value={customMainCategory}
                     />
                   ) : null}
+                  {activeStep.id === "mainGoal" ? (
+                    <InitialBalanceInput
+                      onChange={(value) => setInitialBalance(normalizeAmountInput(value))}
+                      onBlur={() => setInitialBalance(formatOptionalAmount(parseOptionalAmount(initialBalance)))}
+                      value={initialBalance}
+                    />
+                  ) : null}
                 </div>
 
                 <div className="space-y-4">
@@ -467,6 +483,33 @@ function OtherInput({
   );
 }
 
+function InitialBalanceInput({
+  onBlur,
+  onChange,
+  value,
+}: {
+  onBlur: () => void;
+  onChange: (value: string) => void;
+  value: string;
+}) {
+  return (
+    <label className="block space-y-2 rounded-md border border-neutral-200 bg-neutral-50/80 p-3">
+      <span className="text-sm font-semibold text-neutral-950">Saldo inicial atual</span>
+      <span className="block text-sm leading-6 text-neutral-600">
+        Opcional. Use para começar com o valor que você já tem em caixa; isso não entra como receita.
+      </span>
+      <Input
+        className="h-11 border-neutral-200 bg-white text-base font-semibold focus-visible:ring-emerald-200"
+        inputMode="decimal"
+        onBlur={onBlur}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="Ex.: 2000,00"
+        value={value}
+      />
+    </label>
+  );
+}
+
 function getKnownOrOther(value: string | null | undefined, options: string[], fallback: string) {
   if (!value) {
     return fallback;
@@ -481,4 +524,48 @@ function getCustomValue(value: string | null | undefined, options: string[]) {
 
 function resolveOtherValue(value: string, customValue: string) {
   return value === "Outro" ? customValue.trim() : value;
+}
+
+function normalizeAmountInput(value: string) {
+  const cleaned = value.replace(/[^\d,.]/g, "");
+  const hasComma = cleaned.includes(",");
+  const separator = hasComma ? "," : ".";
+  const parts = cleaned.split(hasComma ? "," : ".");
+
+  if (parts.length === 1) {
+    return parts[0];
+  }
+
+  const integerPart = parts[0];
+  const decimalPart = parts.slice(1).join("").slice(0, 2);
+  return `${integerPart}${separator}${decimalPart}`;
+}
+
+function parseOptionalAmount(value: string | number | null | undefined) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value >= 0 ? value : null;
+  }
+
+  const trimmed = String(value ?? "").trim();
+
+  if (!trimmed) {
+    return 0;
+  }
+
+  if (!/^\d+([,.]\d{1,2})?$/.test(trimmed)) {
+    return null;
+  }
+
+  const amount = Number(trimmed.replace(",", "."));
+  return Number.isFinite(amount) && amount >= 0 ? Math.round(amount * 100) / 100 : null;
+}
+
+function formatOptionalAmount(value: string | number | null | undefined) {
+  const amount = parseOptionalAmount(value);
+
+  if (!amount) {
+    return "";
+  }
+
+  return amount.toFixed(2).replace(".", ",");
 }
