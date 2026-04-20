@@ -223,7 +223,7 @@ const operationalPhrasePatterns = [
   /\b(?:me ajuda|ajuda)\b/gi,
   /\b(?:e\s+)?(?:deu|ficou|totalizou)\b/gi,
   /\badiciona\s+a[ií]\b/gi,
-  /\b(?:agora|adicione|adiciona|adicionar|bota|botar|registre|registra|resgitra|registrar|lança|lanca|lançar|lancar|coloca|colocar|cadastra|cadastre|cadastrar|faz|fazer)\b/gi,
+  /\b(?:agora|adicione|adiciona|adicionar|bota|botar|registre|registra|resgitra|registrar|lança|lanca|lançar|lancar|lance|coloca|colocar|cadastra|cadastre|cadastrar|faz|fazer|fa[çc]a|cria|crie|criar)\b/gi,
   /\b(?:por favor|porfavor|pra mim|para mim)\b/gi,
   /\b(?:que\s+)?(?:eu\s+)?(?:recebi|paguei|gastei|comprei)\b/gi,
   /\bque\s+(?:entrou|saiu|caiu|foi)\b/gi,
@@ -257,6 +257,15 @@ const fillerTokens = new Set([
   "nas",
   "com",
   "como",
+  "cria",
+  "criar",
+  "crie",
+  "faca",
+  "fazer",
+  "faz",
+  "lance",
+  "lancamento",
+  "movimentacao",
   "por",
   "para",
   "pra",
@@ -272,6 +281,7 @@ const fillerTokens = new Set([
   "aqui",
   "ai",
   "aí",
+  "registro",
 ]);
 
 const categoryAliasEntries = buildCategoryAliasEntries();
@@ -385,9 +395,12 @@ export function cleanTransactionDescription(message: string, type?: MovementType
     return sourceEntity.description;
   }
 
-  const noOperationalText = stripDescriptionDateNoise(stripOperationalPhrases(stripMoneyPhrase(message)));
+  const noOperationalText = stripCommandDescriptionNoise(
+    stripDescriptionDateNoise(stripOperationalPhrases(stripMoneyPhrase(message))),
+  );
   const compacted = stripBoundaryFillers(noOperationalText)
     .replace(/[?!.,;:]+/g, " ")
+    .replace(/\b(?:de|com)\s+(?:de|com)\b/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
 
@@ -703,6 +716,15 @@ function stripDescriptionDateNoise(message: string) {
   return message
     .replace(/\b(?:hoje|ontem)\b/gi, " ")
     .replace(/\b(?:dia|no dia|na data)\s+\d{1,2}(?:\/\d{1,2}(?:\/\d{2,4})?)?\b/gi, " ");
+}
+
+function stripCommandDescriptionNoise(message: string) {
+  return message
+    .replace(/^\s*(?:fa[çc]a|faz|fazer|cria|crie|criar|adicione|adiciona|adicionar|bota|botar|coloca|colocar|registre|registra|resgitra|registrar|cadastra|cadastre|cadastrar|lan[çc]a|lanca|lance|lan[çc]ar|lancar)\b\s*/i, " ")
+    .replace(/^\s*(?:uma|um)?\s*(?:entrada|despesa|movimentacao|movimentações|movimentacoes|lancamento|lançamento|registro)\b\s*(?:de|com)?\s*/i, " ")
+    .replace(/^\s*(?:de|com)\s+/i, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function stripBoundaryFillers(message: string) {

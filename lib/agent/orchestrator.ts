@@ -997,6 +997,17 @@ async function handleCollectingTurn({
   const pendingAction = state.pendingAction;
 
   if (pendingAction === "register_movements_batch") {
+    const batchAwaitingAmounts = shouldCollectBatchAmounts(state.movementBatch ?? []);
+    const providedAmountsCount = extractAmountsFromText(message).length;
+
+    if (batchAwaitingAmounts && providedAmountsCount > 0) {
+      return handleMovementBatchAmountTurn({
+        context,
+        message,
+        state,
+      });
+    }
+
     if (state.expectedResponseKind === "choose_split_or_combined") {
       const splitChoice = detectSplitOrCombinedChoice(message);
 
@@ -1025,7 +1036,7 @@ async function handleCollectingTurn({
       }
     }
 
-    if (shouldCollectBatchAmounts(state.movementBatch ?? [])) {
+    if (batchAwaitingAmounts) {
       return handleMovementBatchAmountTurn({
         context,
         message,
@@ -1410,6 +1421,13 @@ async function handleMovementBatchAmountTurn({
   }
 
   if (pendingIndexes.length === 1) {
+    if (amounts.length !== 1) {
+      return {
+        reply: getBatchAmountMismatchReply(batch, pendingIndexes.length, amounts.length),
+        state,
+      };
+    }
+
     const nextBatch = applyAmountsToBatch(batch, pendingIndexes, amounts.slice(0, 1));
     return handleMovementBatchTurn({
       context,
@@ -1444,7 +1462,7 @@ async function handleMovementBatchAmountTurn({
   }
 
   return {
-    reply: getBatchAmountCollectionQuestion(batch),
+    reply: getBatchAmountMismatchReply(batch, pendingIndexes.length, amounts.length),
     state,
   };
 }
@@ -1567,6 +1585,14 @@ function shouldCollectBatchAmounts(batch: AgentMovementDraft[]) {
 
 function getBatchAmountCollectionQuestion(batch: AgentMovementDraft[]) {
   return `Me passe os valores separados de ${formatBatchItemLabels(batch)}.`;
+}
+
+function getBatchAmountMismatchReply(batch: AgentMovementDraft[], expectedCount: number, receivedCount: number) {
+  if (expectedCount === 1) {
+    return `Falta só 1 valor para ${formatBatchItemLabels(getPendingBatchItems(batch))}. Me mande um valor só.`;
+  }
+
+  return `Entendi ${receivedCount} valores para ${expectedCount} itens. Me mande um valor para cada item, na ordem: ${formatBatchItemLabels(getPendingBatchItems(batch))}.`;
 }
 
 function getRegistrationMissingFieldsQuestion(
@@ -1717,6 +1743,11 @@ function getPendingBatchAmountIndexes(batch: AgentMovementDraft[]) {
     const missingFields = getPracticalMissingFields(draft);
     return missingFields.length === 1 && missingFields[0] === "amount" ? [index] : [];
   });
+}
+
+function getPendingBatchItems(batch: AgentMovementDraft[]) {
+  const pendingIndexes = new Set(getPendingBatchAmountIndexes(batch));
+  return batch.filter((_, index) => pendingIndexes.has(index));
 }
 
 function applyAmountsToBatch(batch: AgentMovementDraft[], pendingIndexes: number[], amounts: number[]) {
