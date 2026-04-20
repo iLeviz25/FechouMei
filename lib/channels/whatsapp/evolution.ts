@@ -7,6 +7,39 @@ import { getWhatsAppAssistantNumber } from "@/lib/channels/whatsapp/activation";
 
 const defaultMaxReplyLength = 900;
 const evolutionProvider = "evolution";
+const jsonUtf8ContentType = "application/json; charset=utf-8";
+const commonMojibakeReplacements: Array<[string, string]> = [
+  ["Ã¡", "á"],
+  ["Ã¢", "â"],
+  ["Ã£", "ã"],
+  ["Ã§", "ç"],
+  ["Ã©", "é"],
+  ["Ãª", "ê"],
+  ["Ã­", "í"],
+  ["Ã³", "ó"],
+  ["Ã´", "ô"],
+  ["Ãµ", "õ"],
+  ["Ãº", "ú"],
+  ["Ã", "Á"],
+  ["Ã", "Â"],
+  ["Ã", "Ã"],
+  ["Ã", "Ç"],
+  ["Ã", "É"],
+  ["Ã", "Ê"],
+  ["Ã", "Í"],
+  ["Ã", "Ó"],
+  ["Ã", "Ô"],
+  ["Ã", "Õ"],
+  ["Ã", "Ú"],
+  ["Âª", "ª"],
+  ["Âº", "º"],
+  ["Â", ""],
+  ["â", "-"],
+  ["â", "-"],
+  ["â", "\""],
+  ["â", "\""],
+  ["â", "'"],
+];
 
 export class WhatsAppChannelConfigError extends Error {
   constructor(message: string) {
@@ -115,19 +148,24 @@ export async function sendWhatsAppTextReply({
   remoteNumber: string;
   reply: string;
 }) {
-  const chunks = splitReplyForWhatsApp(reply, config.maxReplyLength);
+  const normalizedReply = normalizeWhatsAppOutboundText(reply);
+  const chunks = splitReplyForWhatsApp(normalizedReply, config.maxReplyLength);
 
   for (const chunk of chunks) {
+    // Keep the request body ASCII-safe so the provider cannot misread UTF-8 accents.
+    const body = stringifyAsciiSafeJson({
+      number: remoteNumber,
+      text: chunk,
+    });
     const response = await fetch(`${config.evolutionApiUrl}/message/sendText/${config.instanceName}`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        Accept: "application/json",
+        "Accept-Charset": "utf-8",
+        "Content-Type": jsonUtf8ContentType,
         apikey: config.evolutionApiKey,
       },
-      body: JSON.stringify({
-        number: remoteNumber,
-        text: chunk,
-      }),
+      body,
       cache: "no-store",
     });
 
@@ -150,7 +188,7 @@ export async function sendWhatsAppTypingIndicator({
   const response = await fetch(`${config.evolutionApiUrl}/chat/sendPresence/${config.instanceName}`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": jsonUtf8ContentType,
       apikey: config.evolutionApiKey,
     },
     body: JSON.stringify({
@@ -179,7 +217,7 @@ export async function markWhatsAppMessageAsRead({
   const response = await fetch(`${config.evolutionApiUrl}/chat/markMessageAsRead/${config.instanceName}`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": jsonUtf8ContentType,
       apikey: config.evolutionApiKey,
     },
     body: JSON.stringify({
@@ -355,6 +393,36 @@ function splitReplyForWhatsApp(text: string, maxLength: number) {
   }
 
   return chunks.length > 0 ? chunks : splitByWords(normalized, maxLength);
+}
+
+function normalizeWhatsAppOutboundText(text: string) {
+  let normalized = repairCommonMojibake(text)
+    .normalize("NFC")
+    .replace(/\r\n?/g, "\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\s+([,.;!?])/g, "$1")
+    .trim();
+
+  if (!normalized) {
+    normalized = "Tive uma instabilidade agora. Tente novamente em instantes.";
+  }
+
+  return normalized;
+}
+
+function repairCommonMojibake(text: string) {
+  return commonMojibakeReplacements.reduce(
+    (current, [broken, fixed]) => current.replaceAll(broken, fixed),
+    text,
+  );
+}
+
+function stringifyAsciiSafeJson(payload: Record<string, unknown>) {
+  return JSON.stringify(payload).replace(/[^\u0000-\u007F]/g, (char) =>
+    `\\u${char.codePointAt(0)?.toString(16).padStart(4, "0") ?? ""}`,
+  );
 }
 
 function splitByWords(text: string, maxLength: number) {

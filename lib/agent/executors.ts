@@ -867,11 +867,7 @@ async function getRecentTransactions({ supabase, userId }: AgentExecutionContext
 }
 
 function getMovementRegistrationReply(draft: Required<AgentMovementDraft>) {
-  const typeLabel = draft.type === "entrada" ? "uma entrada" : "uma despesa";
-  const connector = draft.type === "entrada" ? "de" : "com";
-  const category = draft.category ? ` na categoria ${draft.category.toLowerCase()}` : "";
-
-  return `Pronto, registrei ${typeLabel} de ${toCurrency(draft.amount)} ${connector} ${draft.description}${category}.`;
+  return `Pronto. Registrei ${formatSavedMovementSummary(draft)}.`;
 }
 
 function getMovementBatchRegistrationReply(movements: AgentDeleteTarget[]) {
@@ -879,13 +875,18 @@ function getMovementBatchRegistrationReply(movements: AgentDeleteTarget[]) {
     return getMovementRegistrationReply(movements[0]);
   }
 
-  const items = movements.map((movement, index) => {
-    const typeLabel = movement.type === "entrada" ? "entrada" : "despesa";
-    const connector = movement.type === "entrada" ? "de" : "com";
-    return `${index + 1}. ${typeLabel} de ${toCurrency(movement.amount)} ${connector} ${movement.description}`;
-  });
+  const items = movements.map((movement, index) => `${index + 1}. ${formatSavedMovementSummary(movement)}`);
 
-  return `Pronto, registrei ${movements.length} movimentações:\n${items.join("\n")}`;
+  return `Pronto. Registrei ${movements.length} movimentações:\n${items.join("\n")}`;
+}
+
+function formatSavedMovementSummary(movement: Pick<AgentDeleteTarget, "amount" | "description" | "occurred_on" | "type">) {
+  const typeLabel = movement.type === "entrada" ? "uma entrada" : "uma despesa";
+  const connector = movement.type === "entrada" ? "de" : "com";
+  const dateLabel = formatDateLabel(movement.occurred_on);
+  const date = dateLabel === "hoje" ? "" : ` em ${dateLabel}`;
+
+  return `${typeLabel} de ${toCurrency(movement.amount)} ${connector} ${movement.description}${date}`;
 }
 
 async function getOrCreateReminderPreferences(context: AgentExecutionContext) {
@@ -985,7 +986,7 @@ function getSpecificMovementListReply(query: AgentSpecificMovementQuery, rows: S
 }
 
 function getSpecificMovementNotFoundReply(query: AgentSpecificMovementQuery) {
-  return `NÃ£o encontrei ${getQueryTargetLabel(query)}${getQueryFilterLabel(query)}.`;
+  return `Não encontrei ${getQueryTargetLabel(query)}${getQueryFilterLabel(query)}.`;
 }
 
 function getSpecificMovementDescriptor(query: AgentSpecificMovementQuery, movement: SpecificMovementRow) {
@@ -996,7 +997,7 @@ function getSpecificMovementDescriptor(query: AgentSpecificMovementQuery, moveme
       : query.order === "lowest"
         ? `Sua menor ${typeLabel}`
         : query.order === "latest"
-          ? `Sua Ãºltima ${typeLabel}`
+          ? `Sua última ${typeLabel}`
           : query.order === "nth"
             ? `Sua ${getOrdinalLabel(query.ordinal ?? 2)} ${typeLabel}`
             : `Sua primeira ${typeLabel}`;
@@ -1013,7 +1014,7 @@ function getQueryTargetLabel(query: AgentSpecificMovementQuery) {
     return query.limit && query.limit > 1 ? "despesas" : "despesa";
   }
 
-  return query.limit && query.limit > 1 ? "movimentaÃ§Ãµes" : "movimentaÃ§Ã£o";
+  return query.limit && query.limit > 1 ? "movimentações" : "movimentação";
 }
 
 function getQueryFilterLabel(query: AgentSpecificMovementQuery) {
@@ -1026,11 +1027,11 @@ function getQueryFilterLabel(query: AgentSpecificMovementQuery) {
   }
 
   if (query.month) {
-    return " no perÃ­odo pedido";
+    return " no período pedido";
   }
 
   if (query.period) {
-    return query.period === "this_week" ? " desta semana" : " deste mÃªs";
+    return query.period === "this_week" ? " desta semana" : " deste mês";
   }
 
   return "";
@@ -1045,7 +1046,7 @@ function getOrdinalLabel(ordinal: number) {
     return "terceira";
   }
 
-  return `${ordinal}Âª`;
+  return `${ordinal}ª`;
 }
 
 function resolveSpecificMovementRange(query: AgentSpecificMovementQuery): AgentDateRange | null {

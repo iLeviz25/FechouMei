@@ -71,6 +71,21 @@ type RunAgentTurnInput = {
   state?: AgentConversationState | null;
 };
 
+type CompoundExpenseHandling =
+  | {
+      batch: AgentMovementDraft[];
+      combinedDraft?: AgentMovementDraft;
+      kind: "batch";
+    }
+  | {
+      batch: AgentMovementDraft[];
+      combinedDraft: AgentMovementDraft;
+      kind: "choose_split_or_combined";
+      reply: string;
+    };
+
+type SplitOrCombinedChoice = "combined" | "split";
+
 export async function runAgentTurn({ message, state }: RunAgentTurnInput): Promise<AgentTurnResult> {
   const trimmedMessage = message.trim();
   const currentState = normalizeConversationState(state);
@@ -271,6 +286,18 @@ async function handleDeterministicClassification({
   message: string;
   result: NonNullable<ReturnType<typeof classifyDeterministically>>;
 }): Promise<AgentTurnResult | null> {
+  if (currentState.expectedResponseKind === "choose_split_or_combined") {
+    const splitChoice = detectSplitOrCombinedChoice(message);
+
+    if (splitChoice) {
+      return handleSplitOrCombinedChoiceTurn({
+        choice: splitChoice,
+        context,
+        state: currentState,
+      });
+    }
+  }
+
   if (result.kind === "cancelation") {
     return {
       actionTrace: getCancellationTrace(currentState),
@@ -280,6 +307,13 @@ async function handleDeterministicClassification({
   }
 
   if (result.kind === "confirmation") {
+    if (currentState.expectedResponseKind === "choose_split_or_combined") {
+      return {
+        reply: "Me diga se quer lançar junto ou separado.",
+        state: currentState,
+      };
+    }
+
     return handleConfirmationTurn({ context, message, state: currentState });
   }
 
@@ -533,6 +567,7 @@ async function handleDeterministicClassification({
       confidence: result.confidence,
       context,
       draft: result.draft ?? {},
+      sourceMessage: message,
       type,
     });
   }
@@ -636,6 +671,7 @@ async function handleCorrectionTurn({
       ...(currentState.draft ?? {}),
       ...correction,
     },
+    sourceMessage: message,
     type,
   });
 }
@@ -796,6 +832,7 @@ async function handleModelInterpretation({
       confidence: interpretation.confidence,
       context,
       draft: applyLocalExtraction(message, interpretation.fields ?? {}, type),
+      sourceMessage: message,
       type,
     });
   }
@@ -960,6 +997,23 @@ async function handleCollectingTurn({
   const pendingAction = state.pendingAction;
 
   if (pendingAction === "register_movements_batch") {
+    if (state.expectedResponseKind === "choose_split_or_combined") {
+      const splitChoice = detectSplitOrCombinedChoice(message);
+
+      if (splitChoice) {
+        return handleSplitOrCombinedChoiceTurn({
+          choice: splitChoice,
+          context,
+          state,
+        });
+      }
+
+      return {
+        reply: "Me diga se quer lançar junto ou separado.",
+        state,
+      };
+    }
+
     if (isCorrectionLikeMessage(message)) {
       const correctedBatch = applyMovementBatchCorrection(state.movementBatch ?? [], message);
 
@@ -971,8 +1025,16 @@ async function handleCollectingTurn({
       }
     }
 
+    if (shouldCollectBatchAmounts(state.movementBatch ?? [])) {
+      return handleMovementBatchAmountTurn({
+        context,
+        message,
+        state,
+      });
+    }
+
     return {
-      reply: "Para esse lote, confirme, cancele ou envie uma correção curta, como \"não foi João, foi Juliano\".",
+      reply: "Para esse lote, confirme, cancele ou envie uma correção curta.",
       state,
     };
   }
@@ -1083,6 +1145,7 @@ async function handleCollectingTurn({
     return handleMovementRegistrationTurn({
       context,
       draft: deterministicDraft,
+      sourceMessage: message,
       type,
     });
   }
@@ -1113,6 +1176,7 @@ async function handleCollectingTurn({
     confidence: interpretation.confidence,
     context,
     draft: applyLocalExtraction(message, locallyMergedDraft, type),
+    sourceMessage: message,
     type,
   });
 }
@@ -1127,48 +1191,31 @@ function handleAwaitingConfirmationFallback(state: AgentConversationState): Agen
 
   if (state.pendingAction === "delete_transaction") {
     return {
-      reply: "Pode responder 'sim' para excluir ou 'cancelar' para manter a movimentacao.",
+      reply: "Pode responder 'sim' para excluir ou 'cancelar' para manter.",
       state,
     };
   }
 
   if (state.pendingAction === "register_movements_batch") {
     return {
-      reply: "Tenho esse lote pronto. Responda 'sim' para salvar, 'cancelar' para descartar ou mande uma correcao curta.",
+      reply: "Tenho esse lote pronto. Responda 'sim' para salvar, 'cancelar' para descartar ou mande uma correção curta.",
       state,
     };
   }
 
   return {
-    reply: "Tenho um rascunho aqui. Responda 'sim' para salvar, 'cancelar' para descartar ou faca uma pergunta sem perder o rascunho.",
-    state,
-  };
-
-  if (state.pendingAction === "delete_transaction") {
-    return {
-      reply: "Responda 'sim' para excluir essa movimentação ou 'cancelar' para manter.",
-      state,
-    };
-  }
-
-  if (state.pendingAction === "register_movements_batch") {
-    return {
-      reply: "Responda 'sim' para registrar esse lote, 'cancelar' para descartar, ou envie uma correção curta.",
-      state,
-    };
-  }
-
-  return {
-    reply: "Tenho um rascunho pendente. Responda 'cancelar' para descartar, ou faça uma pergunta que eu respondo sem perder o rascunho.",
+    reply: "Tenho um rascunho aqui. Responda 'sim' para salvar, 'cancelar' para descartar ou faça uma pergunta sem perder o rascunho.",
     state,
   };
 }
 
 async function handleMovementBatchTurn({
+  combinedDraft,
   context,
   drafts,
   readAction,
 }: {
+  combinedDraft?: AgentMovementDraft;
   context: AgentExecutionContext;
   drafts: AgentMovementDraft[];
   readAction?: AgentActionId;
@@ -1179,6 +1226,23 @@ async function handleMovementBatchTurn({
     return {
       reply: "Não entendi movimentações suficientes para registrar. Pode me mandar de novo em uma frase mais direta?",
       state: emptyAgentState(),
+    };
+  }
+
+  if (shouldCollectBatchAmounts(normalizedBatch)) {
+    return {
+      actionTrace: makeActionTrace("register_movements_batch", "collecting", {
+        summary: "Coletando os valores dos itens do lote.",
+      }),
+      reply: getBatchAmountCollectionQuestion(normalizedBatch),
+      state: makeAgentState({
+        draft: combinedDraft,
+        expectedResponseKind: "missing_amount",
+        movementBatch: normalizedBatch,
+        missingFields: ["amount"],
+        pendingAction: "register_movements_batch",
+        status: "collecting",
+      }),
     };
   }
 
@@ -1223,11 +1287,15 @@ async function handleMovementRegistrationTurn({
   confidence,
   context,
   draft,
+  skipCompoundSplit = false,
+  sourceMessage,
   type,
 }: {
   confidence?: "high" | "medium" | "low";
   context: AgentExecutionContext;
   draft: AgentMovementDraft;
+  skipCompoundSplit?: boolean;
+  sourceMessage?: string;
   type: MovementType;
 }): Promise<AgentTurnResult> {
   void confidence;
@@ -1252,6 +1320,39 @@ async function handleMovementRegistrationTurn({
       normalizedDraft.description,
       normalizedDraft.category,
     );
+  }
+
+  if (!skipCompoundSplit) {
+    const compoundExpenseHandling = buildCompoundExpenseHandling({
+      draft: normalizedDraft,
+      sourceMessage,
+      type,
+    });
+
+    if (compoundExpenseHandling?.kind === "batch") {
+      return handleMovementBatchTurn({
+        combinedDraft: compoundExpenseHandling.combinedDraft,
+        context,
+        drafts: compoundExpenseHandling.batch,
+      });
+    }
+
+    if (compoundExpenseHandling?.kind === "choose_split_or_combined") {
+      return {
+        actionTrace: makeActionTrace("register_movements_batch", "collecting", {
+          summary: "Escolhendo entre lançamento junto ou separado.",
+        }),
+        reply: compoundExpenseHandling.reply,
+        state: makeAgentState({
+          draft: compoundExpenseHandling.combinedDraft,
+          expectedResponseKind: "choose_split_or_combined",
+          movementBatch: compoundExpenseHandling.batch,
+          missingFields: ["amount"],
+          pendingAction: "register_movements_batch",
+          status: "collecting",
+        }),
+      };
+    }
   }
 
   const missingFields = getPracticalMissingFields(normalizedDraft);
@@ -1286,6 +1387,97 @@ async function handleMovementRegistrationTurn({
       status: "awaiting_confirmation",
     }),
   };
+}
+
+async function handleMovementBatchAmountTurn({
+  context,
+  message,
+  state,
+}: {
+  context: AgentExecutionContext;
+  message: string;
+  state: AgentConversationState;
+}): Promise<AgentTurnResult> {
+  const batch = normalizeMovementBatchDrafts(state.movementBatch ?? []);
+  const amounts = extractAmountsFromText(message);
+  const pendingIndexes = getPendingBatchAmountIndexes(batch);
+
+  if (amounts.length === 0 || pendingIndexes.length === 0) {
+    return {
+      reply: getBatchAmountCollectionQuestion(batch),
+      state,
+    };
+  }
+
+  if (pendingIndexes.length === 1) {
+    const nextBatch = applyAmountsToBatch(batch, pendingIndexes, amounts.slice(0, 1));
+    return handleMovementBatchTurn({
+      context,
+      drafts: nextBatch,
+    });
+  }
+
+  if (amounts.length === pendingIndexes.length) {
+    const nextBatch = applyAmountsToBatch(batch, pendingIndexes, amounts);
+    return handleMovementBatchTurn({
+      context,
+      drafts: nextBatch,
+    });
+  }
+
+  if (amounts.length === 1) {
+    const combinedDraft = buildCombinedDraftFromBatch(batch, amounts[0]);
+    return {
+      actionTrace: makeActionTrace("register_movements_batch", "collecting", {
+        summary: "Confirmando se o valor é total do lote ou por item.",
+      }),
+      reply: `Esse ${toCurrency(amounts[0])} é o total de ${formatBatchItemLabels(batch)} ou você quer lançar separado?`,
+      state: makeAgentState({
+        draft: combinedDraft,
+        expectedResponseKind: "choose_split_or_combined",
+        movementBatch: batch,
+        missingFields: ["amount"],
+        pendingAction: "register_movements_batch",
+        status: "collecting",
+      }),
+    };
+  }
+
+  return {
+    reply: getBatchAmountCollectionQuestion(batch),
+    state,
+  };
+}
+
+async function handleSplitOrCombinedChoiceTurn({
+  choice,
+  context,
+  state,
+}: {
+  choice: SplitOrCombinedChoice;
+  context: AgentExecutionContext;
+  state: AgentConversationState;
+}): Promise<AgentTurnResult> {
+  if (choice === "split") {
+    return handleMovementBatchTurn({
+      context,
+      drafts: state.movementBatch ?? [],
+    });
+  }
+
+  if (state.draft?.type !== "despesa" && state.draft?.type !== "entrada") {
+    return {
+      reply: "Me diga se quer lançar junto ou separado.",
+      state,
+    };
+  }
+
+  return handleMovementRegistrationTurn({
+    context,
+    draft: state.draft,
+    skipCompoundSplit: true,
+    type: state.draft.type,
+  });
 }
 
 async function executeConfirmedMovementBatch(
@@ -1366,6 +1558,17 @@ function getFirstBatchMissingFields(batch: AgentMovementDraft[]) {
   return null;
 }
 
+function shouldCollectBatchAmounts(batch: AgentMovementDraft[]) {
+  return batch.length > 1 && batch.every((draft) => {
+    const missingFields = getPracticalMissingFields(draft);
+    return missingFields.length === 1 && missingFields[0] === "amount";
+  });
+}
+
+function getBatchAmountCollectionQuestion(batch: AgentMovementDraft[]) {
+  return `Me passe os valores separados de ${formatBatchItemLabels(batch)}.`;
+}
+
 function getRegistrationMissingFieldsQuestion(
   type: MovementType,
   draft: AgentMovementDraft,
@@ -1410,22 +1613,181 @@ function getMovementBatchConfirmationReply(batch: AgentMovementDraft[]) {
   }
 
   const items = batch.map((draft, index) => `${index + 1}. ${formatMovementDraftSummary(draft)}`);
-  return `Posso fazer isso agora:\n${items.join("\n")}\nConfirma?`;
+  return `Confiro assim:\n${items.join("\n")}\nPosso salvar?`;
 }
 
 function getSingleMovementConfirmationReply(draft: AgentMovementDraft) {
-  return `Posso ${formatMovementDraftSummary(draft)}. Confirma?`;
+  return `Confiro assim: ${formatMovementDraftSummary(draft)}. Posso salvar?`;
 }
 
 function formatMovementDraftSummary(draft: AgentMovementDraft) {
-  const typeLabel = draft.type === "entrada" ? "registrar entrada" : "registrar despesa";
+  const typeLabel = draft.type === "entrada" ? "uma entrada" : "uma despesa";
   const connector = draft.type === "entrada" ? "de" : "com";
-  const category = draft.category ? ` na categoria ${draft.category.toLowerCase()}` : "";
   const date = draft.occurred_on && formatDateLabel(draft.occurred_on) !== "hoje"
     ? ` em ${formatDateLabel(draft.occurred_on)}`
     : "";
 
-  return `${typeLabel} de ${toCurrency(draft.amount ?? 0)} ${connector} ${draft.description}${category}${date}`;
+  return `${typeLabel} de ${toCurrency(draft.amount ?? 0)} ${connector} ${draft.description}${date}`;
+}
+
+function buildCompoundExpenseHandling({
+  draft,
+  sourceMessage,
+  type,
+}: {
+  draft: AgentMovementDraft;
+  sourceMessage?: string;
+  type: MovementType;
+}): CompoundExpenseHandling | null {
+  if (type !== "despesa" || !draft.description) {
+    return null;
+  }
+
+  const descriptions = splitCompoundExpenseDescription(draft.description);
+
+  if (descriptions.length < 2) {
+    return null;
+  }
+
+  const batch = descriptions.map((description) =>
+    normalizeRegistrationDraft(
+      {
+        ...draft,
+        amount: undefined,
+        category: undefined,
+        description,
+      },
+      type,
+    ),
+  );
+  const amounts = extractAmountsFromText(sourceMessage ?? "");
+
+  if (amounts.length === batch.length) {
+    return {
+      batch: applyAmountsToBatch(batch, getPendingBatchAmountIndexes(batch), amounts),
+      combinedDraft: buildCombinedDraftFromBatch(batch, amounts.reduce((sum, amount) => sum + amount, 0)),
+      kind: "batch",
+    };
+  }
+
+  if (typeof draft.amount === "number" && draft.amount > 0) {
+    return {
+      batch,
+      combinedDraft: buildCombinedDraftFromBatch(batch, draft.amount),
+      kind: "choose_split_or_combined",
+      reply: `Vi ${formatBatchItemLabels(batch)}. Esse ${toCurrency(draft.amount)} foi o total de tudo ou você quer lançar separado?`,
+    };
+  }
+
+  return {
+    batch,
+    combinedDraft: buildCombinedDraftFromBatch(batch),
+    kind: "batch",
+  };
+}
+
+function splitCompoundExpenseDescription(description: string) {
+  return description
+    .replace(/\s+(?:,?\s*e|mais)\s+/gi, "|")
+    .split(/\s*[|;,]\s*/)
+    .map((item) => item.trim())
+    .filter((item, index, items) => item.length >= 2 && items.indexOf(item) === index);
+}
+
+function extractAmountsFromText(message: string) {
+  const sanitizedMessage = message.replace(/\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/g, " ");
+  const matches = sanitizedMessage.matchAll(/(?:r\$\s*)?((?:\d{1,3}(?:\.\d{3})+)|\d+)(?:[,.](\d{1,2}))?/gi);
+  const amounts: number[] = [];
+
+  for (const match of matches) {
+    const integerPart = match[1]?.replace(/\./g, "") ?? "";
+    const decimalPart = match[2] ? match[2].padEnd(2, "0") : "00";
+    const amount = Number(`${integerPart}.${decimalPart}`);
+
+    if (Number.isFinite(amount) && amount > 0) {
+      amounts.push(amount);
+    }
+  }
+
+  return amounts;
+}
+
+function getPendingBatchAmountIndexes(batch: AgentMovementDraft[]) {
+  return batch.flatMap((draft, index) => {
+    const missingFields = getPracticalMissingFields(draft);
+    return missingFields.length === 1 && missingFields[0] === "amount" ? [index] : [];
+  });
+}
+
+function applyAmountsToBatch(batch: AgentMovementDraft[], pendingIndexes: number[], amounts: number[]) {
+  const assignedAmounts = new Map<number, number>();
+
+  pendingIndexes.forEach((index, amountIndex) => {
+    const amount = amounts[amountIndex];
+
+    if (typeof amount === "number") {
+      assignedAmounts.set(index, amount);
+    }
+  });
+
+  return batch.map((draft, index) => {
+    const amount = assignedAmounts.get(index);
+
+    if (typeof amount !== "number") {
+      return draft;
+    }
+
+    return {
+      ...draft,
+      amount,
+    };
+  });
+}
+
+function buildCombinedDraftFromBatch(batch: AgentMovementDraft[], amount?: number) {
+  const occurredOn = batch[0]?.occurred_on ?? toDateInputValue(new Date());
+  const uniqueCategories = [...new Set(batch.map((draft) => draft.category).filter(Boolean))];
+
+  return normalizeRegistrationDraft(
+    {
+      amount,
+      category: uniqueCategories.length === 1 ? uniqueCategories[0] : undefined,
+      description: joinLabelsWithE(batch.map((draft) => draft.description ?? "").filter(Boolean)),
+      occurred_on: occurredOn,
+      type: "despesa",
+    },
+    "despesa",
+  );
+}
+
+function formatBatchItemLabels(batch: AgentMovementDraft[]) {
+  return joinLabelsWithE(batch.map((draft) => draft.description ?? "").filter(Boolean));
+}
+
+function joinLabelsWithE(labels: string[]) {
+  if (labels.length <= 1) {
+    return labels[0] ?? "esses itens";
+  }
+
+  if (labels.length === 2) {
+    return `${labels[0]} e ${labels[1]}`;
+  }
+
+  return `${labels.slice(0, -1).join(", ")} e ${labels.at(-1)}`;
+}
+
+function detectSplitOrCombinedChoice(message: string): SplitOrCombinedChoice | null {
+  const normalized = normalizeChoiceText(message);
+
+  if (/\b(separad[oa]s?|separa|por item|cada item|um por um)\b/.test(normalized)) {
+    return "split";
+  }
+
+  if (/\b(junt[oa]s?|junto|tudo junto|valor total|total|consolidado|um valor so|um so)\b/.test(normalized)) {
+    return "combined";
+  }
+
+  return null;
 }
 
 function applyMovementBatchCorrection(batch: AgentMovementDraft[], message: string) {
@@ -1938,6 +2300,10 @@ function restoreExpectedResponseKind(state: AgentConversationState): AgentConver
 function getExpectedResponseKindFromState(state: AgentConversationState): AgentExpectedResponseKind | undefined {
   if (state.pendingAction === "delete_transaction" && state.status === "awaiting_confirmation") {
     return "confirm_delete";
+  }
+
+  if (state.status === "collecting" && state.expectedResponseKind === "choose_split_or_combined") {
+    return "choose_split_or_combined";
   }
 
   if (

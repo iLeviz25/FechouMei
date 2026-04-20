@@ -70,6 +70,7 @@ export type AgentExpectedResponseKind =
   | "confirm_save"
   | "confirm_delete"
   | "choose_cancel_or_continue"
+  | "choose_split_or_combined"
   | "missing_amount"
   | "missing_category"
   | "missing_description"
