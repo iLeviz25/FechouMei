@@ -79,7 +79,7 @@ function isSpecificMovementQuestion(normalized: string) {
       normalized,
     );
   const hasSpecificCue =
-    /\b(primeir|segunda|segundo|terceir|terceiro|ultima|ultimo|ultimas|ultimos|maior|menor|mais antiga|mais recente|antiga|recente|quando|valor)\b/.test(
+    /\b(primeira|primeiro|segunda|segundo|terceira|terceiro|ultima|ultimo|ultimas|ultimos|maior|menor|mais antiga|mais antigo|mais recente|antiga|antigo|recente|quando|valor)\b/.test(
       normalized,
     );
 
@@ -87,11 +87,11 @@ function isSpecificMovementQuestion(normalized: string) {
 }
 
 function parseOrder(normalized: string): { order: AgentSpecificMovementQuery["order"]; ordinal?: number } | null {
-  if (/\b(maior|mais cara|mais alto|mais alta)\b/.test(normalized)) {
+  if (/\b(maior|mais cara|mais caro|mais alto|mais alta)\b/.test(normalized)) {
     return { order: "highest" };
   }
 
-  if (/\b(menor|mais barata|mais baixo|mais baixa)\b/.test(normalized)) {
+  if (/\b(menor|mais barata|mais barato|mais baixo|mais baixa)\b/.test(normalized)) {
     return { order: "lowest" };
   }
 
@@ -111,11 +111,7 @@ function parseOrder(normalized: string): { order: AgentSpecificMovementQuery["or
     return { order: "nth", ordinal: 3 };
   }
 
-  if (/\b(primeira|primeiro|mais antiga|mais antigo|primeira vez|primeiro registro)\b/.test(normalized)) {
-    return { order: "first" };
-  }
-
-  if (/\bquando\b/.test(normalized)) {
+  if (/\b(primeira|primeiro|mais antiga|mais antigo|primeira vez|primeiro registro|quando)\b/.test(normalized)) {
     return { order: "first" };
   }
 
@@ -184,24 +180,46 @@ function parseYear(normalized: string) {
 }
 
 function extractSearchTerm(message: string, normalized: string, category?: string) {
-  const patterns = [
-    /\b(?:cliente|fornecedor)\s+([A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9\s'-]{1,40})/i,
-    /\b(?:com|de|do|da|para|pra|sobre)\s+([A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9\s'-]{1,40})/i,
-    /\b(?:paguei|recebi)\s+([A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9\s'-]{1,40})/i,
-  ];
+  const directEntity = findSearchCandidate(message, [
+    /\b(?:cliente|fornecedor)\s+([\p{Letter}\p{Number}][\p{Letter}\p{Number}\s'-]{1,40})/giu,
+    /\b(?:paguei|recebi)\s+([\p{Letter}\p{Number}][\p{Letter}\p{Number}\s'-]{1,40})/giu,
+  ], category);
 
-  for (const pattern of patterns) {
-    const match = message.match(pattern);
-    const cleaned = cleanSearchTerm(match?.[1]);
+  if (directEntity) {
+    return directEntity;
+  }
 
-    if (cleaned && !isOnlyCategory(cleaned, category)) {
-      return cleaned;
-    }
+  const prepositionCandidates = collectSearchCandidates(
+    message,
+    /\b(?:com|de|do|da|para|pra|sobre)\s+([\p{Letter}\p{Number}][\p{Letter}\p{Number}\s'-]{1,40})/giu,
+    category,
+  );
+
+  if (prepositionCandidates.length > 0) {
+    return prepositionCandidates[prepositionCandidates.length - 1];
   }
 
   void normalized;
   void category;
   return undefined;
+}
+
+function findSearchCandidate(message: string, patterns: RegExp[], category?: string) {
+  for (const pattern of patterns) {
+    const candidates = collectSearchCandidates(message, pattern, category);
+
+    if (candidates.length > 0) {
+      return candidates[0];
+    }
+  }
+
+  return undefined;
+}
+
+function collectSearchCandidates(message: string, pattern: RegExp, category?: string) {
+  return Array.from(message.matchAll(pattern))
+    .map((match) => cleanSearchTerm(match[1]))
+    .filter((candidate): candidate is string => Boolean(candidate && !isOnlyCategory(candidate, category)));
 }
 
 function cleanSearchTerm(value?: string) {
@@ -210,7 +228,8 @@ function cleanSearchTerm(value?: string) {
   }
 
   const cleaned = value
-    .replace(/\b(?:este|esse|essa|deste|desse|dessa|neste|nesse|nessa|mes|semana|foi|valor|primeira|primeiro|ultima|ultimo|maior|menor|vez)\b.*$/i, "")
+    .replace(/^\s*(?:a|o|as|os|um|uma)\s+/i, "")
+    .replace(/\b(?:este|esse|essa|deste|desse|dessa|neste|nesse|nessa|mes|semana|foi|valor|primeira|primeiro|segunda|segundo|terceira|terceiro|ultima|ultimo|maior|menor|despesa|despesas|entrada|entradas|movimentacao|registro|registros|vez)\b.*$/i, "")
     .replace(/[?.!,;:]+$/g, "")
     .replace(/\s+/g, " ")
     .trim();

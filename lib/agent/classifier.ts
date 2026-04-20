@@ -13,6 +13,7 @@ import type {
 import {
   canonicalizeCategoryInput,
   extractExplicitDatePtBr,
+  getOfficialMovementCategories,
   normalizeText,
   parseTransactionMessage,
   parseTransactionMessages,
@@ -83,6 +84,15 @@ export function classifyDeterministically(
   }
 
   const latestTransactionTarget = getLatestTransactionTarget(normalized);
+
+  const categoryCatalogReply = getCategoryCatalogReply(normalized);
+
+  if (categoryCatalogReply) {
+    return {
+      kind: "product_question",
+      reply: appendPendingContext(categoryCatalogReply, state),
+    };
+  }
 
   const specificMovementQuery = parseSpecificMovementQuery(spokenMessage);
 
@@ -278,7 +288,11 @@ export function inferPartialFieldAnswer({
     const explicitCategory = readExplicitValue(trimmed, ["categoria", "cat"]);
 
     if (explicitCategory) {
-      inferred.category = explicitCategory;
+      const category = canonicalizeCategoryInput(explicitCategory)?.category;
+
+      if (category) {
+        inferred.category = category;
+      }
     }
   }
 
@@ -305,12 +319,22 @@ export function inferPartialFieldAnswer({
   const onlyTextFieldsMissing = missingFields.every((field) => field === "category" || field === "description");
 
   if (onlyTextFieldsMissing && missingFields.length === 2 && isShortFieldAnswer(normalized)) {
-    inferred.category = trimmed;
+    inferred.description = trimmed;
+    const category = canonicalizeCategoryInput(trimmed)?.category;
+
+    if (category) {
+      inferred.category = category;
+    }
+
     return inferred;
   }
 
   if (missingFields.length === 1 && missingFields[0] === "category") {
-    inferred.category = trimmed;
+    const category = canonicalizeCategoryInput(trimmed)?.category;
+
+    if (category) {
+      inferred.category = category;
+    }
   }
 
   if (missingFields.length === 1 && missingFields[0] === "description") {
@@ -799,6 +823,19 @@ function getConversationalReply(normalized: string) {
   }
 
   return null;
+}
+
+function getCategoryCatalogReply(normalized: string) {
+  if (!/(categoria|categorias)/.test(normalized)) {
+    return null;
+  }
+
+  if (!/(quais|qual|existem|existe|tem|lista|mostrar|mostra|me fala|sao|sÃ£o)/.test(normalized)) {
+    return null;
+  }
+
+  const categories = getOfficialMovementCategories().map((category) => category.toLocaleUpperCase("pt-BR"));
+  return `As categorias do app sÃ£o: ${categories.join(", ")}. Use OUTRO sÃ³ quando nÃ£o encaixar em nenhuma delas.`;
 }
 
 function isCapabilitiesQuestion(normalized: string) {

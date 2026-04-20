@@ -1087,6 +1087,13 @@ async function handleCollectingTurn({
     });
   }
 
+  if (isQuestionLikeDuringDraft(message)) {
+    return {
+      reply: getDraftPreservedQuestionReply(type, state),
+      state,
+    };
+  }
+
   const interpretation = await safeGeminiInterpretation(message, state);
 
   if (!interpretation) {
@@ -1375,6 +1382,21 @@ function getRegistrationMissingFieldsQuestion(
   }
 
   return getMissingFieldsQuestion(type, missingFields);
+}
+
+function getDraftPreservedQuestionReply(type: MovementType, state: AgentConversationState) {
+  const missingFields = state.missingFields ?? getPracticalMissingFields(state.draft ?? {});
+
+  if (missingFields.length === 0) {
+    return "Seu rascunho continua salvo. Responda 'sim' para salvar ou 'cancelar' para descartar.";
+  }
+
+  const question = getRegistrationMissingFieldsQuestion(type, state.draft ?? {}, missingFields);
+  return `Seu rascunho continua salvo. Para continuar, ${lowercaseFirst(question)}`;
+}
+
+function lowercaseFirst(value: string) {
+  return value.replace(/^./, (letter) => letter.toLocaleLowerCase("pt-BR"));
 }
 
 function getBatchMissingFieldsReply(index: number, draft: AgentMovementDraft, missingFields: MovementField[]) {
@@ -1974,6 +1996,23 @@ function normalizeConversationState(state?: AgentConversationState | null): Agen
 
 function isMovementRegistrationAction(actionId: AgentActionId) {
   return actionId === "register_income" || actionId === "register_expense";
+}
+
+function isQuestionLikeDuringDraft(message: string) {
+  const normalized = message
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^\p{Letter}\p{Number}\s?]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const words = normalized.split(/\s+/).filter(Boolean);
+
+  return (
+    /^(qual|quais|como|quando|quanto|o que|por que|porque|tem|existe|existem|posso|pode)\b/.test(normalized) ||
+    (message.includes("?") && words.length > 2)
+  );
 }
 
 function isReadAction(actionId: AgentActionId) {

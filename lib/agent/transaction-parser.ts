@@ -134,6 +134,24 @@ const categoryAliases: Record<MovementCategory, string[]> = {
   Outro: ["outro", "outros"],
 };
 
+categoryAliases["Serviço"].push("energia");
+categoryAliases.Material.push("materia prima", "materia-prima");
+categoryAliases.Ferramenta.push(
+  "prego",
+  "pregos",
+  "martelo",
+  "furadeira",
+  "chave de fenda",
+  "parafuso",
+  "parafusos",
+  "alicate",
+);
+categoryAliases["Alimentação"].push("hamburguer", "hamburger", "hambúrguer", "pizza", "pastel");
+
+export function getOfficialMovementCategories() {
+  return [...officialCategories];
+}
+
 const categoryEchoAliases: Record<MovementCategory, string[]> = {
   Cliente: ["cliente", "clientes"],
   Serviço: ["serviço", "servico", "serviços", "servicos"],

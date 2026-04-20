@@ -47,12 +47,12 @@ const incomeContextPatterns: SemanticPattern[] = [
 ];
 
 const expenseContextPatterns: SemanticPattern[] = [
-  { pattern: /\b(?:internet|telefone|celular|conta de internet)\b/, weight: 3 },
-  { pattern: /\b(?:material|materiais|papelaria|insumo|estoque|embalagem)\b/, weight: 3 },
-  { pattern: /\b(?:gasolina|combustivel|transporte|uber|onibus|passagem|taxi)\b/, weight: 3 },
-  { pattern: /\b(?:alimentacao|comida|refeicao|almoco|lanche|mercado|carne|cafe)\b/, weight: 3 },
+  { pattern: /\b(?:internet|telefone|celular|energia|luz|agua|conta de internet|conta de luz|conta de agua)\b/, weight: 3 },
+  { pattern: /\b(?:material|materiais|papelaria|insumo|insumos|estoque|embalagem|embalagens|materia prima|fornecedor)\b/, weight: 3 },
+  { pattern: /\b(?:gasolina|combustivel|transporte|uber|onibus|passagem|taxi|frete|entrega|motoboy)\b/, weight: 3 },
+  { pattern: /\b(?:alimentacao|comida|refeicao|almoco|jantar|lanche|hamburguer|hamburger|pizza|pastel|ifood|restaurante|padaria|mercado|carne|melancia|fruta|cafe)\b/, weight: 3 },
   { pattern: /\b(?:imposto|taxa|tributo|das|mei)\b/, weight: 3 },
-  { pattern: /\b(?:ferramenta|software|assinatura|sistema|licenca)\b/, weight: 3 },
+  { pattern: /\b(?:ferramenta|software|assinatura|sistema|licenca|prego|martelo|furadeira|chave de fenda|parafuso|alicate)\b/, weight: 3 },
   { pattern: /\b(?:aluguel|luz|agua)\b/, weight: 3 },
 ];
 
