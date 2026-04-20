@@ -8,6 +8,7 @@ const capabilityExamples = [
   '"quanto entrou essa semana?"',
   '"como foi minha semana?"',
   '"qual meu limite do MEI?"',
+  '"ajustar saldo para 2 mil"',
   '"quais pendencias eu tenho agora?"',
 ];
 
@@ -18,10 +19,11 @@ export function getAgentCapabilitiesReply(state?: AgentConversationState) {
       : "";
 
   return [
-    "Posso te ajudar com as coisas rapidas do financeiro do dia a dia:",
+    "Sou a Helena, a assistente financeira do FechouMEI. Posso te ajudar com as coisas rapidas do dia a dia:",
     "- registrar entradas e despesas, sempre pedindo confirmacao antes de salvar;",
     "- corrigir um rascunho antes de confirmar;",
-    "- mostrar resumo do mes, limite do MEI, pendencias e ultimos registros.",
+    "- mostrar resumo do mes, limite do MEI, pendencias e ultimos registros;",
+    "- ajustar seu saldo atual sem criar uma receita falsa.",
     "",
     `Exemplos: ${capabilityExamples.join("; ")}.`,
     "Pode me mandar do seu jeito.",

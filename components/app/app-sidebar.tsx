@@ -37,7 +37,7 @@ const navItems = [
     icon: BarChart3,
   },
   { href: "/app/obrigacoes", label: "Obrigações do mês", shortLabel: "Tarefas", icon: CalendarCheck },
-  { href: "/app/agente", label: "Assistente virtual", shortLabel: "Assist.", icon: MessageCircle },
+  { href: "/app/agente", label: "Helena", shortLabel: "Helena", icon: MessageCircle },
   { href: "/app/configuracoes", label: "Configurações", shortLabel: "Conta", icon: Settings },
 ];
 

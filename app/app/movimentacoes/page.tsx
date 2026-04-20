@@ -31,7 +31,7 @@ async function MovimentacoesData() {
   }
 
   if (profileResult.error) {
-    throw new Error(`Erro ao carregar saldo inicial: ${profileResult.error.message}`);
+    throw new Error(`Erro ao carregar ajuste de saldo: ${profileResult.error.message}`);
   }
 
   return (

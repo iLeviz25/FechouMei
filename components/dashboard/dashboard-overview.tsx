@@ -109,7 +109,7 @@ export function DashboardOverview({
     },
     {
       bar: currentBalance >= 0 ? "bg-neutral-800" : "bg-red-500",
-      detail: "Saldo inicial mais movimentações",
+      detail: "Ponto de partida mais movimentações",
       icon: Wallet,
       iconTone: currentBalance >= 0 ? "border-neutral-200 bg-neutral-50 text-neutral-800" : "border-red-100 bg-red-50 text-red-700",
       title: "Saldo atual",

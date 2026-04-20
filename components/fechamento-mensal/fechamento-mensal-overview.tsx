@@ -104,14 +104,14 @@ export function FechamentoMensalOverview({
       value: toCurrency(monthlyExpense),
     },
     {
-      detail: balance >= 0 ? "Entradas menos despesas, sem saldo inicial" : "Despesas acima das entradas",
+      detail: balance >= 0 ? "Entradas menos despesas do mês" : "Despesas acima das entradas",
       icon: Wallet,
       label: "Resultado do mês",
       tone: balance >= 0 ? ("balance" as const) : ("expense" as const),
       value: toCurrency(balance),
     },
     {
-      detail: "Saldo inicial mais registros até este mês",
+      detail: "Ponto de partida mais registros até este mês",
       icon: ListChecks,
       label: "Saldo estimado",
       tone: balanceUntilMonth >= 0 ? ("balance" as const) : ("expense" as const),

@@ -395,7 +395,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
       reason: "whatsapp_activated",
       remoteId: normalized.remoteJid,
       remoteNumber,
-      reply: "Pronto, seu WhatsApp foi vinculado ao FechouMEI. Agora você já pode falar comigo por aqui.",
+      reply: "Pronto, seu WhatsApp foi vinculado ao FechouMEI. Eu sou a Helena; agora você já pode falar comigo por aqui.",
       status: "processed",
       summary: "WhatsApp vinculado por codigo de ativacao.",
       trace,

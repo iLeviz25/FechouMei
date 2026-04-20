@@ -72,7 +72,7 @@ async function DashboardData() {
   }
 
   if (profileResult.error) {
-    throw new Error(`Erro ao carregar saldo inicial: ${profileResult.error.message}`);
+    throw new Error(`Erro ao carregar ajuste de saldo: ${profileResult.error.message}`);
   }
 
   const totals = (yearResult.data ?? []).reduce(

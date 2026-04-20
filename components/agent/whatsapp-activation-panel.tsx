@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import {
   Check,
   CircleAlert,
@@ -9,7 +9,6 @@ import {
   ExternalLink,
   Link2Off,
   MessageCircle,
-  Phone,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
@@ -28,20 +27,20 @@ type WhatsAppActivationPanelProps = {
 const exampleMessages = [
   "recebi 350 do João",
   "paguei 90 de internet",
+  "ajustar saldo para 2 mil",
   "como está meu mês?",
   "quais obrigações estão pendentes?",
 ];
 
 export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivationPanelProps) {
   const [activation, setActivation] = useState(initialActivation);
-  const [copyState, setCopyState] = useState<"idle" | "number" | "code" | "error">("idle");
+  const [copyState, setCopyState] = useState<"idle" | "code" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const displayNumber = useMemo(() => formatWhatsAppNumber(activation.assistantNumber), [activation.assistantNumber]);
   const displayUserNumber = activation.phoneNumber ? formatWhatsAppNumber(activation.phoneNumber) : null;
   const activationUrl = activation.activationCode
     ? `https://wa.me/${activation.assistantNumber}?text=${encodeURIComponent(
-        `Ativar Assistente virtual FechouMEI: ${activation.activationCode}`,
+        `Ativar Helena FechouMEI: ${activation.activationCode}`,
       )}`
     : `https://wa.me/${activation.assistantNumber}`;
   const status = getStatusContent(activation);
@@ -70,10 +69,10 @@ export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivatio
     });
   }
 
-  async function handleCopy(value: string, copiedState: "number" | "code") {
+  async function handleCopy(value: string) {
     try {
       await navigator.clipboard.writeText(value);
-      setCopyState(copiedState);
+      setCopyState("code");
       window.setTimeout(() => setCopyState("idle"), 2200);
     } catch {
       setCopyState("error");
@@ -88,14 +87,14 @@ export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivatio
           <div className="space-y-5 p-4 sm:p-6">
             <div className="space-y-3">
               <Badge variant="success" className="w-fit">
-                Assistente virtual
+                Helena
               </Badge>
               <div className="space-y-2">
                 <h1 className="text-2xl font-semibold tracking-tight text-neutral-950 sm:text-3xl">
-                  Ative o assistente no WhatsApp
+                  Helena no WhatsApp
                 </h1>
                 <p className="max-w-2xl text-sm leading-6 text-neutral-600 sm:text-base">
-                  Use o WhatsApp para registrar entradas, despesas e consultar seu MEI em conversa natural. A ativação fica vinculada à sua conta do FechouMEI.
+                  A Helena é a assistente financeira do FechouMEI. Ela registra entradas, despesas e responde consultas rápidas em conversa natural.
                 </p>
               </div>
             </div>
@@ -104,11 +103,11 @@ export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivatio
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                   <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                    Número oficial
+                    Canal principal
                   </p>
-                  <p className="text-2xl font-semibold text-neutral-950">{displayNumber}</p>
+                  <p className="text-2xl font-semibold text-neutral-950">WhatsApp da Helena</p>
                   <p className="text-sm leading-6 text-neutral-600">
-                    A conversa começa por esse número. O vínculo acontece pelo código de ativação.
+                    A ativação vincula seu WhatsApp à sua conta. Depois disso, basta conversar com a Helena por lá.
                   </p>
                 </div>
                 <div className="grid gap-2 sm:min-w-52">
@@ -116,31 +115,22 @@ export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivatio
                     <Button asChild className="min-h-11">
                       <a href={activationUrl} rel="noreferrer" target="_blank">
                         <MessageCircle className="h-4 w-4" />
-                        Abrir conversa
+                        Conversar com a Helena
                       </a>
                     </Button>
                   ) : activation.status === "pending" && activation.activationCode ? (
                     <Button asChild className="min-h-11">
                       <a href={activationUrl} rel="noreferrer" target="_blank">
                         <MessageCircle className="h-4 w-4" />
-                        Ativar no WhatsApp
+                        Ativar com a Helena
                       </a>
                     </Button>
                   ) : (
                     <Button className="min-h-11" disabled={isPending} onClick={handleStartActivation} type="button">
                       <Sparkles className="h-4 w-4" />
-                      Iniciar ativação
+                      Ativar Helena
                     </Button>
                   )}
-                  <Button
-                    className="min-h-11"
-                    onClick={() => handleCopy(activation.assistantNumber, "number")}
-                    type="button"
-                    variant="outline"
-                  >
-                    {copyState === "number" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    {copyState === "number" ? "Número copiado" : "Copiar número"}
-                  </Button>
                 </div>
               </div>
 
@@ -153,7 +143,7 @@ export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivatio
                     <p className="text-xl font-semibold tracking-wide text-neutral-950">{activation.activationCode}</p>
                     <Button
                       className="min-h-10"
-                      onClick={() => handleCopy(activation.activationCode!, "code")}
+                      onClick={() => handleCopy(activation.activationCode!)}
                       size="sm"
                       type="button"
                       variant="outline"
@@ -163,7 +153,7 @@ export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivatio
                     </Button>
                   </div>
                   <p className="mt-2 text-sm leading-6 text-neutral-600">
-                    O botão já abre o WhatsApp com esse código na mensagem. Envie a primeira mensagem para concluir o vínculo.
+                    O botão já abre o WhatsApp com esse código na mensagem. Envie para concluir o vínculo.
                   </p>
                 </div>
               ) : null}
@@ -276,7 +266,7 @@ function getStatusContent(activation: WhatsAppAssistantActivationSnapshot) {
   switch (activation.status) {
     case "linked":
       return {
-        description: "Seu WhatsApp já está vinculado. Agora é só abrir a conversa e falar com o assistente.",
+        description: "Seu WhatsApp já está vinculado. Agora é só abrir a conversa e falar com a Helena.",
         icon: <Check className="h-4 w-4" />,
         iconClass: "bg-emerald-50 text-emerald-700",
         label: "WhatsApp vinculado",
@@ -303,15 +293,15 @@ function getStatusContent(activation: WhatsAppAssistantActivationSnapshot) {
     case "revoked":
       return {
         description: "O WhatsApp foi desvinculado desta conta. Você pode iniciar uma nova ativação quando quiser.",
-        icon: <Phone className="h-4 w-4" />,
+        icon: <MessageCircle className="h-4 w-4" />,
         iconClass: "bg-neutral-100 text-neutral-700",
         label: "WhatsApp desvinculado",
         textClass: "text-neutral-700",
       };
     default:
       return {
-        description: "Clique em iniciar ativação para gerar um código seguro e vincular seu WhatsApp à sua conta.",
-        icon: <Phone className="h-4 w-4" />,
+        description: "Clique em ativar Helena para gerar um código seguro e vincular seu WhatsApp à sua conta.",
+        icon: <MessageCircle className="h-4 w-4" />,
         iconClass: "bg-neutral-100 text-neutral-700",
         label: "Ainda não ativado",
         textClass: "text-neutral-700",
@@ -329,7 +319,7 @@ function getSteps(status: WhatsAppAssistantActivationSnapshot["status"]) {
   }
 
   return [
-    "Clique em iniciar ativação.",
+    "Clique em ativar Helena.",
     "Abra o WhatsApp com a mensagem pronta.",
     "Envie o código para concluir o vínculo com sua conta.",
   ];

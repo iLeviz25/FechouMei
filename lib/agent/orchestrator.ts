@@ -444,14 +444,14 @@ async function handleDeterministicClassification({
   if (result.action === "set_initial_balance") {
     if (currentState.status !== "idle") {
       return {
-        reply: "Você já tem algo pendente. Cancele antes de mudar o saldo inicial.",
+        reply: "Você já tem algo pendente. Cancele antes de ajustar seu saldo.",
         state: currentState,
       };
     }
 
     if (typeof result.initialBalanceAmount !== "number") {
       return {
-        reply: "Qual valor você quer usar como saldo inicial?",
+        reply: "Qual valor você quer usar como saldo atual?",
         state: currentState,
       };
     }
@@ -472,8 +472,8 @@ async function handleDeterministicClassification({
         action: "set_initial_balance",
         confirmation: "not_required",
         error,
-        reply: "Não consegui atualizar seu saldo inicial agora. Tente novamente em instantes.",
-        summary: "Falha ao atualizar saldo inicial.",
+        reply: "Não consegui ajustar seu saldo agora. Tente novamente em instantes.",
+        summary: "Falha ao ajustar saldo.",
       });
     }
   }

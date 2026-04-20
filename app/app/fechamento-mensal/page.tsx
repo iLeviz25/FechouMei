@@ -74,7 +74,7 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
   }
 
   if (profileResult.error) {
-    throw new Error(`Erro ao carregar saldo inicial: ${profileResult.error.message}`);
+    throw new Error(`Erro ao carregar ajuste de saldo: ${profileResult.error.message}`);
   }
 
   const movements = movementsResult.data ?? [];

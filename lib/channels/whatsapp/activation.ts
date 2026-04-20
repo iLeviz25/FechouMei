@@ -61,7 +61,7 @@ export function getWhatsAppAssistantNumber() {
 }
 
 export function buildWhatsAppActivationMessage(activationCode: string) {
-  return `Ativar Assistente virtual FechouMEI: ${activationCode}`;
+  return `Ativar Helena FechouMEI: ${activationCode}`;
 }
 
 export function buildWhatsAppActivationUrl(activationCode: string) {

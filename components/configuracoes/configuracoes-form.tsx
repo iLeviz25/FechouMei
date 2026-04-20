@@ -375,11 +375,11 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
               value={values.mainGoal || "Não informado"}
             />
             <EditableProfileRow
-              description="Base de caixa usada para calcular o saldo atual, sem entrar como receita."
+              description="Valor usado como ponto de partida do seu caixa, sem entrar como receita."
               editor={
                 <OtherInput
                   inputMode="decimal"
-                  label="Saldo inicial"
+                  label="Saldo atual para começar"
                   onBlur={() => updateDraft({ initialBalance: formatOptionalAmount(parseOptionalAmount(draft.initialBalance)) })}
                   onChange={(initialBalance) => updateDraft({ initialBalance: normalizeAmountInput(initialBalance) })}
                   placeholder="Ex.: 2000,00"
@@ -389,7 +389,7 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
               field="initialBalance"
               isEditing={editingField === "initialBalance"}
               isSaving={isSavingProfile}
-              label="Saldo inicial"
+              label="Saldo atual para começar"
               onCancel={cancelEdit}
               onEdit={beginEdit}
               onSave={saveProfileField}
@@ -590,7 +590,7 @@ function validateProfileDraft(values: ProfileValues, field: EditableField) {
   }
 
   if (field === "initialBalance" && parseOptionalAmount(values.initialBalance) === null) {
-    return "Use um saldo inicial válido, como 2000 ou 1200,50.";
+    return "Use um valor de saldo válido, como 2000 ou 1200,50.";
   }
 
   return null;

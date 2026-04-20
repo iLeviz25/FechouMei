@@ -18,7 +18,7 @@ const welcomeMessage: AgentMessage = {
   id: "welcome",
   role: "agent",
   content:
-    "Oi. Este chat é só um apoio dentro do app. O canal principal do Assistente virtual é o WhatsApp.",
+    "Oi, eu sou a Helena. Este chat é só um apoio dentro do app; o canal principal é o WhatsApp.",
 };
 
 export function AgentPlayground({
@@ -146,9 +146,9 @@ export function AgentPlayground({
                   <Bot className="h-4 w-4" />
                 </span>
                 <div>
-                  <p className="font-semibold text-neutral-950">Assistente no app</p>
+                  <p className="font-semibold text-neutral-950">Helena no app</p>
                   <p className="text-xs leading-5 text-neutral-500">
-                    Apoio rápido enquanto o WhatsApp vira o canal principal.
+                    Apoio rápido enquanto o WhatsApp é o canal principal.
                   </p>
                 </div>
               </div>
@@ -178,7 +178,7 @@ export function AgentPlayground({
           <div className="flex h-[min(620px,calc(100vh-14rem))] flex-col gap-3 p-3">
             {!isPersistent ? (
               <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
-                Modo temporário: aplique a migration do assistente no Supabase para salvar a conversa.
+                Modo temporário: aplique a migration da Helena no Supabase para salvar a conversa.
               </p>
             ) : null}
 
@@ -236,7 +236,7 @@ export function AgentPlayground({
                       submitMessage(input);
                     }
                   }}
-                  placeholder="Mensagem para o assistente"
+                  placeholder="Mensagem para a Helena"
                   rows={1}
                   value={input}
                 />
@@ -257,7 +257,7 @@ export function AgentPlayground({
         type="button"
       >
         <MessageCircle className="h-6 w-6" />
-        <span className="sr-only">Abrir chat do assistente no app</span>
+        <span className="sr-only">Abrir chat da Helena no app</span>
       </Button>
     </>
   );

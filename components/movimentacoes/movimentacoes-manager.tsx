@@ -1,9 +1,22 @@
 "use client";
 
-import { useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react";
-import { ArrowDownLeft, ArrowUpRight, CalendarDays, DollarSign, Loader2, Pencil, Search, Trash2, X } from "lucide-react";
+import { useEffect, useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  CalendarDays,
+  CheckSquare,
+  DollarSign,
+  Loader2,
+  Pencil,
+  Search,
+  Square,
+  Trash2,
+  X,
+} from "lucide-react";
 import {
   createMovimentacao,
+  deleteMovimentacoes,
   deleteMovimentacao,
   updateMovimentacao,
   type MovementActionResult,
@@ -308,6 +321,9 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
   const [editingId, setEditingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<MovementActionResult | null>(null);
   const [pendingDelete, setPendingDelete] = useState<MovementItem | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("todos");
   const [categoryFilter, setCategoryFilter] = useState("todas");
@@ -367,11 +383,30 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
       return searchableText.includes(search);
     });
   }, [categoryFilter, movements, periodFilter, searchTerm, typeFilter]);
+  const existingMovementIds = useMemo(() => new Set(movements.map((movement) => movement.id)), [movements]);
+  const filteredMovementIds = useMemo(
+    () => filteredMovements.map((movement) => movement.id),
+    [filteredMovements],
+  );
+  const selectedMovements = useMemo(
+    () => movements.filter((movement) => selectedIds.has(movement.id)),
+    [movements, selectedIds],
+  );
+  const selectedCount = selectedIds.size;
+  const allFilteredSelected =
+    filteredMovementIds.length > 0 && filteredMovementIds.every((id) => selectedIds.has(id));
   const hasActiveFilters =
     searchTerm.trim() !== "" ||
     typeFilter !== "todos" ||
     categoryFilter !== "todas" ||
     periodFilter !== "todos";
+
+  useEffect(() => {
+    setSelectedIds((current) => {
+      const next = new Set(Array.from(current).filter((id) => existingMovementIds.has(id)));
+      return next.size === current.size ? current : next;
+    });
+  }, [existingMovementIds]);
 
   function updateCreateField(field: keyof FormState, value: string) {
     setCreateForm((current) => ({ ...current, [field]: value }));
@@ -398,6 +433,45 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
     setTypeFilter("todos");
     setCategoryFilter("todas");
     setPeriodFilter("todos");
+  }
+
+  function startSelectionMode() {
+    setFeedback(null);
+    setPendingDelete(null);
+    cancelEdit();
+    setSelectionMode(true);
+  }
+
+  function exitSelectionMode() {
+    setSelectionMode(false);
+    setBulkDeleteOpen(false);
+    setSelectedIds(new Set());
+  }
+
+  function toggleSelection(id: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+
+      return next;
+    });
+  }
+
+  function selectAllFilteredMovements() {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      filteredMovementIds.forEach((id) => next.add(id));
+      return next;
+    });
+  }
+
+  function clearSelectedMovements() {
+    setSelectedIds(new Set());
   }
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
@@ -459,6 +533,35 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
         if (editingId === movement.id) {
           cancelEdit();
         }
+      }
+    });
+  }
+
+  function confirmBulkDelete() {
+    if (selectedCount === 0) {
+      return;
+    }
+
+    const ids = Array.from(selectedIds);
+
+    startTransition(async () => {
+      const result = await deleteMovimentacoes(ids);
+      setFeedback(
+        result.ok
+          ? {
+              ok: true,
+              message:
+                result.deletedCount === 1
+                  ? "Movimentação excluída com sucesso."
+                  : `${result.deletedCount ?? selectedCount} movimentações excluídas com sucesso.`,
+            }
+          : result,
+      );
+
+      if (result.ok) {
+        exitSelectionMode();
+      } else {
+        setBulkDeleteOpen(false);
       }
     });
   }
@@ -552,12 +655,25 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                   : `${movements.length} registro(s)`}
               </p>
             </div>
-            <MovementsCsvExportButton
-              className="w-full sm:w-auto"
-              filename="fechoumei-movimentacoes.csv"
-              label="Exportar CSV"
-              movements={movements}
-            />
+            <div className="grid gap-2 sm:flex sm:items-center">
+              {movements.length > 0 ? (
+                <Button
+                  className="h-9 w-full sm:w-auto"
+                  onClick={selectionMode ? exitSelectionMode : startSelectionMode}
+                  type="button"
+                  variant={selectionMode ? "secondary" : "outline"}
+                >
+                  {selectionMode ? <X className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
+                  {selectionMode ? "Cancelar seleção" : "Selecionar"}
+                </Button>
+              ) : null}
+              <MovementsCsvExportButton
+                className="w-full sm:w-auto"
+                filename="fechoumei-movimentacoes.csv"
+                label="Exportar CSV"
+                movements={movements}
+              />
+            </div>
           </div>
 
           {movements.length > 0 ? (
@@ -634,6 +750,46 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
             </div>
           ) : null}
 
+          {selectionMode ? (
+            <div className="rounded-md border border-emerald-200 bg-emerald-50/80 p-3 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-emerald-900">
+                    {selectedCount === 0
+                      ? "Selecione os registros que deseja excluir"
+                      : `${selectedCount} registro(s) selecionado(s)`}
+                  </p>
+                  <p className="text-xs leading-5 text-emerald-800">
+                    A exclusão em massa pede confirmação antes de remover.
+                  </p>
+                </div>
+                <div className="grid gap-2 sm:flex sm:items-center">
+                  <Button
+                    className="h-9 w-full sm:w-auto"
+                    disabled={filteredMovementIds.length === 0}
+                    onClick={allFilteredSelected ? clearSelectedMovements : selectAllFilteredMovements}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    {allFilteredSelected ? "Desselecionar tudo" : "Selecionar tudo"}
+                  </Button>
+                  <Button
+                    className="h-9 w-full sm:w-auto"
+                    disabled={selectedCount === 0 || isPending}
+                    onClick={() => setBulkDeleteOpen(true)}
+                    size="sm"
+                    type="button"
+                    variant="destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Excluir selecionados
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           {movements.length === 0 ? (
             <Card className="border-dashed border-neutral-300 bg-neutral-50/70 shadow-none">
               <CardContent className="p-5 text-sm leading-6 text-neutral-600">
@@ -663,6 +819,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
               {filteredMovements.map((movement) => {
                 const isEditing = editingId === movement.id;
                 const isIncome = movement.type === "entrada";
+                const isSelected = selectedIds.has(movement.id);
 
                 return (
                   <Card
@@ -671,11 +828,28 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                       isIncome ? "before:bg-emerald-500" : "before:bg-red-400",
                       "before:absolute before:inset-y-0 before:left-0 before:w-1",
                       isEditing && "border-emerald-300 bg-emerald-50/20 shadow-[0_10px_30px_rgba(16,185,129,0.12)]",
+                      isSelected && "border-emerald-300 bg-emerald-50/40 shadow-[0_10px_30px_rgba(16,185,129,0.14)]",
                     )}
                     key={movement.id}
                   >
                     <CardContent className="space-y-3 p-3 pl-4 sm:p-4 sm:pl-5">
-                      <div className="grid grid-cols-[1fr_auto] gap-3">
+                      <div className={cn("grid gap-3", selectionMode ? "grid-cols-[auto_1fr_auto]" : "grid-cols-[1fr_auto]")}>
+                        {selectionMode ? (
+                          <button
+                            aria-label={isSelected ? "Remover registro da seleção" : "Selecionar registro"}
+                            aria-pressed={isSelected}
+                            className={cn(
+                              "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border bg-white shadow-sm transition-colors",
+                              isSelected
+                                ? "border-emerald-300 text-emerald-700"
+                                : "border-neutral-200 text-neutral-400 hover:border-emerald-200 hover:text-emerald-700",
+                            )}
+                            onClick={() => toggleSelection(movement.id)}
+                            type="button"
+                          >
+                            {isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
+                          </button>
+                        ) : null}
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-1.5">
                             <Badge
@@ -737,6 +911,19 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                             Salvar alterações
                           </Button>
                         </form>
+                      ) : selectionMode ? (
+                        <div className="flex items-center justify-end border-t border-neutral-100 pt-2">
+                          <Button
+                            className="h-8 rounded-md px-2.5 text-xs font-semibold"
+                            onClick={() => toggleSelection(movement.id)}
+                            size="sm"
+                            type="button"
+                            variant={isSelected ? "secondary" : "ghost"}
+                          >
+                            {isSelected ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+                            {isSelected ? "Selecionado" : "Selecionar"}
+                          </Button>
+                        </div>
                       ) : (
                         <div className="flex items-center justify-end gap-1.5 border-t border-neutral-100 pt-2">
                           <Button
@@ -790,6 +977,47 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                 Cancelar
               </Button>
               <Button disabled={isPending} onClick={confirmDelete} type="button" variant="destructive">
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Excluir
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {bulkDeleteOpen ? (
+        <div
+          aria-labelledby="bulk-delete-movement-title"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-end bg-black/45 p-3 sm:items-center sm:justify-center sm:p-4"
+          role="dialog"
+        >
+          <div className="w-full rounded-lg bg-white p-4 shadow-lg sm:max-w-sm">
+            <h2 className="text-base font-semibold text-neutral-950" id="bulk-delete-movement-title">
+              Excluir registros selecionados?
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-neutral-600">
+              Você está prestes a excluir {selectedCount} registro(s). Essa ação não pode ser desfeita.
+            </p>
+            {selectedMovements.length > 0 ? (
+              <div className="mt-3 max-h-32 space-y-1 overflow-y-auto rounded-md border border-neutral-200 bg-neutral-50 p-2">
+                {selectedMovements.slice(0, 5).map((movement) => (
+                  <p className="truncate text-xs font-medium text-neutral-600" key={movement.id}>
+                    {movement.description} · {toCurrency(movement.amount)}
+                  </p>
+                ))}
+                {selectedMovements.length > 5 ? (
+                  <p className="text-xs font-medium text-neutral-500">
+                    +{selectedMovements.length - 5} outro(s) registro(s)
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <Button disabled={isPending} onClick={() => setBulkDeleteOpen(false)} type="button" variant="outline">
+                Cancelar
+              </Button>
+              <Button disabled={isPending || selectedCount === 0} onClick={confirmBulkDelete} type="button" variant="destructive">
                 {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                 Excluir
               </Button>

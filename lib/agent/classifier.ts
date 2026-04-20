@@ -93,6 +93,15 @@ export function classifyDeterministically(
     return { kind: "capabilities" };
   }
 
+  const identityReply = getAssistantIdentityReply(normalized);
+
+  if (identityReply) {
+    return {
+      kind: "small_talk",
+      reply: appendPendingContext(identityReply, state),
+    };
+  }
+
   if (isCorrection(normalized)) {
     return { kind: "correction" };
   }
@@ -137,7 +146,7 @@ export function classifyDeterministically(
 
     return {
       kind: "unsupported_or_unknown",
-      reply: "Qual valor você quer usar como saldo inicial?",
+      reply: "Qual valor você quer usar como saldo atual?",
     };
   }
 
@@ -597,10 +606,10 @@ function getReminderUpdate(normalized: string): AgentReminderPreferenceUpdate | 
 
 function getInitialBalanceUpdate(message: string, normalized: string): { amount: number | null } | null {
   const hasInitialBalanceCue =
-    /(saldo inicial|caixa inicial|base inicial|saldo de partida|caixa de partida)/.test(normalized) ||
+    /(saldo inicial|saldo atual|ajustar saldo|atualizar saldo|caixa inicial|base inicial|saldo de partida|caixa de partida)/.test(normalized) ||
     /(comecei|comecar|começar|inicio|iniciei).*(com|saldo|caixa)/.test(normalized) ||
     /(definir|define|atualizar|atualiza|ajustar|ajusta|colocar|coloca|registrar|registra).*(saldo|caixa)/.test(normalized) ||
-    /\bmeu saldo (e|eh|é|para|pra)\b/.test(normalized);
+    /\bmeu saldo (e|eh|é|esta|está|ta|tá|ficou|para|pra)\b/.test(normalized);
 
   if (!hasInitialBalanceCue) {
     return null;
@@ -721,6 +730,17 @@ function getDeleteAction(normalized: string): AgentActionId | null {
   return null;
 }
 
+function getAssistantIdentityReply(normalized: string) {
+  if (
+    /(qual|como).*(seu nome|voce chama|vc chama)/.test(normalized) ||
+    /(quem e voce|quem eh voce|quem é você|quem e vc|quem eh vc|quem e helena|quem eh helena|quem é helena)/.test(normalized)
+  ) {
+    return "Sou a Helena, a assistente financeira do FechouMEI. Posso te ajudar com registros, consultas e pendências do seu MEI.";
+  }
+
+  return null;
+}
+
 function getConversationalReply(normalized: string) {
   if (/^bom dia\b/.test(normalized)) {
     return "Bom dia! Quer registrar alguma movimentacao ou dar uma olhada no seu mes?";
@@ -759,11 +779,11 @@ function getConversationalReply(normalized: string) {
 
 function isCapabilitiesQuestion(normalized: string) {
   return (
-    /(o que|que).*(voce|vc).*(pode|consegue|faz|sabe fazer)/.test(normalized) ||
-    /(como).*(voce|vc).*(pode me ajudar|funciona|me ajuda)/.test(normalized) ||
+    /(o que|que).*(voce|vc|helena).*(pode|consegue|faz|sabe fazer)/.test(normalized) ||
+    /(como).*(voce|vc|helena).*(pode me ajudar|funciona|me ajuda)/.test(normalized) ||
     /(me da|manda|mostra|me fala).*(exemplo|exemplos)/.test(normalized) ||
     /(o que eu posso|o que posso).*(pedir|mandar|falar)/.test(normalized) ||
-    /(me fala).*(o que).*(voce|vc).*(faz|consegue)/.test(normalized)
+    /(me fala).*(o que).*(voce|vc|helena).*(faz|consegue)/.test(normalized)
   );
 }
 

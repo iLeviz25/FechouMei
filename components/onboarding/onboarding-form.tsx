@@ -107,7 +107,7 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
     const parsedInitialBalance = parseOptionalAmount(initialBalance);
 
     if (parsedInitialBalance === null) {
-      setMessage("Use um saldo inicial válido, como 2000 ou 1200,50.");
+      setMessage("Use um valor de saldo válido, como 2000 ou 1200,50.");
       return;
     }
 
@@ -494,9 +494,9 @@ function InitialBalanceInput({
 }) {
   return (
     <label className="block space-y-2 rounded-md border border-neutral-200 bg-neutral-50/80 p-3">
-      <span className="text-sm font-semibold text-neutral-950">Saldo inicial atual</span>
+      <span className="text-sm font-semibold text-neutral-950">Com quanto você quer começar no app?</span>
       <span className="block text-sm leading-6 text-neutral-600">
-        Opcional. Use para começar com o valor que você já tem em caixa; isso não entra como receita.
+        Opcional. Informe o valor que você já tem em caixa hoje; isso não entra como receita.
       </span>
       <Input
         className="h-11 border-neutral-200 bg-white text-base font-semibold focus-visible:ring-emerald-200"

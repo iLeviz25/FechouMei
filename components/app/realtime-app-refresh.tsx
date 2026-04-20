@@ -9,6 +9,12 @@ type RealtimeAppRefreshProps = {
 };
 
 const refreshDelayMs = 250;
+const realtimeTables = [
+  { filterColumn: "user_id", table: "movimentacoes" },
+  { filterColumn: "user_id", table: "obrigacoes_checklist" },
+  { filterColumn: "user_id", table: "reminder_preferences" },
+  { filterColumn: "id", table: "profiles" },
+] as const;
 
 export function RealtimeAppRefresh({ userId }: RealtimeAppRefreshProps) {
   const router = useRouter();
@@ -31,62 +37,48 @@ export function RealtimeAppRefresh({ userId }: RealtimeAppRefreshProps) {
       }, refreshDelayMs);
     };
 
-    const channel = supabase
-      .channel(`app-live-refresh:${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          filter: `user_id=eq.${userId}`,
-          schema: "public",
-          table: "movimentacoes",
-        },
-        scheduleRefresh,
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          filter: `user_id=eq.${userId}`,
-          schema: "public",
-          table: "obrigacoes_checklist",
-        },
-        scheduleRefresh,
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          filter: `user_id=eq.${userId}`,
-          schema: "public",
-          table: "reminder_preferences",
-        },
-        scheduleRefresh,
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          filter: `id=eq.${userId}`,
-          schema: "public",
-          table: "profiles",
-        },
-        scheduleRefresh,
-      )
-      .subscribe((status) => {
-        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-          console.warn("Atualizacao em tempo real do app ficou indisponivel.", {
-            status,
-          });
-        }
-      });
+    const channels = realtimeTables.map(({ filterColumn, table }) =>
+      supabase
+        .channel(`app-live-refresh:${table}:${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            filter: `${filterColumn}=eq.${userId}`,
+            schema: "public",
+            table,
+          },
+          scheduleRefresh,
+        )
+        .subscribe((status) => {
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            console.warn("Atualizacao em tempo real do app ficou indisponivel para uma tabela.", {
+              status,
+              table,
+            });
+          }
+        }),
+    );
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        scheduleRefresh();
+      }
+    };
+
+    window.addEventListener("focus", scheduleRefresh);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
 
     return () => {
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
       }
 
-      void supabase.removeChannel(channel);
+      window.removeEventListener("focus", scheduleRefresh);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+      channels.forEach((channel) => {
+        void supabase.removeChannel(channel);
+      });
     };
   }, [router, userId]);
 

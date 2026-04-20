@@ -480,7 +480,7 @@ export async function executeReminderPreferencesUpdate(
 
 export async function executeInitialBalanceUpdate(context: AgentExecutionContext, amount: number) {
   if (!Number.isFinite(amount) || amount < 0) {
-    return "Me diga um valor válido para o saldo inicial.";
+    return "Me diga um valor válido para ajustar seu saldo.";
   }
 
   const normalizedAmount = Math.round(amount * 100) / 100;
@@ -500,7 +500,7 @@ export async function executeInitialBalanceUpdate(context: AgentExecutionContext
   revalidatePath("/app/movimentacoes");
   revalidatePath("/app/configuracoes");
 
-  return `Pronto, defini seu saldo inicial em ${toCurrency(normalizedAmount)}. Isso não entrou como receita nem afeta o limite do MEI.`;
+  return `Pronto, ajustei seu saldo atual para ${toCurrency(normalizedAmount)}. Isso não entrou como receita nem afeta o limite do MEI.`;
 }
 
 export async function executeReadAction(context: AgentExecutionContext, actionId: AgentActionId) {
