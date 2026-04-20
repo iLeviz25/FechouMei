@@ -300,22 +300,6 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
 
   let presenceController: WhatsAppPresenceController | null = null;
 
-  if (
-    remoteNumber &&
-    (!normalized.event || normalized.event === "messages.upsert") &&
-    (!normalized.instance || normalized.instance === config.instanceName) &&
-    !normalized.isFromMe &&
-    !isGroupJid(normalized.remoteJid)
-  ) {
-    presenceController = startWhatsAppPresenceKeepalive({
-      config,
-      externalMessageId,
-      normalized,
-      remoteNumber,
-      trace,
-    });
-  }
-
   const admin = createServiceRoleClient();
   let resolvedUserId: string | null = null;
 
@@ -333,7 +317,6 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
   );
 
   if (createdEvent.duplicate) {
-    presenceController?.stop("duplicate_event");
     trace.finish("duplicate", {
       reason: "duplicate_event",
     });
@@ -396,6 +379,13 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
 
   if (userResolution.kind === "activated") {
     resolvedUserId = userResolution.userId;
+    presenceController = startWhatsAppPresenceKeepalive({
+      config,
+      externalMessageId,
+      normalized,
+      remoteNumber,
+      trace,
+    });
     await replyAndFinishWhatsAppTurn({
       config,
       externalMessageId,
@@ -418,53 +408,27 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
     };
   }
 
-  if (userResolution.kind === "expired_activation_code" || userResolution.kind === "invalid_activation_code") {
-    await replyAndFinishWhatsAppTurn({
-      config,
-      externalMessageId,
-      instance: normalized.instance,
-      messageText: normalized.text,
-      presenceController,
-      reason: userResolution.kind,
-      remoteId: normalized.remoteJid,
-      remoteNumber,
-      reply: "Esse código de ativação não está válido. Abra o app FechouMEI e gere uma nova ativação do Assistente virtual.",
-      status: "discarded",
-      summary: `Codigo de ativacao ${userResolution.kind === "expired_activation_code" ? "expirado" : "invalido"}.`,
-      trace,
-      userId: userResolution.kind === "expired_activation_code" ? userResolution.userId : null,
-    });
+  if (userResolution.kind === "expired_activation_code") {
+    resolvedUserId = userResolution.userId;
+    return discard("expired_activation_code", "Codigo de ativacao expirado; mensagem ignorada sem resposta");
+  }
 
-    return {
-      body: { ok: true, reason: userResolution.kind },
-      status: 200,
-    };
+  if (userResolution.kind === "invalid_activation_code") {
+    return discard("invalid_activation_code", "Codigo de ativacao invalido; mensagem ignorada sem resposta");
   }
 
   if (userResolution.kind === "unlinked") {
-    await replyAndFinishWhatsAppTurn({
-      config,
-      externalMessageId,
-      instance: normalized.instance,
-      messageText: normalized.text,
-      presenceController,
-      reason: "whatsapp_not_linked",
-      remoteId: normalized.remoteJid,
-      remoteNumber,
-      reply: "Para usar o Assistente virtual pelo WhatsApp, abra o app FechouMEI e gere seu código de ativação.",
-      status: "discarded",
-      summary: "Mensagem recebida de numero ainda nao vinculado.",
-      trace,
-      userId: null,
-    });
-
-    return {
-      body: { ok: true, reason: "whatsapp_not_linked" },
-      status: 200,
-    };
+    return discard("whatsapp_not_linked", "Mensagem recebida de numero nao vinculado; ignorada sem resposta");
   }
 
   resolvedUserId = userResolution.userId;
+  presenceController = startWhatsAppPresenceKeepalive({
+    config,
+    externalMessageId,
+    normalized,
+    remoteNumber,
+    trace,
+  });
   const persistenceContext = {
     channel: "whatsapp" as const,
     supabase: admin,
