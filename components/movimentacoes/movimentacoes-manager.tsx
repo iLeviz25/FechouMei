@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react";
-import { ArrowDownLeft, ArrowUpRight, CalendarDays, Loader2, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, CalendarDays, DollarSign, Loader2, Pencil, Search, Trash2, X } from "lucide-react";
 import {
   createMovimentacao,
   deleteMovimentacao,
@@ -516,7 +516,7 @@ export function MovimentacoesManager({ movements }: MovimentacoesManagerProps) {
                 </CardDescription>
               </div>
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-emerald-100 bg-emerald-50 text-emerald-700">
-                <Plus className="h-4 w-4" />
+                <DollarSign className="h-4 w-4" />
               </span>
             </div>
           </CardHeader>
@@ -525,7 +525,7 @@ export function MovimentacoesManager({ movements }: MovimentacoesManagerProps) {
               <MovementFields form={createForm} idPrefix="create" onChange={updateCreateField} />
 
               <Button className="h-10 w-full shadow-sm" disabled={isPending} type="submit">
-                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <DollarSign className="h-4 w-4" />}
                 Salvar movimentação
               </Button>
             </form>

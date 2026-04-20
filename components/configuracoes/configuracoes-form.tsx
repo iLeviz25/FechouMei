@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, type ReactNode, useState, useTransition } from "react";
+import { type FormEvent, type ReactNode, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -8,9 +8,11 @@ import {
   KeyRound,
   Loader2,
   LogOut,
+  Pencil,
   ShieldCheck,
   Trash2,
   UserRound,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +26,18 @@ import type { Profile } from "@/types/database";
 
 type ConfiguracoesFormProps = {
   profile: Pick<Profile, "full_name" | "work_type" | "business_mode" | "main_category" | "main_goal"> | null;
+};
+
+type EditableField = "fullName" | "businessMode" | "workType" | "mainCategory" | "mainGoal";
+
+type ProfileValues = {
+  fullName: string;
+  workType: string;
+  customWorkType: string;
+  businessMode: string;
+  mainCategory: string;
+  customMainCategory: string;
+  mainGoal: string;
 };
 
 const workTypeOptions = [
@@ -60,11 +74,10 @@ const goalOptions = [
 
 export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
   const router = useRouter();
-  const [fullName, setFullName] = useState(profile?.full_name ?? "");
-  const [workType, setWorkType] = useState(profile?.work_type ?? workTypeOptions[0]);
-  const [businessMode, setBusinessMode] = useState(profile?.business_mode ?? "servico");
-  const [mainCategory, setMainCategory] = useState(profile?.main_category ?? categoryOptions[0]);
-  const [mainGoal, setMainGoal] = useState(profile?.main_goal ?? goalOptions[0]);
+  const initialValues = useMemo(() => getInitialProfileValues(profile), [profile]);
+  const [values, setValues] = useState(initialValues);
+  const [draft, setDraft] = useState(initialValues);
+  const [editingField, setEditingField] = useState<EditableField | null>(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
@@ -76,9 +89,27 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
   const [isUpdatingPassword, startPasswordTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
 
-  function handleSaveProfile(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function beginEdit(field: EditableField) {
     setProfileMessage(null);
+    setDraft(values);
+    setEditingField(field);
+  }
+
+  function cancelEdit() {
+    setDraft(values);
+    setEditingField(null);
+    setProfileMessage(null);
+  }
+
+  function saveProfileField(field: EditableField) {
+    setProfileMessage(null);
+
+    const validationMessage = validateProfileDraft(draft, field);
+
+    if (validationMessage) {
+      setProfileMessage(validationMessage);
+      return;
+    }
 
     startProfileTransition(async () => {
       const supabase = createClient();
@@ -96,24 +127,31 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
       const { error } = await supabase.from("profiles").upsert(
         {
           id: user.id,
-          full_name: fullName,
-          work_type: workType,
-          business_mode: businessMode,
-          main_category: mainCategory,
-          main_goal: mainGoal,
+          full_name: draft.fullName.trim(),
+          work_type: resolveOtherValue(draft.workType, draft.customWorkType),
+          business_mode: draft.businessMode,
+          main_category: resolveOtherValue(draft.mainCategory, draft.customMainCategory),
+          main_goal: draft.mainGoal,
+          onboarding_completed: true,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "id" },
       );
 
       if (error) {
-        setProfileMessage(error.message);
+        setProfileMessage("Não foi possível salvar essa alteração agora.");
         return;
       }
 
-      setProfileMessage("Dados atualizados com sucesso.");
+      setValues(draft);
+      setEditingField(null);
+      setProfileMessage("Preferência atualizada.");
       router.refresh();
     });
+  }
+
+  function updateDraft(patch: Partial<ProfileValues>) {
+    setDraft((current) => ({ ...current, ...patch }));
   }
 
   function handleUpdatePassword(event: FormEvent<HTMLFormElement>) {
@@ -135,7 +173,7 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
       const { error } = await supabase.auth.updateUser({ password });
 
       if (error) {
-        setPasswordMessage(error.message);
+        setPasswordMessage("Não foi possível atualizar a senha agora.");
         return;
       }
 
@@ -189,7 +227,7 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
                   Conta e preferências
                 </h1>
                 <p className="max-w-2xl text-sm leading-6 text-neutral-600">
-                  Ajuste seus dados do MEI, a senha de acesso e as ações da conta em um só lugar.
+                  Veja o resumo do seu perfil e altere só o que precisar.
                 </p>
               </div>
             </div>
@@ -202,86 +240,146 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
       </section>
 
       <section className="space-y-2">
-        <SectionLabel eyebrow="Seu app" title="Informações usadas no FechouMEI" />
+        <SectionLabel eyebrow="Seu app" title="Resumo das suas escolhas" />
 
         <Card className="overflow-hidden">
           <CardHeader className="border-b border-neutral-100 bg-neutral-50/60 p-3.5 sm:p-4">
             <CardHeading
-              description="Esses dados ajudam o app a ficar mais próximo da sua rotina."
+              description="Essas informações vieram do onboarding e ajudam o FechouMEI a se adaptar à sua rotina."
               icon={<UserRound className="h-4 w-4" />}
               title="Sobre seu trabalho"
             />
           </CardHeader>
-          <CardContent className="p-3.5 sm:p-4">
-            <form className="space-y-4" onSubmit={handleSaveProfile}>
-              <div className="grid gap-3.5 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Nome</Label>
-                  <Input
-                    className="h-10 border-neutral-200 bg-white focus-visible:ring-emerald-200"
-                    id="fullName"
-                    autoComplete="name"
-                    onChange={(event) => setFullName(event.target.value)}
-                    placeholder="Seu nome completo"
-                    required
-                    value={fullName}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="workType">Como você trabalha</Label>
+          <CardContent className="divide-y divide-neutral-100 p-0">
+            <EditableProfileRow
+              description="Como o app identifica sua conta."
+              editor={
+                <Input
+                  className="h-11 border-neutral-200 bg-white focus-visible:ring-emerald-200"
+                  onChange={(event) => updateDraft({ fullName: event.target.value })}
+                  placeholder="Seu nome completo"
+                  value={draft.fullName}
+                />
+              }
+              field="fullName"
+              isEditing={editingField === "fullName"}
+              isSaving={isSavingProfile}
+              label="Nome"
+              onCancel={cancelEdit}
+              onEdit={beginEdit}
+              onSave={saveProfileField}
+              value={values.fullName || "Não informado"}
+            />
+            <EditableProfileRow
+              description="Se sua rotina é mais ligada a serviço, produto ou ambos."
+              editor={
+                <OptionGroup
+                  name="businessMode"
+                  onChange={(businessMode) => updateDraft({ businessMode })}
+                  options={businessModeOptions}
+                  value={draft.businessMode}
+                />
+              }
+              field="businessMode"
+              isEditing={editingField === "businessMode"}
+              isSaving={isSavingProfile}
+              label="Atua com"
+              onCancel={cancelEdit}
+              onEdit={beginEdit}
+              onSave={saveProfileField}
+              value={getBusinessModeLabel(values.businessMode)}
+            />
+            <EditableProfileRow
+              description="O tipo de trabalho que mais representa sua atividade."
+              editor={
+                <div className="space-y-3">
                   <OptionGroup
                     name="workType"
-                    onChange={setWorkType}
+                    onChange={(workType) => updateDraft({
+                      customWorkType: workType === "Outro" ? draft.customWorkType : "",
+                      workType,
+                    })}
                     options={workTypeOptions.map((option) => ({ label: option, value: option }))}
-                    value={workType}
+                    value={draft.workType}
                   />
+                  {draft.workType === "Outro" ? (
+                    <OtherInput
+                      label="Escreva seu tipo de trabalho"
+                      onChange={(customWorkType) => updateDraft({ customWorkType })}
+                      placeholder="Ex.: fotografia, eventos, costura"
+                      value={draft.customWorkType}
+                    />
+                  ) : null}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="businessMode">Você trabalha com</Label>
-                  <OptionGroup
-                    name="businessMode"
-                    onChange={setBusinessMode}
-                    options={businessModeOptions}
-                    value={businessMode}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="mainCategory">Área principal</Label>
+              }
+              field="workType"
+              isEditing={editingField === "workType"}
+              isSaving={isSavingProfile}
+              label="Tipo de trabalho"
+              onCancel={cancelEdit}
+              onEdit={beginEdit}
+              onSave={saveProfileField}
+              value={resolveOtherValue(values.workType, values.customWorkType)}
+            />
+            <EditableProfileRow
+              description="A área principal usada para organizar sua visão do app."
+              editor={
+                <div className="space-y-3">
                   <OptionGroup
                     name="mainCategory"
-                    onChange={setMainCategory}
+                    onChange={(mainCategory) => updateDraft({
+                      customMainCategory: mainCategory === "Outro" ? draft.customMainCategory : "",
+                      mainCategory,
+                    })}
                     options={categoryOptions.map((option) => ({ label: option, value: option }))}
-                    value={mainCategory}
+                    value={draft.mainCategory}
                   />
+                  {draft.mainCategory === "Outro" ? (
+                    <OtherInput
+                      label="Escreva sua categoria principal"
+                      onChange={(customMainCategory) => updateDraft({ customMainCategory })}
+                      placeholder="Ex.: pet shop, artesanato, arquitetura"
+                      value={draft.customMainCategory}
+                    />
+                  ) : null}
                 </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="mainGoal">O que você quer organizar primeiro</Label>
-                  <OptionGroup
-                    name="mainGoal"
-                    onChange={setMainGoal}
-                    options={goalOptions.map((option) => ({ label: option, value: option }))}
-                    value={mainGoal}
-                  />
-                </div>
-              </div>
-
-              {profileMessage ? (
-                <FeedbackMessage
-                  tone={profileMessage === "Dados atualizados com sucesso." ? "success" : "danger"}
-                >
-                  {profileMessage}
-                </FeedbackMessage>
-              ) : null}
-
-              <div className="flex justify-end border-t border-neutral-100 pt-3.5">
-                <Button className="w-full sm:w-auto" disabled={isSavingProfile} type="submit">
-                  {isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  Salvar dados do perfil
-                </Button>
-              </div>
-            </form>
+              }
+              field="mainCategory"
+              isEditing={editingField === "mainCategory"}
+              isSaving={isSavingProfile}
+              label="Categoria principal"
+              onCancel={cancelEdit}
+              onEdit={beginEdit}
+              onSave={saveProfileField}
+              value={resolveOtherValue(values.mainCategory, values.customMainCategory)}
+            />
+            <EditableProfileRow
+              description="O primeiro resultado que você quer acompanhar com mais clareza."
+              editor={
+                <OptionGroup
+                  name="mainGoal"
+                  onChange={(mainGoal) => updateDraft({ mainGoal })}
+                  options={goalOptions.map((option) => ({ label: option, value: option }))}
+                  value={draft.mainGoal}
+                />
+              }
+              field="mainGoal"
+              isEditing={editingField === "mainGoal"}
+              isSaving={isSavingProfile}
+              label="Objetivo principal"
+              onCancel={cancelEdit}
+              onEdit={beginEdit}
+              onSave={saveProfileField}
+              value={values.mainGoal || "Não informado"}
+            />
           </CardContent>
         </Card>
+
+        {profileMessage ? (
+          <FeedbackMessage tone={profileMessage === "Preferência atualizada." ? "success" : "danger"}>
+            {profileMessage}
+          </FeedbackMessage>
+        ) : null}
       </section>
 
       <section className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.72fr)]">
@@ -440,6 +538,36 @@ type Option = {
   value: string;
 };
 
+function getInitialProfileValues(
+  profile: ConfiguracoesFormProps["profile"],
+): ProfileValues {
+  return {
+    businessMode: profile?.business_mode ?? "servico",
+    customMainCategory: getCustomValue(profile?.main_category, categoryOptions),
+    customWorkType: getCustomValue(profile?.work_type, workTypeOptions),
+    fullName: profile?.full_name ?? "",
+    mainCategory: getKnownOrOther(profile?.main_category, categoryOptions, categoryOptions[0]),
+    mainGoal: profile?.main_goal ?? goalOptions[0],
+    workType: getKnownOrOther(profile?.work_type, workTypeOptions, workTypeOptions[0]),
+  };
+}
+
+function validateProfileDraft(values: ProfileValues, field: EditableField) {
+  if (field === "fullName" && !values.fullName.trim()) {
+    return "Informe seu nome para salvar.";
+  }
+
+  if (field === "workType" && values.workType === "Outro" && !values.customWorkType.trim()) {
+    return "Escreva qual é o seu tipo de trabalho.";
+  }
+
+  if (field === "mainCategory" && values.mainCategory === "Outro" && !values.customMainCategory.trim()) {
+    return "Escreva qual é a sua categoria principal.";
+  }
+
+  return null;
+}
+
 function SectionLabel({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
     <div className="space-y-0.5 px-0.5">
@@ -471,6 +599,73 @@ function CardHeading({
   );
 }
 
+function EditableProfileRow({
+  description,
+  editor,
+  field,
+  isEditing,
+  isSaving,
+  label,
+  onCancel,
+  onEdit,
+  onSave,
+  value,
+}: {
+  description: string;
+  editor: ReactNode;
+  field: EditableField;
+  isEditing: boolean;
+  isSaving: boolean;
+  label: string;
+  onCancel: () => void;
+  onEdit: (field: EditableField) => void;
+  onSave: (field: EditableField) => void;
+  value: string;
+}) {
+  return (
+    <div className="p-4 sm:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 space-y-1">
+          <p className="text-sm font-semibold text-neutral-950">{label}</p>
+          <p className="text-sm leading-6 text-neutral-600">{description}</p>
+        </div>
+        {!isEditing ? (
+          <Button
+            aria-label={`Editar ${label}`}
+            className="h-9 w-9 shrink-0"
+            onClick={() => onEdit(field)}
+            size="icon"
+            type="button"
+            variant="outline"
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+        ) : null}
+      </div>
+
+      {!isEditing ? (
+        <p className="mt-3 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold leading-6 text-neutral-900">
+          {value}
+        </p>
+      ) : (
+        <div className="mt-3 space-y-3 rounded-md border border-emerald-200 bg-emerald-50/50 p-3">
+          {editor}
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+            <Button disabled={isSaving} onClick={onCancel} type="button" variant="outline">
+              <X className="h-4 w-4" />
+              Cancelar
+            </Button>
+            <Button disabled={isSaving} onClick={() => onSave(field)} type="button">
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              Salvar
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function OptionGroup({
   name,
   onChange,
@@ -490,9 +685,9 @@ function OptionGroup({
           <button
             aria-pressed={selected}
             className={cn(
-              "group flex min-h-[38px] w-full items-center justify-between gap-2 rounded-md border px-3 py-1.5 text-left text-sm font-medium leading-5 transition-colors",
+              "group flex min-h-[42px] w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm font-medium leading-5 transition-colors",
               selected
-                ? "border-emerald-300 bg-emerald-50/80 text-emerald-900 shadow-[0_1px_2px_rgba(16,185,129,0.08)]"
+                ? "border-emerald-300 bg-white text-emerald-900 shadow-[0_1px_2px_rgba(16,185,129,0.08)]"
                 : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50",
             )}
             key={option.value}
@@ -513,6 +708,30 @@ function OptionGroup({
         );
       })}
     </div>
+  );
+}
+
+function OtherInput({
+  label,
+  onChange,
+  placeholder,
+  value,
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  value: string;
+}) {
+  return (
+    <label className="block space-y-2">
+      <span className="text-sm font-semibold text-emerald-900">{label}</span>
+      <Input
+        className="h-11 border-emerald-200 bg-white focus-visible:ring-emerald-200"
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        value={value}
+      />
+    </label>
   );
 }
 
@@ -610,4 +829,24 @@ function ConfirmDialog({
       </div>
     </div>
   );
+}
+
+function getBusinessModeLabel(value: string) {
+  return businessModeOptions.find((option) => option.value === value)?.label ?? value;
+}
+
+function getKnownOrOther(value: string | null | undefined, options: string[], fallback: string) {
+  if (!value) {
+    return fallback;
+  }
+
+  return options.includes(value) ? value : "Outro";
+}
+
+function getCustomValue(value: string | null | undefined, options: string[]) {
+  return value && !options.includes(value) ? value : "";
+}
+
+function resolveOtherValue(value: string, customValue: string) {
+  return value === "Outro" ? customValue.trim() : value;
 }

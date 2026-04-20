@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, ChevronLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { getAuthErrorMessage, getProfileErrorMessage } from "@/lib/auth/errors";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -61,9 +62,11 @@ const onboardingSteps: Array<{
 export function OnboardingForm({ profile }: OnboardingFormProps) {
   const router = useRouter();
   const [fullName] = useState(profile?.full_name ?? "");
-  const [workType, setWorkType] = useState(profile?.work_type ?? workTypeOptions[0]);
+  const [workType, setWorkType] = useState(getKnownOrOther(profile?.work_type, workTypeOptions, workTypeOptions[0]));
+  const [customWorkType, setCustomWorkType] = useState(getCustomValue(profile?.work_type, workTypeOptions));
   const [businessMode, setBusinessMode] = useState(profile?.business_mode ?? "servico");
-  const [mainCategory, setMainCategory] = useState(profile?.main_category ?? categoryOptions[0]);
+  const [mainCategory, setMainCategory] = useState(getKnownOrOther(profile?.main_category, categoryOptions, categoryOptions[0]));
+  const [customMainCategory, setCustomMainCategory] = useState(getCustomValue(profile?.main_category, categoryOptions));
   const [mainGoal, setMainGoal] = useState(profile?.main_goal ?? "");
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
@@ -88,6 +91,18 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
       return;
     }
 
+    if (workType === "Outro" && !customWorkType.trim()) {
+      setMessage("Escreva qual é o seu tipo de trabalho para finalizar.");
+      setActiveStepIndex(1);
+      return;
+    }
+
+    if (mainCategory === "Outro" && !customMainCategory.trim()) {
+      setMessage("Escreva qual é a sua categoria principal para finalizar.");
+      setActiveStepIndex(2);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -107,9 +122,9 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
         {
           id: user.id,
           full_name: fullName.trim(),
-          work_type: workType,
+          work_type: resolveOtherValue(workType, customWorkType),
           business_mode: businessMode,
-          main_category: mainCategory,
+          main_category: resolveOtherValue(mainCategory, customMainCategory),
           main_goal: mainGoal,
           onboarding_completed: true,
           updated_at: new Date().toISOString(),
@@ -153,11 +168,11 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
     }
 
     if (stepId === "workType") {
-      return workType;
+      return resolveOtherValue(workType, customWorkType);
     }
 
     if (stepId === "mainCategory") {
-      return mainCategory;
+      return resolveOtherValue(mainCategory, customMainCategory);
     }
 
     return mainGoal;
@@ -171,11 +186,17 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
 
     if (stepId === "workType") {
       setWorkType(value);
+      if (value !== "Outro") {
+        setCustomWorkType("");
+      }
       return;
     }
 
     if (stepId === "mainCategory") {
       setMainCategory(value);
+      if (value !== "Outro") {
+        setCustomMainCategory("");
+      }
       return;
     }
 
@@ -188,6 +209,10 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
   }
 
   function handleNext() {
+    if (!canLeaveCurrentStep()) {
+      return;
+    }
+
     goToStep(Math.min(activeStepIndex + 1, onboardingSteps.length - 1));
   }
 
@@ -274,8 +299,24 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
                     name={activeStep.id}
                     onChange={(value) => setStepValue(activeStep.id, value)}
                     options={getStepOptions(activeStep.id)}
-                    value={getStepValue(activeStep.id)}
+                    value={getRawStepValue(activeStep.id)}
                   />
+                  {activeStep.id === "workType" && workType === "Outro" ? (
+                    <OtherInput
+                      label="Escreva seu tipo de trabalho"
+                      onChange={setCustomWorkType}
+                      placeholder="Ex.: fotografia, eventos, costura"
+                      value={customWorkType}
+                    />
+                  ) : null}
+                  {activeStep.id === "mainCategory" && mainCategory === "Outro" ? (
+                    <OtherInput
+                      label="Escreva sua categoria principal"
+                      onChange={setCustomMainCategory}
+                      placeholder="Ex.: pet shop, artesanato, arquitetura"
+                      value={customMainCategory}
+                    />
+                  ) : null}
                 </div>
 
                 <div className="space-y-4">
@@ -320,6 +361,36 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
       </Card>
     </form>
   );
+
+  function getRawStepValue(stepId: OnboardingStepId) {
+    if (stepId === "businessMode") {
+      return businessMode;
+    }
+
+    if (stepId === "workType") {
+      return workType;
+    }
+
+    if (stepId === "mainCategory") {
+      return mainCategory;
+    }
+
+    return mainGoal;
+  }
+
+  function canLeaveCurrentStep() {
+    if (activeStep.id === "workType" && workType === "Outro" && !customWorkType.trim()) {
+      setMessage("Escreva qual é o seu tipo de trabalho para continuar.");
+      return false;
+    }
+
+    if (activeStep.id === "mainCategory" && mainCategory === "Outro" && !customMainCategory.trim()) {
+      setMessage("Escreva qual é a sua categoria principal para continuar.");
+      return false;
+    }
+
+    return true;
+  }
 }
 
 type Option = {
@@ -370,4 +441,44 @@ function OptionGroup({
       })}
     </div>
   );
+}
+
+function OtherInput({
+  label,
+  onChange,
+  placeholder,
+  value,
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  value: string;
+}) {
+  return (
+    <label className="block space-y-2 rounded-md border border-emerald-200 bg-emerald-50/60 p-3">
+      <span className="text-sm font-semibold text-emerald-900">{label}</span>
+      <Input
+        className="h-11 border-emerald-200 bg-white focus-visible:ring-emerald-200"
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        value={value}
+      />
+    </label>
+  );
+}
+
+function getKnownOrOther(value: string | null | undefined, options: string[], fallback: string) {
+  if (!value) {
+    return fallback;
+  }
+
+  return options.includes(value) ? value : "Outro";
+}
+
+function getCustomValue(value: string | null | undefined, options: string[]) {
+  return value && !options.includes(value) ? value : "";
+}
+
+function resolveOtherValue(value: string, customValue: string) {
+  return value === "Outro" ? customValue.trim() : value;
 }
