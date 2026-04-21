@@ -50,12 +50,43 @@ export function MonthSelector({ monthValue, yearValue, nextHref, previousHref }:
   }
 
   return (
-    <div className="rounded-md border border-neutral-200/80 bg-neutral-50/80 p-3 shadow-none">
-      <p className="mb-2 text-[10px] font-semibold uppercase leading-none tracking-wide text-neutral-500">
-        Mês do fechamento
-      </p>
-      <form className="grid grid-cols-[minmax(0,1fr)_84px_76px] gap-2" onSubmit={handleSubmit}>
-        <label className="space-y-1.5 text-[10px] font-semibold uppercase leading-none tracking-wide text-neutral-500">
+    <div className="rounded-lg border border-neutral-200 bg-white/90 p-3 shadow-none">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500">Período</p>
+          <p className="mt-1 text-sm font-semibold text-neutral-950">Escolha o mês do fechamento</p>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            asChild
+            className="h-8 w-8 border-neutral-200 bg-white p-0 text-neutral-600 hover:text-neutral-950 sm:h-8 sm:w-auto sm:px-2.5"
+            size="sm"
+            variant="outline"
+          >
+            <Link aria-label="Mês anterior" href={previousHref}>
+              <ChevronLeft className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Anterior</span>
+            </Link>
+          </Button>
+          <Button
+            asChild
+            className="h-8 w-8 border-neutral-200 bg-white p-0 text-neutral-600 hover:text-neutral-950 sm:h-8 sm:w-auto sm:px-2.5"
+            size="sm"
+            variant="outline"
+          >
+            <Link aria-label="Próximo mês" href={nextHref}>
+              <span className="hidden sm:inline">Próximo</span>
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          </Button>
+        </div>
+      </div>
+
+      <form
+        className="mt-3 grid grid-cols-[minmax(0,1fr)_104px] gap-2 sm:grid-cols-[minmax(0,1fr)_96px_86px]"
+        onSubmit={handleSubmit}
+      >
+        <label className="space-y-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
           Mês
           <Select
             className="h-9 border-neutral-200 bg-white px-2.5 py-1.5 text-sm leading-5 shadow-none focus-visible:ring-emerald-200"
@@ -70,7 +101,8 @@ export function MonthSelector({ monthValue, yearValue, nextHref, previousHref }:
             ))}
           </Select>
         </label>
-        <label className="space-y-1.5 text-[10px] font-semibold uppercase leading-none tracking-wide text-neutral-500">
+
+        <label className="space-y-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
           Ano
           <Select
             className="h-9 border-neutral-200 bg-white px-2.5 py-1.5 text-sm leading-5 shadow-none focus-visible:ring-emerald-200"
@@ -85,25 +117,15 @@ export function MonthSelector({ monthValue, yearValue, nextHref, previousHref }:
             ))}
           </Select>
         </label>
-        <Button className="h-9 self-end border-neutral-200 bg-white px-2 text-xs" size="sm" type="submit" variant="outline">
-          Aplicar
+
+        <Button
+          className="col-span-2 h-9 border-neutral-200 bg-neutral-950 px-3 text-xs text-white hover:bg-neutral-800 sm:col-span-1 sm:self-end"
+          size="sm"
+          type="submit"
+        >
+          Ver mês
         </Button>
       </form>
-
-      <div className="mt-2 grid grid-cols-2 gap-1.5 border-t border-neutral-200/70 pt-2">
-        <Button asChild className="h-8 bg-transparent px-1.5 text-xs font-medium text-neutral-500 hover:bg-white hover:text-neutral-700" size="sm" variant="ghost">
-          <Link href={previousHref}>
-            <ChevronLeft className="h-3.5 w-3.5" />
-            Mês anterior
-          </Link>
-        </Button>
-        <Button asChild className="h-8 bg-transparent px-1.5 text-xs font-medium text-neutral-500 hover:bg-white hover:text-neutral-700" size="sm" variant="ghost">
-          <Link href={nextHref}>
-            Próximo mês
-            <ChevronRight className="h-3.5 w-3.5" />
-          </Link>
-        </Button>
-      </div>
     </div>
   );
 }
