@@ -15,6 +15,7 @@ export type CsvMovement = {
 };
 
 type MovementsCsvExportButtonProps = {
+  buttonClassName?: string;
   className?: string;
   filename: string;
   label: string;
@@ -61,6 +62,7 @@ function downloadCsv(filename: string, content: string) {
 }
 
 export function MovementsCsvExportButton({
+  buttonClassName,
   className,
   filename,
   label,
@@ -82,7 +84,7 @@ export function MovementsCsvExportButton({
   return (
     <div className={cn("space-y-1", className)}>
       <Button
-        className="w-full border-neutral-200 bg-white"
+        className={cn("w-full border-neutral-200 bg-white", buttonClassName)}
         disabled={disabled}
         onClick={handleExport}
         size="sm"

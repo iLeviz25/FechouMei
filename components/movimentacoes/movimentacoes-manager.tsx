@@ -5,19 +5,21 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   CalendarDays,
+  ChevronDown,
   CheckSquare,
   DollarSign,
   Loader2,
   Pencil,
   Search,
+  SlidersHorizontal,
   Square,
   Trash2,
   X,
 } from "lucide-react";
 import {
   createMovimentacao,
-  deleteMovimentacoes,
   deleteMovimentacao,
+  deleteMovimentacoes,
   updateMovimentacao,
   type MovementActionResult,
 } from "@/app/app/movimentacoes/actions";
@@ -153,9 +155,11 @@ function normalizeAmountInput(value: string) {
   const hasComma = cleaned.includes(",");
   const separator = hasComma ? "," : ".";
   const parts = cleaned.split(hasComma ? "," : ".");
+
   if (parts.length === 1) {
     return parts[0];
   }
+
   const integerPart = parts[0];
   const decimalPart = parts.slice(1).join("").slice(0, 2);
   return `${integerPart}${separator}${decimalPart}`;
@@ -165,11 +169,14 @@ function formatAmountForDisplay(value: string) {
   if (!value) {
     return "";
   }
+
   const normalized = value.replace(",", ".");
   const numberValue = Number(normalized);
+
   if (!Number.isFinite(numberValue)) {
     return value;
   }
+
   return numberValue.toFixed(2).replace(".", ",");
 }
 
@@ -220,8 +227,8 @@ function MovementFields({
   onChange: (field: keyof FormState, value: string) => void;
 }) {
   return (
-    <div className={cn("grid gap-3", compact ? "sm:grid-cols-2" : "md:grid-cols-2")}>
-      <div className={cn("space-y-2", compact ? "sm:col-span-2" : "md:col-span-2")}>
+    <div className={cn("grid grid-cols-2 gap-3", compact ? "sm:grid-cols-2" : "md:grid-cols-2")}>
+      <div className="col-span-2 space-y-2">
         <Label className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500" htmlFor={`${idPrefix}-type`}>
           Entrada ou despesa
         </Label>
@@ -239,14 +246,11 @@ function MovementFields({
       </div>
 
       <div className="space-y-2">
-        <Label
-          className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500"
-          htmlFor={`${idPrefix}-occurred-on`}
-        >
+        <Label className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500" htmlFor={`${idPrefix}-occurred-on`}>
           Data do registro
         </Label>
         <Input
-          className="h-10 border-neutral-200 bg-white shadow-none focus-visible:ring-emerald-700"
+          className="h-11 border-neutral-200 bg-white shadow-none focus-visible:ring-emerald-700"
           id={`${idPrefix}-occurred-on`}
           name="occurred_on"
           onChange={(event) => onChange("occurred_on", event.target.value)}
@@ -262,7 +266,7 @@ function MovementFields({
         </Label>
         <Input
           className={cn(
-            "h-10 border-neutral-200 bg-white text-base font-semibold shadow-none placeholder:font-normal focus-visible:ring-emerald-700",
+            "h-11 border-neutral-200 bg-white text-base font-semibold shadow-none placeholder:font-normal focus-visible:ring-emerald-700",
             form.type === "entrada" ? "text-emerald-800" : "text-red-700",
           )}
           id={`${idPrefix}-amount`}
@@ -279,15 +283,12 @@ function MovementFields({
         />
       </div>
 
-      <div className={cn("space-y-2", compact ? "sm:col-span-2" : "md:col-span-2")}>
-        <Label
-          className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500"
-          htmlFor={`${idPrefix}-description`}
-        >
+      <div className="col-span-2 space-y-2">
+        <Label className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500" htmlFor={`${idPrefix}-description`}>
           Descrição curta
         </Label>
         <Input
-          className="h-10 border-neutral-200 bg-white shadow-none focus-visible:ring-emerald-700"
+          className="h-11 border-neutral-200 bg-white shadow-none focus-visible:ring-emerald-700"
           id={`${idPrefix}-description`}
           name="description"
           onChange={(event) => onChange("description", event.target.value)}
@@ -297,19 +298,35 @@ function MovementFields({
         />
       </div>
 
-      <div className={cn("space-y-2", compact ? "sm:col-span-2" : "md:col-span-2")}>
+      <div className="col-span-2 space-y-2">
         <Label className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500" htmlFor={`${idPrefix}-category`}>
           Categoria
         </Label>
         <input name="category" type="hidden" value={form.category} />
-        <OptionGroup
-          name={`${idPrefix}-category`}
-          onChange={(value) => onChange("category", value)}
-          options={categories.map((category) => ({ value: category, label: category }))}
-          required
-          tone="category"
+        <Select
+          className="h-11 border-neutral-200 bg-white shadow-none focus-visible:ring-emerald-700 md:hidden"
+          id={`${idPrefix}-category`}
+          onChange={(event) => onChange("category", event.target.value)}
           value={form.category}
-        />
+        >
+          <option value="">Escolha uma categoria</option>
+          {categories.map((category) => (
+            <option key={category} value={category}>
+              {category}
+            </option>
+          ))}
+        </Select>
+        <div className="hidden md:block">
+          <OptionGroup
+            name={`${idPrefix}-category`}
+            onChange={(value) => onChange("category", value)}
+            options={categories.map((category) => ({ value: category, label: category }))}
+            required
+            tone="category"
+            value={form.category}
+          />
+        </div>
+        {!form.category ? <p className="text-xs text-neutral-500 md:hidden">Escolha uma categoria para continuar.</p> : null}
       </div>
     </div>
   );
@@ -328,6 +345,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("todos");
   const [categoryFilter, setCategoryFilter] = useState("todas");
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("todos");
+  const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const summary = useMemo(() => {
@@ -338,6 +356,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
         } else {
           acc.expense += movement.amount;
         }
+
         return acc;
       },
       { income: 0, expense: 0 },
@@ -346,6 +365,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
 
   const safeInitialBalance = Number.isFinite(initialBalance) ? initialBalance : 0;
   const balance = safeInitialBalance + summary.income - summary.expense;
+
   const categoryOptions = useMemo(() => {
     const knownCategories = new Set(categories.map(normalizeSearchValue));
     const extraCategories = movements
@@ -355,6 +375,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
 
     return [...categories, ...extraCategories];
   }, [movements]);
+
   const filteredMovements = useMemo(() => {
     const search = normalizeSearchValue(searchTerm);
     const periodRange = getPeriodRange(periodFilter);
@@ -368,10 +389,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
         return false;
       }
 
-      if (
-        periodRange &&
-        (movement.occurred_on < periodRange.start || movement.occurred_on > periodRange.end)
-      ) {
+      if (periodRange && (movement.occurred_on < periodRange.start || movement.occurred_on > periodRange.end)) {
         return false;
       }
 
@@ -383,15 +401,14 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
       return searchableText.includes(search);
     });
   }, [categoryFilter, movements, periodFilter, searchTerm, typeFilter]);
+
   const existingMovementIds = useMemo(() => new Set(movements.map((movement) => movement.id)), [movements]);
-  const filteredMovementIds = useMemo(
-    () => filteredMovements.map((movement) => movement.id),
-    [filteredMovements],
-  );
+  const filteredMovementIds = useMemo(() => filteredMovements.map((movement) => movement.id), [filteredMovements]);
   const selectedMovements = useMemo(
     () => movements.filter((movement) => selectedIds.has(movement.id)),
     [movements, selectedIds],
   );
+
   const selectedCount = selectedIds.size;
   const allFilteredSelected =
     filteredMovementIds.length > 0 && filteredMovementIds.every((id) => selectedIds.has(id));
@@ -433,6 +450,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
     setTypeFilter("todos");
     setCategoryFilter("todas");
     setPeriodFilter("todos");
+    setMobileToolsOpen(false);
   }
 
   function startSelectionMode() {
@@ -440,6 +458,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
     setPendingDelete(null);
     cancelEdit();
     setSelectionMode(true);
+    setMobileToolsOpen(true);
   }
 
   function exitSelectionMode() {
@@ -488,6 +507,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
     startTransition(async () => {
       const result = await createMovimentacao(formData);
       setFeedback(result.ok ? { ok: true, message: "Movimentação salva com sucesso." } : result);
+
       if (result.ok) {
         setCreateForm(emptyForm);
       }
@@ -508,6 +528,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
     startTransition(async () => {
       const result = await updateMovimentacao(id, formData);
       setFeedback(result.ok ? { ok: true, message: "Alterações salvas com sucesso." } : result);
+
       if (result.ok) {
         cancelEdit();
       }
@@ -525,11 +546,14 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
     }
 
     const movement = pendingDelete;
+
     startTransition(async () => {
       const result = await deleteMovimentacao(movement.id);
       setFeedback(result.ok ? { ok: true, message: "Movimentação excluída com sucesso." } : result);
+
       if (result.ok) {
         setPendingDelete(null);
+
         if (editingId === movement.id) {
           cancelEdit();
         }
@@ -546,6 +570,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
 
     startTransition(async () => {
       const result = await deleteMovimentacoes(ids);
+
       setFeedback(
         result.ok
           ? {
@@ -567,37 +592,25 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
   }
 
   return (
-    <div className="space-y-5 pb-6">
-      <header className="space-y-2.5">
+    <div className="space-y-4 pb-6">
+      <header className="space-y-2">
         <Badge variant="success" className="w-fit border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800">
           Entradas e despesas
         </Badge>
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight text-neutral-950 sm:text-3xl">
-            Lance entradas e despesas
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-neutral-950 sm:text-3xl">Lançar movimentação</h1>
           <p className="max-w-2xl text-sm leading-6 text-neutral-600">
-            Cada registro aqui alimenta a visão geral e o Fechamento mensal. Comece pelo que entrou ou saiu.
+            Registre o que entrou ou saiu e consulte o histórico sem perder tempo no celular.
           </p>
         </div>
       </header>
 
-      <section aria-label="Resumo financeiro" className="grid gap-2.5 sm:grid-cols-3">
-        <SummaryCard
-          icon={<ArrowUpRight className="h-4 w-4" />}
-          label="Entradas registradas"
-          tone="income"
-          value={toCurrency(summary.income)}
-        />
-        <SummaryCard
-          icon={<ArrowDownLeft className="h-4 w-4" />}
-          label="Despesas registradas"
-          tone="expense"
-          value={toCurrency(summary.expense)}
-        />
+      <section aria-label="Resumo financeiro" className="grid grid-cols-3 gap-2">
+        <SummaryCard icon={<ArrowUpRight className="h-4 w-4" />} label="Entradas" tone="income" value={toCurrency(summary.income)} />
+        <SummaryCard icon={<ArrowDownLeft className="h-4 w-4" />} label="Despesas" tone="expense" value={toCurrency(summary.expense)} />
         <SummaryCard
           icon={<CalendarDays className="h-4 w-4" />}
-          label="Saldo atual"
+          label="Saldo"
           tone={balance >= 0 ? "balance" : "expense"}
           value={toCurrency(balance)}
         />
@@ -623,10 +636,8 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
           <CardHeader className="border-b border-neutral-100 bg-white/80 p-4 sm:p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <CardTitle className="text-base text-neutral-950">Adicionar entrada ou despesa</CardTitle>
-                <CardDescription className="mt-1 leading-6">
-                  Preencha data, valor e uma descrição curta. O registro entra nos resumos do app.
-                </CardDescription>
+                <CardTitle className="text-base text-neutral-950">Lançar agora</CardTitle>
+                <CardDescription className="mt-1 leading-6">Preencha os campos abaixo e salve a movimentação.</CardDescription>
               </div>
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-emerald-100 bg-emerald-50 text-emerald-700">
                 <DollarSign className="h-4 w-4" />
@@ -637,7 +648,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
             <form className="space-y-4" noValidate onSubmit={handleCreate}>
               <MovementFields form={createForm} idPrefix="create" onChange={updateCreateField} />
 
-              <Button className="h-10 w-full shadow-sm" disabled={isPending} type="submit">
+              <Button className="h-11 w-full shadow-sm" disabled={isPending} type="submit">
                 {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <DollarSign className="h-4 w-4" />}
                 Salvar movimentação
               </Button>
@@ -646,109 +657,148 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
         </Card>
 
         <section className="space-y-3">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold tracking-tight text-neutral-950">Registros cadastrados</h2>
-              <p className="text-sm text-neutral-500">
-                {hasActiveFilters
-                  ? `${filteredMovements.length} de ${movements.length} registro(s)`
-                  : `${movements.length} registro(s)`}
-              </p>
-            </div>
-            <div className="grid gap-2 sm:flex sm:items-center">
-              {movements.length > 0 ? (
-                <Button
-                  className="h-9 w-full sm:w-auto"
-                  onClick={selectionMode ? exitSelectionMode : startSelectionMode}
-                  type="button"
-                  variant={selectionMode ? "secondary" : "outline"}
-                >
-                  {selectionMode ? <X className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
-                  {selectionMode ? "Cancelar seleção" : "Selecionar"}
-                </Button>
-              ) : null}
-              <MovementsCsvExportButton
-                className="w-full sm:w-auto"
-                filename="fechoumei-movimentacoes.csv"
-                label="Exportar CSV"
-                movements={movements}
-              />
-            </div>
-          </div>
-
-          {movements.length > 0 ? (
-            <div className="rounded-md border border-neutral-200 bg-neutral-50/70 p-3">
-              <div className="grid gap-2 md:grid-cols-[minmax(0,1.2fr)_0.8fr_0.9fr_0.9fr]">
-                <label className="space-y-1.5 text-xs font-semibold text-neutral-600">
-                  Buscar
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-                    <Input
-                      className="h-10 border-neutral-200 bg-white pl-9 shadow-none focus-visible:ring-emerald-700"
-                      onChange={(event) => setSearchTerm(event.target.value)}
-                      placeholder="Descrição ou categoria"
-                      type="search"
-                      value={searchTerm}
-                    />
-                  </div>
-                </label>
-
-                <label className="space-y-1.5 text-xs font-semibold text-neutral-600">
-                  Tipo
-                  <Select
-                    className="h-10 border-neutral-200 bg-white shadow-none focus-visible:ring-emerald-700"
-                    onChange={(event) => setTypeFilter(event.target.value as TypeFilter)}
-                    value={typeFilter}
-                  >
-                    <option value="todos">Todos</option>
-                    <option value="entrada">Entradas</option>
-                    <option value="despesa">Despesas</option>
-                  </Select>
-                </label>
-
-                <label className="space-y-1.5 text-xs font-semibold text-neutral-600">
-                  Categoria
-                  <Select
-                    className="h-10 border-neutral-200 bg-white shadow-none focus-visible:ring-emerald-700"
-                    onChange={(event) => setCategoryFilter(event.target.value)}
-                    value={categoryFilter}
-                  >
-                    <option value="todas">Todas</option>
-                    {categoryOptions.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </Select>
-                </label>
-
-                <label className="space-y-1.5 text-xs font-semibold text-neutral-600">
-                  Período
-                  <Select
-                    className="h-10 border-neutral-200 bg-white shadow-none focus-visible:ring-emerald-700"
-                    onChange={(event) => setPeriodFilter(event.target.value as PeriodFilter)}
-                    value={periodFilter}
-                  >
-                    <option value="todos">Todos</option>
-                    <option value="este-mes">Este mês</option>
-                    <option value="mes-anterior">Mês anterior</option>
-                    <option value="ultimos-30-dias">Últimos 30 dias</option>
-                  </Select>
-                </label>
+          <div className="space-y-3 rounded-lg border border-neutral-200 bg-white p-3 shadow-[0_8px_24px_rgba(15,23,42,0.04)] sm:p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-base font-semibold tracking-tight text-neutral-950 sm:text-lg">Histórico de lançamentos</h2>
+                <p className="text-sm text-neutral-500">
+                  {hasActiveFilters
+                    ? `${filteredMovements.length} de ${movements.length} registro(s)`
+                    : `${movements.length} registro(s)`}
+                </p>
               </div>
 
-              {hasActiveFilters ? (
-                <div className="mt-3 flex flex-col gap-2 border-t border-neutral-200 pt-3 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-xs font-medium text-neutral-500">
-                    Mostrando apenas os registros que combinam com a busca e os filtros.
-                  </p>
-                  <Button className="h-8 w-full sm:w-auto" onClick={clearFilters} size="sm" type="button" variant="ghost">
-                    Limpar filtros
+              <div className="hidden gap-2 sm:flex sm:items-center">
+                {movements.length > 0 ? (
+                  <Button
+                    className="h-9"
+                    onClick={selectionMode ? exitSelectionMode : startSelectionMode}
+                    type="button"
+                    variant={selectionMode ? "secondary" : "outline"}
+                  >
+                    {selectionMode ? <X className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
+                    {selectionMode ? "Cancelar seleção" : "Selecionar"}
+                  </Button>
+                ) : null}
+                <MovementsCsvExportButton
+                  buttonClassName="w-auto"
+                  className="w-auto"
+                  filename="fechoumei-movimentacoes.csv"
+                  label="Exportar CSV"
+                  movements={movements}
+                />
+              </div>
+            </div>
+
+            {movements.length > 0 ? (
+              <>
+                <div className="flex gap-2 sm:hidden">
+                  <Button
+                    className="h-9 flex-1"
+                    onClick={() => setMobileToolsOpen((current) => !current)}
+                    type="button"
+                    variant={mobileToolsOpen || hasActiveFilters ? "secondary" : "outline"}
+                  >
+                    <SlidersHorizontal className="h-4 w-4" />
+                    Filtros e ações
+                    <ChevronDown className={cn("h-4 w-4 transition-transform", mobileToolsOpen && "rotate-180")} />
+                  </Button>
+                  <Button
+                    className="h-9"
+                    disabled={movements.length === 0}
+                    onClick={selectionMode ? exitSelectionMode : startSelectionMode}
+                    type="button"
+                    variant={selectionMode ? "secondary" : "outline"}
+                  >
+                    {selectionMode ? <X className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
+                    <span className="sr-only">{selectionMode ? "Cancelar seleção" : "Selecionar registros"}</span>
                   </Button>
                 </div>
-              ) : null}
-            </div>
-          ) : null}
+
+                <div className={cn("hidden sm:block", mobileToolsOpen && "block sm:block")}>
+                  <div className="rounded-md border border-neutral-200 bg-neutral-50/70 p-3">
+                    <div className="space-y-3 sm:hidden">
+                      <MovementsCsvExportButton
+                        filename="fechoumei-movimentacoes.csv"
+                        label="Exportar CSV"
+                        movements={movements}
+                      />
+                    </div>
+
+                    <div className="grid gap-2 sm:mt-3 md:grid-cols-[minmax(0,1.2fr)_0.8fr_0.9fr_0.9fr]">
+                      <label className="space-y-1.5 text-xs font-semibold text-neutral-600">
+                        Buscar
+                        <div className="relative">
+                          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                          <Input
+                            className="h-10 border-neutral-200 bg-white pl-9 shadow-none focus-visible:ring-emerald-700"
+                            onChange={(event) => setSearchTerm(event.target.value)}
+                            placeholder="Descrição ou categoria"
+                            type="search"
+                            value={searchTerm}
+                          />
+                        </div>
+                      </label>
+
+                      <label className="space-y-1.5 text-xs font-semibold text-neutral-600">
+                        Tipo
+                        <Select
+                          className="h-10 border-neutral-200 bg-white shadow-none focus-visible:ring-emerald-700"
+                          onChange={(event) => setTypeFilter(event.target.value as TypeFilter)}
+                          value={typeFilter}
+                        >
+                          <option value="todos">Todos</option>
+                          <option value="entrada">Entradas</option>
+                          <option value="despesa">Despesas</option>
+                        </Select>
+                      </label>
+
+                      <label className="space-y-1.5 text-xs font-semibold text-neutral-600">
+                        Categoria
+                        <Select
+                          className="h-10 border-neutral-200 bg-white shadow-none focus-visible:ring-emerald-700"
+                          onChange={(event) => setCategoryFilter(event.target.value)}
+                          value={categoryFilter}
+                        >
+                          <option value="todas">Todas</option>
+                          {categoryOptions.map((category) => (
+                            <option key={category} value={category}>
+                              {category}
+                            </option>
+                          ))}
+                        </Select>
+                      </label>
+
+                      <label className="space-y-1.5 text-xs font-semibold text-neutral-600">
+                        Período
+                        <Select
+                          className="h-10 border-neutral-200 bg-white shadow-none focus-visible:ring-emerald-700"
+                          onChange={(event) => setPeriodFilter(event.target.value as PeriodFilter)}
+                          value={periodFilter}
+                        >
+                          <option value="todos">Todos</option>
+                          <option value="este-mes">Este mês</option>
+                          <option value="mes-anterior">Mês anterior</option>
+                          <option value="ultimos-30-dias">Últimos 30 dias</option>
+                        </Select>
+                      </label>
+                    </div>
+
+                    {hasActiveFilters ? (
+                      <div className="mt-3 flex flex-col gap-2 border-t border-neutral-200 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-xs font-medium text-neutral-500">
+                          Mostrando apenas os registros que combinam com a busca e os filtros.
+                        </p>
+                        <Button className="h-8 w-full sm:w-auto" onClick={clearFilters} size="sm" type="button" variant="ghost">
+                          Limpar filtros
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </>
+            ) : null}
+          </div>
 
           {selectionMode ? (
             <div className="rounded-md border border-emerald-200 bg-emerald-50/80 p-3 shadow-sm">
@@ -794,9 +844,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
             <Card className="border-dashed border-neutral-300 bg-neutral-50/70 shadow-none">
               <CardContent className="p-5 text-sm leading-6 text-neutral-600">
                 <p className="font-medium text-neutral-950">Nenhuma movimentação registrada ainda.</p>
-                <p className="mt-1">
-                  Use o formulário ao lado para lançar sua primeira entrada recebida ou despesa paga.
-                </p>
+                <p className="mt-1">Use o formulário acima para lançar sua primeira entrada recebida ou despesa paga.</p>
                 <p className="mt-1 text-xs font-medium text-neutral-500">
                   Depois disso, os filtros, a busca e a exportação em CSV ficam disponíveis aqui.
                 </p>
@@ -806,16 +854,14 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
             <Card className="border-dashed border-neutral-300 bg-neutral-50/70 shadow-none">
               <CardContent className="p-5 text-sm leading-6 text-neutral-600">
                 <p className="font-medium text-neutral-950">Nenhum registro encontrado.</p>
-                <p className="mt-1">
-                  Ajuste a busca, o tipo, a categoria ou o período para ver outros registros.
-                </p>
+                <p className="mt-1">Ajuste a busca, o tipo, a categoria ou o período para ver outros registros.</p>
                 <Button className="mt-3 h-9 w-full sm:w-auto" onClick={clearFilters} size="sm" type="button" variant="outline">
                   Limpar filtros
                 </Button>
               </CardContent>
             </Card>
           ) : (
-            <div className="max-h-[28rem] space-y-2.5 overflow-y-auto overflow-x-hidden pr-1 overscroll-contain sm:max-h-[32rem] lg:max-h-[34rem]">
+            <div className="space-y-2 overflow-visible md:max-h-[32rem] md:overflow-y-auto md:overflow-x-hidden md:pr-1 md:overscroll-contain lg:max-h-[34rem]">
               {filteredMovements.map((movement) => {
                 const isEditing = editingId === movement.id;
                 const isIncome = movement.type === "entrada";
@@ -824,7 +870,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                 return (
                   <Card
                     className={cn(
-                      "relative overflow-hidden border-neutral-200 bg-white shadow-[0_5px_18px_rgba(15,23,42,0.045)] transition-colors",
+                      "relative overflow-hidden border-neutral-200 bg-white shadow-[0_4px_14px_rgba(15,23,42,0.04)] transition-colors",
                       isIncome ? "before:bg-emerald-500" : "before:bg-red-400",
                       "before:absolute before:inset-y-0 before:left-0 before:w-1",
                       isEditing && "border-emerald-300 bg-emerald-50/20 shadow-[0_10px_30px_rgba(16,185,129,0.12)]",
@@ -832,8 +878,8 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                     )}
                     key={movement.id}
                   >
-                    <CardContent className="space-y-3 p-3 pl-4 sm:p-4 sm:pl-5">
-                      <div className={cn("grid gap-3", selectionMode ? "grid-cols-[auto_1fr_auto]" : "grid-cols-[1fr_auto]")}>
+                    <CardContent className="space-y-2.5 p-3 pl-4 sm:p-4 sm:pl-5">
+                      <div className={cn("grid gap-2.5", selectionMode ? "grid-cols-[auto_1fr_auto]" : "grid-cols-[1fr_auto]")}>
                         {selectionMode ? (
                           <button
                             aria-label={isSelected ? "Remover registro da seleção" : "Selecionar registro"}
@@ -850,6 +896,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                             {isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
                           </button>
                         ) : null}
+
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-1.5">
                             <Badge
@@ -868,13 +915,14 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                               {movement.occurred_at ? toDateTime(movement.occurred_at) : toDate(movement.occurred_on)}
                             </span>
                           </div>
-                          <p className="mt-1.5 truncate text-sm font-semibold text-neutral-950 sm:text-base">
+                          <p className="mt-1 truncate text-sm font-semibold leading-5 text-neutral-950 sm:text-base">
                             {movement.description}
                           </p>
-                          <p className="mt-1 inline-flex rounded-md bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-600">
+                          <p className="mt-1 inline-flex rounded-md bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-600">
                             {movement.category}
                           </p>
                         </div>
+
                         <p
                           className={cn(
                             "shrink-0 pt-0.5 text-right text-sm font-bold tabular-nums sm:text-base",
@@ -900,12 +948,9 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                               Cancelar edição
                             </Button>
                           </div>
-                          <MovementFields
-                            compact
-                            form={editForm}
-                            idPrefix={`edit-${movement.id}`}
-                            onChange={updateEditField}
-                          />
+
+                          <MovementFields compact form={editForm} idPrefix={`edit-${movement.id}`} onChange={updateEditField} />
+
                           <Button className="h-10 w-full sm:w-auto" disabled={isPending} type="submit">
                             {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
                             Salvar alterações
@@ -927,17 +972,17 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                       ) : (
                         <div className="flex items-center justify-end gap-1.5 border-t border-neutral-100 pt-2">
                           <Button
-                            className="h-8 rounded-md px-2.5 text-xs font-semibold text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950"
+                            className="h-8 rounded-md px-2 text-xs font-semibold text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950"
                             onClick={() => startEdit(movement)}
                             size="sm"
                             type="button"
                             variant="ghost"
                           >
                             <Pencil className="h-4 w-4" />
-                            Editar
+                            <span className="sr-only sm:not-sr-only">Editar</span>
                           </Button>
                           <Button
-                            className="h-8 rounded-md px-2.5 text-xs font-semibold text-red-700 hover:bg-red-50 hover:text-red-700"
+                            className="h-8 rounded-md px-2 text-xs font-semibold text-red-700 hover:bg-red-50 hover:text-red-700"
                             disabled={isPending}
                             onClick={() => requestDelete(movement)}
                             size="sm"
@@ -945,7 +990,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                             variant="ghost"
                           >
                             <Trash2 className="h-4 w-4" />
-                            Excluir
+                            <span className="sr-only sm:not-sr-only">Excluir</span>
                           </Button>
                         </div>
                       )}
@@ -1007,9 +1052,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                   </p>
                 ))}
                 {selectedMovements.length > 5 ? (
-                  <p className="text-xs font-medium text-neutral-500">
-                    +{selectedMovements.length - 5} outro(s) registro(s)
-                  </p>
+                  <p className="text-xs font-medium text-neutral-500">+{selectedMovements.length - 5} outro(s) registro(s)</p>
                 ) : null}
               </div>
             ) : null}
@@ -1043,19 +1086,19 @@ function SummaryCard({
   return (
     <Card
       className={cn(
-        "relative overflow-hidden border-neutral-200 bg-[linear-gradient(180deg,#ffffff_0%,#f7f7f7_100%)] shadow-[0_12px_30px_rgba(15,23,42,0.08)]",
+        "relative overflow-hidden border-neutral-200 bg-[linear-gradient(180deg,#ffffff_0%,#f7f7f7_100%)] shadow-[0_8px_20px_rgba(15,23,42,0.06)]",
         "after:absolute after:inset-x-0 after:top-0 after:h-1",
         tone === "income" && "after:bg-emerald-500",
         tone === "expense" && "after:bg-red-400",
         tone === "balance" && "after:bg-neutral-800",
       )}
     >
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">{label}</p>
+      <CardContent className="p-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500 sm:text-[11px]">{label}</p>
           <span
             className={cn(
-              "flex h-8 w-8 shrink-0 items-center justify-center rounded-md border bg-white shadow-sm",
+              "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border bg-white shadow-sm",
               tone === "income" && "border-emerald-100 text-emerald-700",
               tone === "expense" && "border-red-100 text-red-600",
               tone === "balance" && "border-neutral-200 text-neutral-700",
@@ -1064,10 +1107,10 @@ function SummaryCard({
             {icon}
           </span>
         </div>
-        <div className="mt-3 min-w-0">
+        <div className="mt-2 min-w-0">
           <p
             className={cn(
-              "truncate text-xl font-bold tabular-nums text-neutral-950",
+              "truncate text-sm font-bold tabular-nums text-neutral-950 sm:text-xl",
               tone === "income" && "text-emerald-700",
               tone === "expense" && "text-red-600",
             )}
@@ -1118,7 +1161,7 @@ function OptionGroup({
               aria-pressed={selected}
               className={cn(
                 "rounded-md text-sm font-semibold transition-colors",
-                tone === "type" && "min-h-9 border border-transparent px-3 py-1.5 text-center",
+                tone === "type" && "min-h-10 border border-transparent px-3 py-1.5 text-center",
                 tone === "category" && "min-h-8 border px-2.5 py-1.5 text-xs",
                 selected &&
                   (tone === "type" && isExpense
@@ -1143,9 +1186,7 @@ function OptionGroup({
           );
         })}
       </div>
-      {required && !value ? (
-        <p className="text-xs text-neutral-500">Escolha uma categoria para continuar.</p>
-      ) : null}
+      {required && !value ? <p className="text-xs text-neutral-500">Escolha uma categoria para continuar.</p> : null}
     </>
   );
 }
