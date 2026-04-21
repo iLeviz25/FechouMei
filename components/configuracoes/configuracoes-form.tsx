@@ -87,6 +87,7 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
   const initialValues = useMemo(() => getInitialProfileValues(profile), [profile]);
   const [values, setValues] = useState(initialValues);
   const [draft, setDraft] = useState(initialValues);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editingField, setEditingField] = useState<EditableField | null>(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -159,6 +160,20 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
       setProfileMessage("Preferência atualizada.");
       router.refresh();
     });
+  }
+
+  function openProfileEditor() {
+    setProfileMessage(null);
+    setDraft(values);
+    setEditingField(null);
+    setIsEditingProfile(true);
+  }
+
+  function cancelProfileEditor() {
+    setDraft(values);
+    setEditingField(null);
+    setIsEditingProfile(false);
+    setProfileMessage(null);
   }
 
   function updateDraft(patch: Partial<ProfileValues>) {
@@ -270,11 +285,23 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
 
         <Card className="overflow-hidden">
           <CardHeader className="border-b border-neutral-100 bg-neutral-50/60 p-3.5 sm:p-4">
-            <CardHeading
-              description="Essas preferências vieram do onboarding e ajudam o FechouMEI a se adaptar à sua rotina."
-              icon={<UserRound className="h-4 w-4" />}
-              title="Resumo do seu perfil"
-            />
+            <div className="flex items-start justify-between gap-3">
+              <CardHeading
+                description="Essas preferencias vieram do onboarding e ajudam o FechouMEI a se adaptar a sua rotina."
+                icon={<UserRound className="h-4 w-4" />}
+                title="Resumo do seu perfil"
+              />
+              <Button
+                aria-label="Editar perfil"
+                className="h-9 w-9 shrink-0"
+                onClick={isEditingProfile ? cancelProfileEditor : openProfileEditor}
+                size="icon"
+                type="button"
+                variant={isEditingProfile ? "secondary" : "outline"}
+              >
+                {isEditingProfile ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4 p-3.5 sm:p-4">
             <div className="grid grid-cols-2 gap-2.5">
@@ -283,172 +310,180 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
               ))}
             </div>
 
-            <div className="space-y-1 px-0.5">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Editar perfil</p>
-              <p className="text-sm leading-5 text-neutral-600">
-                Ajuste só o que quiser mudar. Os dados acima mostram como sua conta está configurada hoje.
-              </p>
-            </div>
+            {isEditingProfile ? (
+              <>
+                <div className="space-y-1 px-0.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Editar perfil</p>
+                  <p className="text-sm leading-5 text-neutral-600">
+                    Ajuste so o que quiser mudar. Os dados acima mostram como sua conta esta configurada hoje.
+                  </p>
+                </div>
 
-            <div className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 bg-white">
-              <EditableProfileRow
-                description="Como o app identifica sua conta."
-                editor={
-                  <Input
-                    className="h-11 border-neutral-200 bg-white focus-visible:ring-emerald-200"
-                    onChange={(event) => updateDraft({ fullName: event.target.value })}
-                    placeholder="Seu nome completo"
-                    value={draft.fullName}
-                  />
-                }
-                field="fullName"
-                isEditing={editingField === "fullName"}
-                isSaving={isSavingProfile}
-                label="Nome"
-                onCancel={cancelEdit}
-                onEdit={beginEdit}
-                onSave={saveProfileField}
-                value={values.fullName || "Não informado"}
-              />
-              <EditableProfileRow
-                description="Se sua rotina é mais ligada a serviço, produto ou ambos."
-                editor={
-                  <OptionGroup
-                    name="businessMode"
-                    onChange={(businessMode) => updateDraft({ businessMode })}
-                    options={businessModeOptions}
-                    value={draft.businessMode}
-                  />
-                }
-                field="businessMode"
-                isEditing={editingField === "businessMode"}
-                isSaving={isSavingProfile}
-                label="Atua com"
-                onCancel={cancelEdit}
-                onEdit={beginEdit}
-                onSave={saveProfileField}
-                value={getBusinessModeLabel(values.businessMode)}
-              />
-              <EditableProfileRow
-                description="O tipo de trabalho que mais representa sua atividade."
-                editor={
-                  <div className="space-y-3">
-                    <OptionGroup
-                      name="workType"
-                      onChange={(workType) =>
-                        updateDraft({
-                          customWorkType: workType === "Outro" ? draft.customWorkType : "",
-                          workType,
-                        })
-                      }
-                      options={workTypeOptions.map((option) => ({ label: option, value: option }))}
-                      value={draft.workType}
-                    />
-                    {draft.workType === "Outro" ? (
-                      <OtherInput
-                        label="Escreva seu tipo de trabalho"
-                        onChange={(customWorkType) => updateDraft({ customWorkType })}
-                        placeholder="Ex.: fotografia, eventos, costura"
-                        value={draft.customWorkType}
+                <div className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 bg-white">
+                  <EditableProfileRow
+                    description="Como o app identifica sua conta."
+                    editor={
+                      <Input
+                        className="h-11 border-neutral-200 bg-white focus-visible:ring-emerald-200"
+                        onChange={(event) => updateDraft({ fullName: event.target.value })}
+                        placeholder="Seu nome completo"
+                        value={draft.fullName}
                       />
-                    ) : null}
-                  </div>
-                }
-                field="workType"
-                isEditing={editingField === "workType"}
-                isSaving={isSavingProfile}
-                label="Tipo de trabalho"
-                onCancel={cancelEdit}
-                onEdit={beginEdit}
-                onSave={saveProfileField}
-                value={resolveOtherValue(values.workType, values.customWorkType)}
-              />
-              <EditableProfileRow
-                description="A área principal usada para organizar sua visão do app."
-                editor={
-                  <div className="space-y-3">
-                    <OptionGroup
-                      name="mainCategory"
-                      onChange={(mainCategory) =>
-                        updateDraft({
-                          customMainCategory: mainCategory === "Outro" ? draft.customMainCategory : "",
-                          mainCategory,
-                        })
-                      }
-                      options={categoryOptions.map((option) => ({ label: option, value: option }))}
-                      value={draft.mainCategory}
-                    />
-                    {draft.mainCategory === "Outro" ? (
-                      <OtherInput
-                        label="Escreva sua categoria principal"
-                        onChange={(customMainCategory) => updateDraft({ customMainCategory })}
-                        placeholder="Ex.: pet shop, artesanato, arquitetura"
-                        value={draft.customMainCategory}
+                    }
+                    field="fullName"
+                    isEditing={editingField === "fullName"}
+                    isSaving={isSavingProfile}
+                    label="Nome"
+                    onCancel={cancelEdit}
+                    onEdit={beginEdit}
+                    onSave={saveProfileField}
+                    value={values.fullName || "Nao informado"}
+                  />
+                  <EditableProfileRow
+                    description="Se sua rotina e mais ligada a servico, produto ou ambos."
+                    editor={
+                      <OptionGroup
+                        name="businessMode"
+                        onChange={(businessMode) => updateDraft({ businessMode })}
+                        options={businessModeOptions}
+                        value={draft.businessMode}
                       />
-                    ) : null}
-                  </div>
-                }
-                field="mainCategory"
-                isEditing={editingField === "mainCategory"}
-                isSaving={isSavingProfile}
-                label="Categoria principal"
-                onCancel={cancelEdit}
-                onEdit={beginEdit}
-                onSave={saveProfileField}
-                value={resolveOtherValue(values.mainCategory, values.customMainCategory)}
-              />
-              <EditableProfileRow
-                description="O primeiro resultado que você quer acompanhar com mais clareza."
-                editor={
-                  <OptionGroup
-                    name="mainGoal"
-                    onChange={(mainGoal) => updateDraft({ mainGoal })}
-                    options={goalOptions.map((option) => ({ label: option, value: option }))}
-                    value={draft.mainGoal}
-                  />
-                }
-                field="mainGoal"
-                isEditing={editingField === "mainGoal"}
-                isSaving={isSavingProfile}
-                label="Objetivo principal"
-                onCancel={cancelEdit}
-                onEdit={beginEdit}
-                onSave={saveProfileField}
-                value={values.mainGoal || "Não informado"}
-              />
-              <EditableProfileRow
-                description="Valor usado como ponto de partida do seu caixa, sem entrar como receita."
-                editor={
-                  <OtherInput
-                    inputMode="decimal"
-                    label="Saldo atual para começar"
-                    onBlur={() =>
-                      updateDraft({
-                        initialBalance: formatOptionalAmount(parseOptionalAmount(draft.initialBalance)),
-                      })
                     }
-                    onChange={(initialBalance) =>
-                      updateDraft({ initialBalance: normalizeAmountInput(initialBalance) })
-                    }
-                    placeholder="Ex.: 2000,00"
-                    value={draft.initialBalance}
+                    field="businessMode"
+                    isEditing={editingField === "businessMode"}
+                    isSaving={isSavingProfile}
+                    label="Atua com"
+                    onCancel={cancelEdit}
+                    onEdit={beginEdit}
+                    onSave={saveProfileField}
+                    value={getBusinessModeLabel(values.businessMode)}
                   />
-                }
-                field="initialBalance"
-                isEditing={editingField === "initialBalance"}
-                isSaving={isSavingProfile}
-                label="Saldo atual para começar"
-                onCancel={cancelEdit}
-                onEdit={beginEdit}
-                onSave={saveProfileField}
-                value={formatInitialBalanceLabel(values.initialBalance)}
-              />
-            </div>
+                  <EditableProfileRow
+                    description="O tipo de trabalho que mais representa sua atividade."
+                    editor={
+                      <div className="space-y-3">
+                        <OptionGroup
+                          name="workType"
+                          onChange={(workType) =>
+                            updateDraft({
+                              customWorkType: workType === "Outro" ? draft.customWorkType : "",
+                              workType,
+                            })
+                          }
+                          options={workTypeOptions.map((option) => ({ label: option, value: option }))}
+                          value={draft.workType}
+                        />
+                        {draft.workType === "Outro" ? (
+                          <OtherInput
+                            label="Escreva seu tipo de trabalho"
+                            onChange={(customWorkType) => updateDraft({ customWorkType })}
+                            placeholder="Ex.: fotografia, eventos, costura"
+                            value={draft.customWorkType}
+                          />
+                        ) : null}
+                      </div>
+                    }
+                    field="workType"
+                    isEditing={editingField === "workType"}
+                    isSaving={isSavingProfile}
+                    label="Tipo de trabalho"
+                    onCancel={cancelEdit}
+                    onEdit={beginEdit}
+                    onSave={saveProfileField}
+                    value={resolveOtherValue(values.workType, values.customWorkType)}
+                  />
+                  <EditableProfileRow
+                    description="A area principal usada para organizar sua visao do app."
+                    editor={
+                      <div className="space-y-3">
+                        <OptionGroup
+                          name="mainCategory"
+                          onChange={(mainCategory) =>
+                            updateDraft({
+                              customMainCategory: mainCategory === "Outro" ? draft.customMainCategory : "",
+                              mainCategory,
+                            })
+                          }
+                          options={categoryOptions.map((option) => ({ label: option, value: option }))}
+                          value={draft.mainCategory}
+                        />
+                        {draft.mainCategory === "Outro" ? (
+                          <OtherInput
+                            label="Escreva sua categoria principal"
+                            onChange={(customMainCategory) => updateDraft({ customMainCategory })}
+                            placeholder="Ex.: pet shop, artesanato, arquitetura"
+                            value={draft.customMainCategory}
+                          />
+                        ) : null}
+                      </div>
+                    }
+                    field="mainCategory"
+                    isEditing={editingField === "mainCategory"}
+                    isSaving={isSavingProfile}
+                    label="Categoria principal"
+                    onCancel={cancelEdit}
+                    onEdit={beginEdit}
+                    onSave={saveProfileField}
+                    value={resolveOtherValue(values.mainCategory, values.customMainCategory)}
+                  />
+                  <EditableProfileRow
+                    description="O primeiro resultado que voce quer acompanhar com mais clareza."
+                    editor={
+                      <OptionGroup
+                        name="mainGoal"
+                        onChange={(mainGoal) => updateDraft({ mainGoal })}
+                        options={goalOptions.map((option) => ({ label: option, value: option }))}
+                        value={draft.mainGoal}
+                      />
+                    }
+                    field="mainGoal"
+                    isEditing={editingField === "mainGoal"}
+                    isSaving={isSavingProfile}
+                    label="Objetivo principal"
+                    onCancel={cancelEdit}
+                    onEdit={beginEdit}
+                    onSave={saveProfileField}
+                    value={values.mainGoal || "Nao informado"}
+                  />
+                  <EditableProfileRow
+                    description="Valor usado como ponto de partida do seu caixa, sem entrar como receita."
+                    editor={
+                      <OtherInput
+                        inputMode="decimal"
+                        label="Saldo atual para comecar"
+                        onBlur={() =>
+                          updateDraft({
+                            initialBalance: formatOptionalAmount(parseOptionalAmount(draft.initialBalance)),
+                          })
+                        }
+                        onChange={(initialBalance) =>
+                          updateDraft({ initialBalance: normalizeAmountInput(initialBalance) })
+                        }
+                        placeholder="Ex.: 2000,00"
+                        value={draft.initialBalance}
+                      />
+                    }
+                    field="initialBalance"
+                    isEditing={editingField === "initialBalance"}
+                    isSaving={isSavingProfile}
+                    label="Saldo atual para comecar"
+                    onCancel={cancelEdit}
+                    onEdit={beginEdit}
+                    onSave={saveProfileField}
+                    value={formatInitialBalanceLabel(values.initialBalance)}
+                  />
+                </div>
+              </>
+            ) : (
+              <p className="rounded-lg border border-neutral-200 bg-neutral-50/80 px-3 py-2.5 text-sm leading-5 text-neutral-600">
+                Toque no lapis para editar seu perfil completo em um so lugar.
+              </p>
+            )}
           </CardContent>
         </Card>
 
         {profileMessage ? (
-          <FeedbackMessage tone={profileMessage === "Preferência atualizada." ? "success" : "danger"}>
+          <FeedbackMessage tone={profileMessage === "Preferência atualizada." || profileMessage === "Perfil atualizado." ? "success" : "danger"}>
             {profileMessage}
           </FeedbackMessage>
         ) : null}

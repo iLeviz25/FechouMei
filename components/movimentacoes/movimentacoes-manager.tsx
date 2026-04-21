@@ -7,9 +7,9 @@ import {
   CalendarDays,
   ChevronDown,
   CheckSquare,
-  DollarSign,
   Loader2,
   Pencil,
+  Plus,
   Search,
   SlidersHorizontal,
   Square,
@@ -458,7 +458,6 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
     setPendingDelete(null);
     cancelEdit();
     setSelectionMode(true);
-    setMobileToolsOpen(true);
   }
 
   function exitSelectionMode() {
@@ -640,7 +639,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                 <CardDescription className="mt-1 leading-6">Preencha os campos abaixo e salve a movimentação.</CardDescription>
               </div>
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-emerald-100 bg-emerald-50 text-emerald-700">
-                <DollarSign className="h-4 w-4" />
+                <Plus className="h-4 w-4" />
               </span>
             </div>
           </CardHeader>
@@ -649,7 +648,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
               <MovementFields form={createForm} idPrefix="create" onChange={updateCreateField} />
 
               <Button className="h-11 w-full shadow-sm" disabled={isPending} type="submit">
-                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <DollarSign className="h-4 w-4" />}
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                 Salvar movimentação
               </Button>
             </form>
@@ -703,6 +702,13 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                     Filtros e ações
                     <ChevronDown className={cn("h-4 w-4 transition-transform", mobileToolsOpen && "rotate-180")} />
                   </Button>
+                  <MovementsCsvExportButton
+                    buttonClassName="h-9 w-auto px-3 text-xs"
+                    className="w-auto shrink-0"
+                    filename="fechoumei-movimentacoes.csv"
+                    label="CSV"
+                    movements={movements}
+                  />
                   <Button
                     className="h-9"
                     disabled={movements.length === 0}
@@ -717,15 +723,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
 
                 <div className={cn("hidden sm:block", mobileToolsOpen && "block sm:block")}>
                   <div className="rounded-md border border-neutral-200 bg-neutral-50/70 p-3">
-                    <div className="space-y-3 sm:hidden">
-                      <MovementsCsvExportButton
-                        filename="fechoumei-movimentacoes.csv"
-                        label="Exportar CSV"
-                        movements={movements}
-                      />
-                    </div>
-
-                    <div className="grid gap-2 sm:mt-3 md:grid-cols-[minmax(0,1.2fr)_0.8fr_0.9fr_0.9fr]">
+                    <div className="grid gap-2 md:grid-cols-[minmax(0,1.2fr)_0.8fr_0.9fr_0.9fr]">
                       <label className="space-y-1.5 text-xs font-semibold text-neutral-600">
                         Buscar
                         <div className="relative">
@@ -861,7 +859,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-2 overflow-visible md:max-h-[32rem] md:overflow-y-auto md:overflow-x-hidden md:pr-1 md:overscroll-contain lg:max-h-[34rem]">
+            <div className="max-h-[19rem] space-y-2 overflow-y-auto overflow-x-hidden pr-1 overscroll-contain md:max-h-[32rem] lg:max-h-[34rem]">
               {filteredMovements.map((movement) => {
                 const isEditing = editingId === movement.id;
                 const isIncome = movement.type === "entrada";

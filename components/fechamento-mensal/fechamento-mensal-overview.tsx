@@ -229,7 +229,7 @@ export function FechamentoMensalOverview({
             </div>
           ) : (
             <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white/70">
-              <div className="divide-y divide-neutral-200 md:max-h-[20rem] md:overflow-y-auto md:overscroll-contain">
+              <div className="max-h-[19rem] divide-y divide-neutral-200 overflow-y-auto overscroll-contain md:max-h-[20rem]">
                 {movements.map((movement) => (
                   <MovementRow key={movement.id} movement={movement} />
                 ))}
@@ -296,40 +296,48 @@ function ResultSummaryCard({
   balanceUntilMonth: number;
   className?: string;
 }) {
-  const resultTone = balance >= 0 ? "text-white" : "text-red-300";
-  const estimatedTone = balanceUntilMonth >= 0 ? "text-amber-200" : "text-red-300";
+  const resultTone = balance >= 0 ? "text-emerald-700" : "text-red-600";
+  const estimatedTone = balanceUntilMonth >= 0 ? "text-neutral-950" : "text-red-600";
+  const resultIconTone =
+    balance >= 0
+      ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+      : "border-red-100 bg-red-50 text-red-600";
+  const estimatedIconTone =
+    balanceUntilMonth >= 0
+      ? "border-amber-100 bg-amber-50 text-amber-700"
+      : "border-red-100 bg-red-50 text-red-600";
 
   return (
-    <Card className={cn("overflow-hidden border-neutral-200 bg-neutral-950 text-white shadow-[0_6px_18px_rgba(15,23,42,0.12)]", className)}>
+    <Card className={cn("overflow-hidden border-neutral-200 bg-white shadow-[0_6px_18px_rgba(15,23,42,0.06)]", className)}>
       <CardContent className="space-y-3 p-3.5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-400">Resultado do mês</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">Resultado do mês</p>
             <p className={cn("mt-1.5 break-words text-xl font-bold leading-tight tabular-nums", resultTone)}>
               {toCurrency(balance)}
             </p>
-            <p className="mt-1 text-xs leading-5 text-neutral-300">
+            <p className="mt-1 text-xs leading-5 text-neutral-600">
               Entradas menos despesas no mês selecionado.
             </p>
           </div>
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-white">
+          <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-md border", resultIconTone)}>
             <Wallet className="h-4.5 w-4.5" />
           </span>
         </div>
 
-        <div className="rounded-md border border-white/10 bg-white/5 px-3 py-2.5">
+        <div className="rounded-md border border-neutral-200 bg-neutral-50/80 px-3 py-2.5">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Saldo estimado</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500">Saldo estimado</p>
               <p className={cn("mt-1 text-sm font-bold tabular-nums", estimatedTone)}>
                 {toCurrency(balanceUntilMonth)}
               </p>
             </div>
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-amber-400/20 bg-amber-400/10 text-amber-300">
+            <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-md border", estimatedIconTone)}>
               <ListChecks className="h-4 w-4" />
             </span>
           </div>
-          <p className="mt-1 text-xs leading-5 text-neutral-300">
+          <p className="mt-1 text-xs leading-5 text-neutral-600">
             Acumulado até o mês selecionado.
           </p>
         </div>
@@ -349,9 +357,7 @@ function ComparisonRow({ delta, label, value }: { delta: number; label: string; 
         <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">{label}</p>
         <p className="mt-1 text-sm font-semibold tabular-nums text-neutral-950">{value}</p>
       </div>
-      <p className={cn("pt-0.5 text-right text-xs font-semibold", deltaTone)}>
-        {deltaLabel}
-      </p>
+      <p className={cn("pt-0.5 text-right text-xs font-semibold", deltaTone)}>{deltaLabel}</p>
     </div>
   );
 }

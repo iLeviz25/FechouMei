@@ -119,9 +119,10 @@ export function MonthSelector({ monthValue, yearValue, nextHref, previousHref }:
         </label>
 
         <Button
-          className="col-span-2 h-9 border-neutral-200 bg-neutral-950 px-3 text-xs text-white hover:bg-neutral-800 sm:col-span-1 sm:self-end"
+          className="col-span-2 h-9 px-3 text-xs sm:col-span-1 sm:self-end"
           size="sm"
           type="submit"
+          variant="outline"
         >
           Ver mês
         </Button>
