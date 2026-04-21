@@ -12,7 +12,7 @@ export function DashboardGreeting() {
   const firstName = getFirstName(profile);
 
   return (
-    <h1 className="text-2xl font-semibold leading-tight tracking-tight text-neutral-950 sm:text-3xl">
+    <h1 className="text-xl font-semibold leading-tight tracking-tight text-neutral-950 sm:text-3xl">
       Olá, {firstName}. <span className="block sm:inline">Seu mês em resumo</span>
     </h1>
   );
