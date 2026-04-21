@@ -44,6 +44,11 @@ export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivatio
       )}`
     : `https://wa.me/${activation.assistantNumber}`;
   const status = getStatusContent(activation);
+  const isLinked = activation.status === "linked";
+  const isPendingActivation = activation.status === "pending" && Boolean(activation.activationCode);
+  const compactIntro = isLinked
+    ? "Seu canal principal já está ativo. Abra a conversa e fale com a Helena quando quiser."
+    : "Ative a Helena para usar o WhatsApp como canal principal do seu controle financeiro.";
 
   function handleStartActivation() {
     setErrorMessage(null);
@@ -83,179 +88,203 @@ export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivatio
   return (
     <div className="space-y-4">
       <section className="overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-[0_12px_32px_rgba(15,23,42,0.06)]">
-        <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="space-y-5 p-4 sm:p-6">
+        <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="space-y-4 p-4 sm:p-6">
             <div className="space-y-3">
-              <Badge variant="success" className="w-fit">
-                Helena
-              </Badge>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="success" className="w-fit">
+                  Helena
+                </Badge>
+                {isLinked ? (
+                  <Badge variant="success" className="w-fit">
+                    WhatsApp vinculado
+                  </Badge>
+                ) : null}
+              </div>
+
               <div className="space-y-2">
                 <h1 className="text-2xl font-semibold tracking-tight text-neutral-950 sm:text-3xl">
                   Helena no WhatsApp
                 </h1>
-                <p className="max-w-2xl text-sm leading-6 text-neutral-600 sm:text-base">
-                  A Helena é a assistente financeira do FechouMEI. Ela registra entradas, despesas e responde consultas rápidas em conversa natural.
-                </p>
+                <p className="max-w-2xl text-sm leading-6 text-neutral-600 sm:text-base">{compactIntro}</p>
               </div>
             </div>
 
-            <div className="rounded-md border border-emerald-200 bg-emerald-50/70 p-4">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-4">
+              <div className="flex flex-col gap-4">
                 <div className="space-y-1">
                   <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                    Canal principal
+                    {isLinked ? "Canal ativo" : "Ativação"}
                   </p>
-                  <p className="text-2xl font-semibold text-neutral-950">WhatsApp da Helena</p>
-                  <p className="text-sm leading-6 text-neutral-600">
-                    A ativação vincula seu WhatsApp à sua conta. Depois disso, basta conversar com a Helena por lá.
-                  </p>
+                  <p className="text-xl font-semibold text-neutral-950 sm:text-2xl">{status.label}</p>
+                  <p className="text-sm leading-6 text-neutral-600">{status.description}</p>
+                  {displayUserNumber ? (
+                    <p className="text-sm font-medium text-neutral-800">WhatsApp vinculado: {displayUserNumber}</p>
+                  ) : null}
                 </div>
-                <div className="grid gap-2 sm:min-w-52">
-                  {activation.status === "linked" ? (
-                    <Button asChild className="min-h-11">
+
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  {isLinked ? (
+                    <Button asChild className="min-h-11 flex-1">
                       <a href={activationUrl} rel="noreferrer" target="_blank">
                         <MessageCircle className="h-4 w-4" />
                         Conversar com a Helena
                       </a>
                     </Button>
-                  ) : activation.status === "pending" && activation.activationCode ? (
-                    <Button asChild className="min-h-11">
+                  ) : isPendingActivation ? (
+                    <Button asChild className="min-h-11 flex-1">
                       <a href={activationUrl} rel="noreferrer" target="_blank">
                         <MessageCircle className="h-4 w-4" />
-                        Ativar com a Helena
+                        Ativar no WhatsApp
                       </a>
                     </Button>
                   ) : (
-                    <Button className="min-h-11" disabled={isPending} onClick={handleStartActivation} type="button">
+                    <Button className="min-h-11 flex-1" disabled={isPending} onClick={handleStartActivation} type="button">
                       <Sparkles className="h-4 w-4" />
                       Ativar Helena
                     </Button>
                   )}
-                </div>
-              </div>
 
-              {activation.status === "pending" && activation.activationCode ? (
-                <div className="mt-4 rounded-md border border-emerald-200 bg-white p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                    Código de ativação
-                  </p>
-                  <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-xl font-semibold tracking-wide text-neutral-950">{activation.activationCode}</p>
+                  {isLinked ? (
                     <Button
-                      className="min-h-10"
-                      onClick={() => handleCopy(activation.activationCode!)}
-                      size="sm"
+                      className="min-h-11 sm:w-auto"
+                      disabled={isPending}
+                      onClick={handleDisconnect}
                       type="button"
                       variant="outline"
                     >
-                      {copyState === "code" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                      {copyState === "code" ? "Código copiado" : "Copiar código"}
+                      <Link2Off className="h-4 w-4" />
+                      Desvincular
                     </Button>
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-neutral-600">
-                    O botão já abre o WhatsApp com esse código na mensagem. Envie para concluir o vínculo.
-                  </p>
+                  ) : null}
                 </div>
-              ) : null}
 
-              {copyState === "error" ? (
-                <p className="mt-3 text-sm font-medium text-rose-700">
-                  Não consegui copiar automaticamente. Selecione o texto e copie manualmente.
-                </p>
-              ) : null}
-              {errorMessage ? (
-                <p className="mt-3 text-sm font-medium text-rose-700">{errorMessage}</p>
-              ) : null}
+                {isPendingActivation ? (
+                  <div className="rounded-md border border-emerald-200 bg-white p-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="space-y-1">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                          Código de ativação
+                        </p>
+                        <p className="text-xl font-semibold tracking-wide text-neutral-950">
+                          {activation.activationCode}
+                        </p>
+                      </div>
+                      <Button
+                        className="min-h-10 sm:w-auto"
+                        onClick={() => handleCopy(activation.activationCode!)}
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                      >
+                        {copyState === "code" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        {copyState === "code" ? "Código copiado" : "Copiar código"}
+                      </Button>
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-neutral-600">
+                      O botão já abre o WhatsApp com esse código pronto para envio.
+                    </p>
+                  </div>
+                ) : null}
+
+                {copyState === "error" ? (
+                  <p className="text-sm font-medium text-rose-700">
+                    Não consegui copiar automaticamente. Selecione o texto e copie manualmente.
+                  </p>
+                ) : null}
+                {errorMessage ? <p className="text-sm font-medium text-rose-700">{errorMessage}</p> : null}
+              </div>
             </div>
           </div>
 
           <aside className="border-t border-neutral-200 bg-neutral-50/80 p-4 sm:p-6 lg:border-l lg:border-t-0">
             <div className="space-y-4">
-              <div className="rounded-md border border-neutral-200 bg-white p-3 shadow-sm">
-                <div className="flex items-center gap-2">
-                  <span className={`flex h-8 w-8 items-center justify-center rounded-md ${status.iconClass}`}>
+              <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${status.iconClass}`}>
                     {status.icon}
                   </span>
-                  <div>
+                  <div className="space-y-1">
                     <p className="text-sm font-semibold text-neutral-950">Status da conta</p>
                     <p className={`text-xs font-medium ${status.textClass}`}>{status.label}</p>
+                    <p className="text-sm leading-6 text-neutral-600">
+                      {isLinked
+                        ? "Seu WhatsApp já está pronto para conversar com a Helena."
+                        : "A ativação acontece dentro do app e é concluída na primeira mensagem no WhatsApp."}
+                    </p>
                   </div>
                 </div>
-                <p className="mt-3 text-sm leading-6 text-neutral-600">{status.description}</p>
-                {displayUserNumber ? (
-                  <p className="mt-2 text-sm font-medium text-neutral-800">
-                    WhatsApp vinculado: {displayUserNumber}
-                  </p>
-                ) : null}
-                {activation.status === "linked" ? (
-                  <Button
-                    className="mt-3 w-full min-h-10"
-                    disabled={isPending}
-                    onClick={handleDisconnect}
-                    type="button"
-                    variant="outline"
-                  >
-                    <Link2Off className="h-4 w-4" />
-                    Desvincular WhatsApp
-                  </Button>
-                ) : null}
               </div>
 
-              <div className="space-y-2">
-                <p className="text-sm font-semibold text-neutral-950">Como ativar</p>
-                <div className="space-y-2">
-                  {getSteps(activation.status).map((step, index) => (
-                    <div className="flex gap-2 rounded-md border border-neutral-200 bg-white p-3 text-sm leading-6 text-neutral-700" key={step}>
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-emerald-50 text-xs font-semibold text-emerald-700">
-                        {index + 1}
-                      </span>
-                      <span>{step}</span>
-                    </div>
-                  ))}
+              <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="font-semibold text-neutral-950">
+                      {isLinked ? "O que pedir para a Helena" : "Como ativar"}
+                    </p>
+                    <p className="text-sm leading-6 text-neutral-600">
+                      {isLinked
+                        ? "Frases curtas e naturais já resolvem o básico do dia a dia."
+                        : "Você faz tudo em poucos passos, sem configuração manual."}
+                    </p>
+                  </div>
+                  {isLinked ? (
+                    <a
+                      className="hidden text-sm font-semibold text-emerald-700 hover:text-emerald-800 sm:inline-flex"
+                      href={activationUrl}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      Abrir <ExternalLink className="ml-1 h-3.5 w-3.5" />
+                    </a>
+                  ) : null}
                 </div>
+
+                {isLinked ? (
+                  <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                    {exampleMessages.map((example) => (
+                      <span
+                        className="shrink-0 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs font-medium text-neutral-700"
+                        key={example}
+                      >
+                        {example}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-3 space-y-2">
+                    {getSteps(activation.status).map((step, index) => (
+                      <div
+                        className="flex gap-2 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm leading-6 text-neutral-700"
+                        key={step}
+                      >
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-emerald-50 text-xs font-semibold text-emerald-700">
+                          {index + 1}
+                        </span>
+                        <span>{step}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {isLinked ? (
+                <div className="hidden rounded-lg border border-neutral-200 bg-white p-4 shadow-sm sm:block">
+                  <div className="flex items-start gap-3">
+                    <span className="rounded-md bg-emerald-50 p-2 text-emerald-700">
+                      <ShieldCheck className="h-4 w-4" />
+                    </span>
+                    <div className="space-y-1">
+                      <p className="font-semibold text-neutral-950">App como apoio</p>
+                      <p className="text-sm leading-6 text-neutral-600">
+                        Use o WhatsApp para conversar rápido e o app para conferir histórico, registros e ajustes.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </aside>
-        </div>
-      </section>
-
-      <section className="grid gap-3 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)]">
-        <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)] sm:p-5">
-          <div className="flex items-start gap-3">
-            <span className="rounded-md bg-emerald-50 p-2 text-emerald-700">
-              <ShieldCheck className="h-4 w-4" />
-            </span>
-            <div className="space-y-1">
-              <p className="font-semibold text-neutral-950">Canal principal</p>
-              <p className="text-sm leading-6 text-neutral-600">
-                O WhatsApp fica para o uso rápido do dia a dia. O app continua como apoio para conferir registros, histórico e configurações.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)] sm:p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1">
-              <p className="font-semibold text-neutral-950">O que pedir</p>
-              <p className="text-sm leading-6 text-neutral-600">
-                Depois de ativar, mande frases curtas e naturais.
-              </p>
-            </div>
-            <a className="hidden text-sm font-semibold text-emerald-700 hover:text-emerald-800 sm:inline-flex" href={activationUrl} rel="noreferrer" target="_blank">
-              Abrir <ExternalLink className="ml-1 h-3.5 w-3.5" />
-            </a>
-          </div>
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-            {exampleMessages.map((example) => (
-              <span
-                className="shrink-0 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs font-medium text-neutral-700"
-                key={example}
-              >
-                {example}
-              </span>
-            ))}
-          </div>
         </div>
       </section>
     </div>
