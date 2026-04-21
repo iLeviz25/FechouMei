@@ -14,21 +14,30 @@ import {
   UserRound,
   X,
 } from "lucide-react";
+import { deleteAccount } from "@/app/app/configuracoes/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { deleteAccount } from "@/app/app/configuracoes/actions";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Profile } from "@/types/database";
 
 type ConfiguracoesFormProps = {
-  profile: Pick<Profile, "full_name" | "work_type" | "business_mode" | "main_category" | "main_goal" | "initial_balance"> | null;
+  profile: Pick<
+    Profile,
+    "full_name" | "work_type" | "business_mode" | "main_category" | "main_goal" | "initial_balance"
+  > | null;
 };
 
-type EditableField = "fullName" | "businessMode" | "workType" | "mainCategory" | "mainGoal" | "initialBalance";
+type EditableField =
+  | "fullName"
+  | "businessMode"
+  | "workType"
+  | "mainCategory"
+  | "mainGoal"
+  | "initialBalance";
 
 type ProfileValues = {
   fullName: string;
@@ -215,186 +224,226 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
     });
   }
 
+  const profileSnapshotItems = [
+    { label: "Nome", value: values.fullName || "Não informado" },
+    { label: "Atua com", value: getBusinessModeLabel(values.businessMode) },
+    {
+      label: "Tipo",
+      value: resolveOtherValue(values.workType, values.customWorkType) || "Não informado",
+    },
+    {
+      label: "Categoria",
+      value: resolveOtherValue(values.mainCategory, values.customMainCategory) || "Não informado",
+    },
+    { label: "Objetivo", value: values.mainGoal || "Não informado" },
+    { label: "Saldo atual", value: formatInitialBalanceLabel(values.initialBalance) },
+  ];
+
   return (
-    <div className="space-y-4 pb-6 sm:space-y-5">
+    <div className="space-y-3 pb-6 sm:space-y-4">
       <section className="rounded-lg border border-neutral-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
-        <div className="space-y-4 p-4 sm:p-5">
+        <div className="space-y-3 p-4 sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-2">
               <Badge variant="success" className="w-fit">
                 Configurações
               </Badge>
               <div className="space-y-1">
-                <h1 className="text-2xl font-semibold tracking-tight text-neutral-950 sm:text-3xl">
+                <h1 className="text-xl font-semibold tracking-tight text-neutral-950 sm:text-3xl">
                   Conta e preferências
                 </h1>
-                <p className="max-w-2xl text-sm leading-6 text-neutral-600">
-                  Veja o resumo do seu perfil e altere só o que precisar.
+                <p className="max-w-2xl text-sm leading-5 text-neutral-600">
+                  Veja seus dados principais, ajuste o que precisar e mantenha a conta protegida.
                 </p>
               </div>
             </div>
             <div className="flex w-full items-center gap-2 rounded-md border border-emerald-100 bg-emerald-50/70 px-3 py-2 text-sm text-emerald-900 sm:w-auto">
               <ShieldCheck className="h-4 w-4 shrink-0" />
-              <span className="font-medium">Dados protegidos da conta</span>
+              <span className="font-medium">Dados protegidos</span>
             </div>
           </div>
         </div>
       </section>
 
       <section className="space-y-2">
-        <SectionLabel eyebrow="Seu app" title="Resumo das suas escolhas" />
+        <SectionLabel eyebrow="Perfil" title="Seus dados principais" />
 
         <Card className="overflow-hidden">
           <CardHeader className="border-b border-neutral-100 bg-neutral-50/60 p-3.5 sm:p-4">
             <CardHeading
-              description="Essas informações vieram do onboarding e ajudam o FechouMEI a se adaptar à sua rotina."
+              description="Essas preferências vieram do onboarding e ajudam o FechouMEI a se adaptar à sua rotina."
               icon={<UserRound className="h-4 w-4" />}
-              title="Sobre seu trabalho"
+              title="Resumo do seu perfil"
             />
           </CardHeader>
-          <CardContent className="divide-y divide-neutral-100 p-0">
-            <EditableProfileRow
-              description="Como o app identifica sua conta."
-              editor={
-                <Input
-                  className="h-11 border-neutral-200 bg-white focus-visible:ring-emerald-200"
-                  onChange={(event) => updateDraft({ fullName: event.target.value })}
-                  placeholder="Seu nome completo"
-                  value={draft.fullName}
-                />
-              }
-              field="fullName"
-              isEditing={editingField === "fullName"}
-              isSaving={isSavingProfile}
-              label="Nome"
-              onCancel={cancelEdit}
-              onEdit={beginEdit}
-              onSave={saveProfileField}
-              value={values.fullName || "Não informado"}
-            />
-            <EditableProfileRow
-              description="Se sua rotina é mais ligada a serviço, produto ou ambos."
-              editor={
-                <OptionGroup
-                  name="businessMode"
-                  onChange={(businessMode) => updateDraft({ businessMode })}
-                  options={businessModeOptions}
-                  value={draft.businessMode}
-                />
-              }
-              field="businessMode"
-              isEditing={editingField === "businessMode"}
-              isSaving={isSavingProfile}
-              label="Atua com"
-              onCancel={cancelEdit}
-              onEdit={beginEdit}
-              onSave={saveProfileField}
-              value={getBusinessModeLabel(values.businessMode)}
-            />
-            <EditableProfileRow
-              description="O tipo de trabalho que mais representa sua atividade."
-              editor={
-                <div className="space-y-3">
-                  <OptionGroup
-                    name="workType"
-                    onChange={(workType) => updateDraft({
-                      customWorkType: workType === "Outro" ? draft.customWorkType : "",
-                      workType,
-                    })}
-                    options={workTypeOptions.map((option) => ({ label: option, value: option }))}
-                    value={draft.workType}
+          <CardContent className="space-y-4 p-3.5 sm:p-4">
+            <div className="grid grid-cols-2 gap-2.5">
+              {profileSnapshotItems.map((item) => (
+                <ProfileSnapshotItem key={item.label} label={item.label} value={item.value} />
+              ))}
+            </div>
+
+            <div className="space-y-1 px-0.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Editar perfil</p>
+              <p className="text-sm leading-5 text-neutral-600">
+                Ajuste só o que quiser mudar. Os dados acima mostram como sua conta está configurada hoje.
+              </p>
+            </div>
+
+            <div className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 bg-white">
+              <EditableProfileRow
+                description="Como o app identifica sua conta."
+                editor={
+                  <Input
+                    className="h-11 border-neutral-200 bg-white focus-visible:ring-emerald-200"
+                    onChange={(event) => updateDraft({ fullName: event.target.value })}
+                    placeholder="Seu nome completo"
+                    value={draft.fullName}
                   />
-                  {draft.workType === "Outro" ? (
-                    <OtherInput
-                      label="Escreva seu tipo de trabalho"
-                      onChange={(customWorkType) => updateDraft({ customWorkType })}
-                      placeholder="Ex.: fotografia, eventos, costura"
-                      value={draft.customWorkType}
-                    />
-                  ) : null}
-                </div>
-              }
-              field="workType"
-              isEditing={editingField === "workType"}
-              isSaving={isSavingProfile}
-              label="Tipo de trabalho"
-              onCancel={cancelEdit}
-              onEdit={beginEdit}
-              onSave={saveProfileField}
-              value={resolveOtherValue(values.workType, values.customWorkType)}
-            />
-            <EditableProfileRow
-              description="A área principal usada para organizar sua visão do app."
-              editor={
-                <div className="space-y-3">
+                }
+                field="fullName"
+                isEditing={editingField === "fullName"}
+                isSaving={isSavingProfile}
+                label="Nome"
+                onCancel={cancelEdit}
+                onEdit={beginEdit}
+                onSave={saveProfileField}
+                value={values.fullName || "Não informado"}
+              />
+              <EditableProfileRow
+                description="Se sua rotina é mais ligada a serviço, produto ou ambos."
+                editor={
                   <OptionGroup
-                    name="mainCategory"
-                    onChange={(mainCategory) => updateDraft({
-                      customMainCategory: mainCategory === "Outro" ? draft.customMainCategory : "",
-                      mainCategory,
-                    })}
-                    options={categoryOptions.map((option) => ({ label: option, value: option }))}
-                    value={draft.mainCategory}
+                    name="businessMode"
+                    onChange={(businessMode) => updateDraft({ businessMode })}
+                    options={businessModeOptions}
+                    value={draft.businessMode}
                   />
-                  {draft.mainCategory === "Outro" ? (
-                    <OtherInput
-                      label="Escreva sua categoria principal"
-                      onChange={(customMainCategory) => updateDraft({ customMainCategory })}
-                      placeholder="Ex.: pet shop, artesanato, arquitetura"
-                      value={draft.customMainCategory}
+                }
+                field="businessMode"
+                isEditing={editingField === "businessMode"}
+                isSaving={isSavingProfile}
+                label="Atua com"
+                onCancel={cancelEdit}
+                onEdit={beginEdit}
+                onSave={saveProfileField}
+                value={getBusinessModeLabel(values.businessMode)}
+              />
+              <EditableProfileRow
+                description="O tipo de trabalho que mais representa sua atividade."
+                editor={
+                  <div className="space-y-3">
+                    <OptionGroup
+                      name="workType"
+                      onChange={(workType) =>
+                        updateDraft({
+                          customWorkType: workType === "Outro" ? draft.customWorkType : "",
+                          workType,
+                        })
+                      }
+                      options={workTypeOptions.map((option) => ({ label: option, value: option }))}
+                      value={draft.workType}
                     />
-                  ) : null}
-                </div>
-              }
-              field="mainCategory"
-              isEditing={editingField === "mainCategory"}
-              isSaving={isSavingProfile}
-              label="Categoria principal"
-              onCancel={cancelEdit}
-              onEdit={beginEdit}
-              onSave={saveProfileField}
-              value={resolveOtherValue(values.mainCategory, values.customMainCategory)}
-            />
-            <EditableProfileRow
-              description="O primeiro resultado que você quer acompanhar com mais clareza."
-              editor={
-                <OptionGroup
-                  name="mainGoal"
-                  onChange={(mainGoal) => updateDraft({ mainGoal })}
-                  options={goalOptions.map((option) => ({ label: option, value: option }))}
-                  value={draft.mainGoal}
-                />
-              }
-              field="mainGoal"
-              isEditing={editingField === "mainGoal"}
-              isSaving={isSavingProfile}
-              label="Objetivo principal"
-              onCancel={cancelEdit}
-              onEdit={beginEdit}
-              onSave={saveProfileField}
-              value={values.mainGoal || "Não informado"}
-            />
-            <EditableProfileRow
-              description="Valor usado como ponto de partida do seu caixa, sem entrar como receita."
-              editor={
-                <OtherInput
-                  inputMode="decimal"
-                  label="Saldo atual para começar"
-                  onBlur={() => updateDraft({ initialBalance: formatOptionalAmount(parseOptionalAmount(draft.initialBalance)) })}
-                  onChange={(initialBalance) => updateDraft({ initialBalance: normalizeAmountInput(initialBalance) })}
-                  placeholder="Ex.: 2000,00"
-                  value={draft.initialBalance}
-                />
-              }
-              field="initialBalance"
-              isEditing={editingField === "initialBalance"}
-              isSaving={isSavingProfile}
-              label="Saldo atual para começar"
-              onCancel={cancelEdit}
-              onEdit={beginEdit}
-              onSave={saveProfileField}
-              value={formatInitialBalanceLabel(values.initialBalance)}
-            />
+                    {draft.workType === "Outro" ? (
+                      <OtherInput
+                        label="Escreva seu tipo de trabalho"
+                        onChange={(customWorkType) => updateDraft({ customWorkType })}
+                        placeholder="Ex.: fotografia, eventos, costura"
+                        value={draft.customWorkType}
+                      />
+                    ) : null}
+                  </div>
+                }
+                field="workType"
+                isEditing={editingField === "workType"}
+                isSaving={isSavingProfile}
+                label="Tipo de trabalho"
+                onCancel={cancelEdit}
+                onEdit={beginEdit}
+                onSave={saveProfileField}
+                value={resolveOtherValue(values.workType, values.customWorkType)}
+              />
+              <EditableProfileRow
+                description="A área principal usada para organizar sua visão do app."
+                editor={
+                  <div className="space-y-3">
+                    <OptionGroup
+                      name="mainCategory"
+                      onChange={(mainCategory) =>
+                        updateDraft({
+                          customMainCategory: mainCategory === "Outro" ? draft.customMainCategory : "",
+                          mainCategory,
+                        })
+                      }
+                      options={categoryOptions.map((option) => ({ label: option, value: option }))}
+                      value={draft.mainCategory}
+                    />
+                    {draft.mainCategory === "Outro" ? (
+                      <OtherInput
+                        label="Escreva sua categoria principal"
+                        onChange={(customMainCategory) => updateDraft({ customMainCategory })}
+                        placeholder="Ex.: pet shop, artesanato, arquitetura"
+                        value={draft.customMainCategory}
+                      />
+                    ) : null}
+                  </div>
+                }
+                field="mainCategory"
+                isEditing={editingField === "mainCategory"}
+                isSaving={isSavingProfile}
+                label="Categoria principal"
+                onCancel={cancelEdit}
+                onEdit={beginEdit}
+                onSave={saveProfileField}
+                value={resolveOtherValue(values.mainCategory, values.customMainCategory)}
+              />
+              <EditableProfileRow
+                description="O primeiro resultado que você quer acompanhar com mais clareza."
+                editor={
+                  <OptionGroup
+                    name="mainGoal"
+                    onChange={(mainGoal) => updateDraft({ mainGoal })}
+                    options={goalOptions.map((option) => ({ label: option, value: option }))}
+                    value={draft.mainGoal}
+                  />
+                }
+                field="mainGoal"
+                isEditing={editingField === "mainGoal"}
+                isSaving={isSavingProfile}
+                label="Objetivo principal"
+                onCancel={cancelEdit}
+                onEdit={beginEdit}
+                onSave={saveProfileField}
+                value={values.mainGoal || "Não informado"}
+              />
+              <EditableProfileRow
+                description="Valor usado como ponto de partida do seu caixa, sem entrar como receita."
+                editor={
+                  <OtherInput
+                    inputMode="decimal"
+                    label="Saldo atual para começar"
+                    onBlur={() =>
+                      updateDraft({
+                        initialBalance: formatOptionalAmount(parseOptionalAmount(draft.initialBalance)),
+                      })
+                    }
+                    onChange={(initialBalance) =>
+                      updateDraft({ initialBalance: normalizeAmountInput(initialBalance) })
+                    }
+                    placeholder="Ex.: 2000,00"
+                    value={draft.initialBalance}
+                  />
+                }
+                field="initialBalance"
+                isEditing={editingField === "initialBalance"}
+                isSaving={isSavingProfile}
+                label="Saldo atual para começar"
+                onCancel={cancelEdit}
+                onEdit={beginEdit}
+                onSave={saveProfileField}
+                value={formatInitialBalanceLabel(values.initialBalance)}
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -405,102 +454,109 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
         ) : null}
       </section>
 
-      <section className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.72fr)]">
-        <Card className="overflow-hidden">
-          <CardHeader className="border-b border-neutral-100 bg-neutral-50/60 p-4 sm:p-5">
-            <CardHeading
-              description="Crie uma nova senha para entrar no FechouMEI."
-              icon={<KeyRound className="h-4 w-4" />}
-              title="Senha de acesso"
-            />
-          </CardHeader>
-          <CardContent className="p-4 sm:p-5">
-            <form className="space-y-4" onSubmit={handleUpdatePassword}>
-              <div className="space-y-2">
-                <Label htmlFor="password">Nova senha</Label>
-                <Input
-                  className="h-11 border-neutral-200 bg-white focus-visible:ring-emerald-200"
-                  id="password"
-                  autoComplete="new-password"
-                  minLength={6}
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Mínimo de 6 caracteres"
-                  required
-                  type="password"
-                  value={password}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirmar nova senha</Label>
-                <Input
-                  className="h-11 border-neutral-200 bg-white focus-visible:ring-emerald-200"
-                  id="confirmPassword"
-                  autoComplete="new-password"
-                  minLength={6}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
-                  placeholder="Repita a nova senha"
-                  required
-                  type="password"
-                  value={confirmPassword}
-                />
-              </div>
+      <section className="space-y-2">
+        <SectionLabel eyebrow="Segurança" title="Senha e acesso" />
 
-              {passwordMessage ? (
-                <FeedbackMessage
-                  tone={passwordMessage === "Senha atualizada com sucesso." ? "success" : "danger"}
-                >
-                  {passwordMessage}
-                </FeedbackMessage>
-              ) : null}
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.72fr)]">
+          <Card className="overflow-hidden">
+            <CardHeader className="border-b border-neutral-100 bg-neutral-50/60 p-3.5 sm:p-4">
+              <CardHeading
+                description="Crie uma nova senha para entrar no FechouMEI."
+                icon={<KeyRound className="h-4 w-4" />}
+                title="Senha de acesso"
+              />
+            </CardHeader>
+            <CardContent className="p-3.5 sm:p-4">
+              <form className="space-y-4" onSubmit={handleUpdatePassword}>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Nova senha</Label>
+                  <Input
+                    autoComplete="new-password"
+                    className="h-11 border-neutral-200 bg-white focus-visible:ring-emerald-200"
+                    id="password"
+                    minLength={6}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="Mínimo de 6 caracteres"
+                    required
+                    type="password"
+                    value={password}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirmar nova senha</Label>
+                  <Input
+                    autoComplete="new-password"
+                    className="h-11 border-neutral-200 bg-white focus-visible:ring-emerald-200"
+                    id="confirmPassword"
+                    minLength={6}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    placeholder="Repita a nova senha"
+                    required
+                    type="password"
+                    value={confirmPassword}
+                  />
+                </div>
 
-              <div className="flex justify-end border-t border-neutral-100 pt-4">
-                <Button className="w-full sm:w-auto" disabled={isUpdatingPassword} type="submit">
-                  {isUpdatingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  Salvar nova senha
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+                {passwordMessage ? (
+                  <FeedbackMessage
+                    tone={passwordMessage === "Senha atualizada com sucesso." ? "success" : "danger"}
+                  >
+                    {passwordMessage}
+                  </FeedbackMessage>
+                ) : null}
 
-        <Card className="overflow-hidden bg-white">
-          <CardHeader className="border-b border-neutral-100 bg-neutral-50/60 p-4 sm:p-5">
-            <CardHeading
-              description="Encerre o acesso neste aparelho quando precisar."
-              icon={<LogOut className="h-4 w-4" />}
-              title="Acesso neste aparelho"
-            />
-          </CardHeader>
-          <CardContent className="space-y-3 p-4 sm:p-5">
-            <p className="rounded-md border border-emerald-100 bg-emerald-50/50 px-3 py-2 text-sm font-medium leading-6 text-emerald-900">
-              Sair leva você de volta ao login e mantém seus dados salvos.
-            </p>
-            <Button className="w-full" onClick={handleSignOut} variant="outline">
-              <LogOut className="h-4 w-4" />
-              Sair da conta
-            </Button>
-          </CardContent>
-        </Card>
+                <div className="flex justify-end border-t border-neutral-100 pt-4">
+                  <Button className="w-full sm:w-auto" disabled={isUpdatingPassword} type="submit">
+                    {isUpdatingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    Salvar nova senha
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card className="overflow-hidden bg-white">
+            <CardHeader className="border-b border-neutral-100 bg-neutral-50/60 p-3.5 sm:p-4">
+              <CardHeading
+                description="Encerre o acesso neste aparelho quando precisar."
+                icon={<LogOut className="h-4 w-4" />}
+                title="Acesso neste aparelho"
+              />
+            </CardHeader>
+            <CardContent className="space-y-3 p-3.5 sm:p-4">
+              <p className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-medium leading-6 text-neutral-700">
+                Sair leva você de volta ao login e mantém seus dados salvos na conta.
+              </p>
+              <Button className="w-full sm:w-auto" onClick={handleSignOut} variant="outline">
+                <LogOut className="h-4 w-4" />
+                Sair da conta
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </section>
 
-      <section className="space-y-2.5">
-        <SectionLabel eyebrow="Segurança" title="Ações irreversíveis" />
+      <section className="space-y-2">
+        <SectionLabel eyebrow="Área sensível" title="Ações irreversíveis" />
 
         <Card className="overflow-hidden border-red-200/80 bg-red-50/30">
-          <CardHeader className="border-b border-red-100/80 p-4 sm:p-5">
+          <CardHeader className="border-b border-red-100/80 p-3.5 sm:p-4">
             <div className="flex items-start gap-3">
               <div className="rounded-md border border-red-100 bg-white p-2 text-red-700 shadow-sm">
                 <AlertTriangle className="h-4 w-4" />
               </div>
               <div className="min-w-0 space-y-1.5">
                 <CardTitle className="text-base text-red-950">Excluir conta e dados</CardTitle>
-                <CardDescription className="leading-6 text-red-800/80">
+                <CardDescription className="text-sm leading-5 text-red-800/80">
                   Esta ação apaga seu usuário de login e os dados salvos no FechouMEI. Não é possível desfazer.
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-3.5 p-4 sm:p-5">
+          <CardContent className="space-y-3 p-3.5 sm:p-4">
+            <p className="text-sm leading-6 text-red-900/80">
+              Use isso só se realmente quiser encerrar sua conta de forma definitiva.
+            </p>
             <Button
               className="w-full sm:w-auto"
               onClick={() => {
@@ -561,9 +617,7 @@ type Option = {
   value: string;
 };
 
-function getInitialProfileValues(
-  profile: ConfiguracoesFormProps["profile"],
-): ProfileValues {
+function getInitialProfileValues(profile: ConfiguracoesFormProps["profile"]): ProfileValues {
   return {
     businessMode: profile?.business_mode ?? "servico",
     customMainCategory: getCustomValue(profile?.main_category, categoryOptions),
@@ -599,8 +653,8 @@ function validateProfileDraft(values: ProfileValues, field: EditableField) {
 function SectionLabel({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
     <div className="space-y-0.5 px-0.5">
-      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">{eyebrow}</p>
-      <h2 className="text-lg font-semibold text-neutral-950">{title}</h2>
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">{eyebrow}</p>
+      <h2 className="text-base font-semibold text-neutral-950">{title}</h2>
     </div>
   );
 }
@@ -621,7 +675,7 @@ function CardHeading({
       </div>
       <div className="min-w-0 space-y-1">
         <CardTitle className="text-base text-neutral-950">{title}</CardTitle>
-        <CardDescription className="leading-6">{description}</CardDescription>
+        <CardDescription className="text-sm leading-5">{description}</CardDescription>
       </div>
     </div>
   );
@@ -651,16 +705,16 @@ function EditableProfileRow({
   value: string;
 }) {
   return (
-    <div className="p-4 sm:p-5">
+    <div className="px-3.5 py-3.5 sm:px-4 sm:py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <p className="text-sm font-semibold text-neutral-950">{label}</p>
-          <p className="text-sm leading-6 text-neutral-600">{description}</p>
+          <p className="text-xs leading-5 text-neutral-600">{description}</p>
         </div>
         {!isEditing ? (
           <Button
             aria-label={`Editar ${label}`}
-            className="h-9 w-9 shrink-0"
+            className="h-8 w-8 shrink-0"
             onClick={() => onEdit(field)}
             size="icon"
             type="button"
@@ -672,11 +726,11 @@ function EditableProfileRow({
       </div>
 
       {!isEditing ? (
-        <p className="mt-3 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold leading-6 text-neutral-900">
+        <p className="mt-3 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm font-semibold leading-5 text-neutral-900">
           {value}
         </p>
       ) : (
-        <div className="mt-3 space-y-3 rounded-md border border-emerald-200 bg-emerald-50/50 p-3">
+        <div className="mt-3 space-y-3 rounded-lg border border-neutral-200 bg-neutral-50/80 p-3">
           {editor}
           <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
             <Button disabled={isSaving} onClick={onCancel} type="button" variant="outline">
@@ -709,11 +763,12 @@ function OptionGroup({
     <div className="grid gap-1.5 sm:grid-cols-2">
       {options.map((option) => {
         const selected = option.value === value;
+
         return (
           <button
             aria-pressed={selected}
             className={cn(
-              "group flex min-h-[42px] w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm font-medium leading-5 transition-colors",
+              "group flex min-h-[44px] w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm font-medium leading-5 transition-colors",
               selected
                 ? "border-emerald-300 bg-white text-emerald-900 shadow-[0_1px_2px_rgba(16,185,129,0.08)]"
                 : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50",
@@ -756,9 +811,9 @@ function OtherInput({
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-sm font-semibold text-emerald-900">{label}</span>
+      <span className="text-sm font-semibold text-neutral-900">{label}</span>
       <Input
-        className="h-11 border-emerald-200 bg-white focus-visible:ring-emerald-200"
+        className="h-11 border-neutral-200 bg-white focus-visible:ring-emerald-200"
         inputMode={inputMode}
         onBlur={onBlur}
         onChange={(event) => onChange(event.target.value)}
@@ -787,6 +842,15 @@ function FeedbackMessage({
     >
       {children}
     </p>
+  );
+}
+
+function ProfileSnapshotItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 rounded-lg border border-neutral-200 bg-neutral-50/80 px-3 py-2.5">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500">{label}</p>
+      <p className="mt-1 break-words text-sm font-semibold leading-5 text-neutral-950">{value}</p>
+    </div>
   );
 }
 
@@ -837,9 +901,9 @@ function ConfirmDialog({
           <div className="mt-4 space-y-2">
             <Label htmlFor="deleteConfirmation">{confirmationLabel}</Label>
             <Input
-              id="deleteConfirmation"
               autoComplete="off"
               className="h-11 border-red-200 focus-visible:ring-red-200"
+              id="deleteConfirmation"
               onChange={(event) => onConfirmationChange(event.target.value)}
               placeholder={confirmationPlaceholder}
               value={confirmationValue}
