@@ -110,14 +110,14 @@ export function ObrigacoesChecklist({ items, monthKey }: ObrigacoesChecklistProp
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       {localItems.map((item) => {
         const disabled = pendingKeys.includes(item.key);
 
         return (
           <label
             className={cn(
-              "flex cursor-pointer items-start gap-2.5 rounded-md border border-neutral-200 bg-white p-2.5 text-sm text-neutral-800 shadow-[0_4px_14px_rgba(15,23,42,0.035)] transition-colors",
+              "flex min-h-[72px] cursor-pointer items-start gap-3 rounded-lg border border-neutral-200 bg-white px-3 py-3 text-sm text-neutral-800 shadow-[0_4px_14px_rgba(15,23,42,0.035)] transition-colors",
               item.done && "border-emerald-100 bg-emerald-50/50 text-neutral-500",
               disabled && "opacity-80",
             )}
@@ -125,7 +125,7 @@ export function ObrigacoesChecklist({ items, monthKey }: ObrigacoesChecklistProp
           >
             <span
               className={cn(
-                "relative mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border bg-white",
+                "relative mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border bg-white",
                 item.done ? "border-emerald-500 bg-emerald-600" : "border-neutral-300",
               )}
             >
@@ -141,7 +141,7 @@ export function ObrigacoesChecklist({ items, monthKey }: ObrigacoesChecklistProp
             <span className="min-w-0 flex-1">
               <span
                 className={cn(
-                  "block font-medium leading-5",
+                  "block text-sm font-medium leading-5",
                   item.done ? "text-neutral-500 line-through" : "text-neutral-800",
                 )}
               >
@@ -149,7 +149,7 @@ export function ObrigacoesChecklist({ items, monthKey }: ObrigacoesChecklistProp
               </span>
               <span
                 className={cn(
-                  "mt-0.5 block text-xs font-medium",
+                  "mt-1 block text-xs font-medium",
                   item.done ? "text-emerald-700" : "text-neutral-600",
                 )}
               >

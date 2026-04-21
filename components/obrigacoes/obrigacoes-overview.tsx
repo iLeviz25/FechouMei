@@ -225,161 +225,120 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
           : "Mês com pendências";
   const summaryText =
     pendingCount === 0
-      ? "Tudo marcado para este mês. Mantenha os comprovantes guardados."
+      ? "Tudo marcado neste mês. Agora é só manter os comprovantes organizados."
       : hasOverdue
-        ? "Há obrigação vencida ou item importante para resolver agora."
+        ? "Há item vencido ou algo importante pedindo ação agora."
         : attentionItems.length > 0
-          ? "Alguns itens têm prazo próximo ou merecem conferência nesta parte do mês."
-          : "Ainda há itens pendentes, mas nenhum alerta forte de prazo agora.";
+          ? "Alguns prazos se aproximam ou merecem conferência neste momento."
+          : "Ainda há itens pendentes, mas sem alerta forte de prazo agora.";
 
   const obligations = [
     {
-      title: "DAS mensal",
       description: "Imposto mensal do MEI. Marque no checklist quando pagar.",
       frequency: "Mensal",
       helper: dasInfo.helper,
       icon: ReceiptText,
       status: dasInfo.status,
+      title: "DAS mensal",
     },
     {
-      title: "DASN-SIMEI",
       description: "Declaração anual do MEI. Use o checklist para lembrar da entrega.",
       frequency: "Anual",
       helper: dasnInfo.helper,
       icon: FileText,
       status: dasnInfo.status,
+      title: "DASN-SIMEI",
     },
   ];
 
   return (
-    <div className="space-y-3.5 pb-6 sm:space-y-4">
+    <div className="space-y-3 pb-6 sm:space-y-4">
       <header className="rounded-lg border border-neutral-200 bg-[linear-gradient(180deg,#ffffff_0%,#fafafa_100%)] p-4 shadow-[0_10px_30px_rgba(15,23,42,0.055)] sm:p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-2.5">
-            <Badge variant="success" className="w-fit px-3 py-1">
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <Badge variant="success" className="w-fit px-2.5 py-0.5">
               Checklist MEI
             </Badge>
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-neutral-950 sm:text-3xl">
+            <div className="space-y-1">
+              <h1 className="text-xl font-semibold tracking-tight text-neutral-950 sm:text-3xl">
                 Obrigações do mês
               </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">
-                Marque o que já foi feito e veja o que está pendente, em prazo ou pedindo atenção.
+              <p className="text-sm leading-5 text-neutral-600">
+                Veja o que já foi feito, o que falta marcar e onde vale prestar atenção agora.
               </p>
             </div>
           </div>
 
-          <div className="rounded-lg border border-neutral-200 bg-white p-3 shadow-[0_8px_24px_rgba(15,23,42,0.045)] lg:min-w-72">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Mês acompanhado</p>
-                <p className="mt-1 text-sm font-semibold text-neutral-950">{monthLabel}</p>
+          <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start">
+            <div className="rounded-lg border border-neutral-200 bg-white p-3.5 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500">Mês acompanhado</p>
+                  <p className="mt-1 text-sm font-semibold text-neutral-950">{monthLabel}</p>
+                  <p className="mt-1 text-xs leading-5 text-neutral-600">{summaryText}</p>
+                </div>
+                <Badge variant={getToneVariant(summaryTone)} className="shrink-0">
+                  {summaryLabel}
+                </Badge>
               </div>
-              <Badge variant={getToneVariant(summaryTone)} className="shrink-0">
-                {summaryLabel}
-              </Badge>
+
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-neutral-100">
+                <div className="h-full rounded-full bg-emerald-500" style={{ width: `${progressPercent}%` }} />
+              </div>
+
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                <StatusStat
+                  icon={<CheckCircle2 className="h-4 w-4" />}
+                  label="Concluídas"
+                  tone="success"
+                  value={`${doneCount}/${total}`}
+                />
+                <StatusStat
+                  icon={<CalendarCheck className="h-4 w-4" />}
+                  label="Pendentes"
+                  tone={pendingCount === 0 ? "success" : "neutral"}
+                  value={String(pendingCount)}
+                />
+                <StatusStat
+                  icon={<Clock3 className="h-4 w-4" />}
+                  label="Atenção"
+                  tone={attentionItems.length === 0 ? "success" : summaryTone}
+                  value={String(attentionItems.length)}
+                />
+              </div>
             </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-neutral-100">
-              <div className="h-full rounded-full bg-emerald-500" style={{ width: `${progressPercent}%` }} />
-            </div>
-            <p className="mt-2 text-xs font-medium text-neutral-500">
-              {doneCount} de {total} itens marcados como feitos
-            </p>
+
+            <Card className="border-neutral-200 bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
+              <CardHeader className="p-3.5 pb-2.5">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <CardTitle className="text-sm font-semibold text-neutral-950">Atenção do mês</CardTitle>
+                    <CardDescription className="mt-1 text-xs leading-5">
+                      O que merece conferência agora.
+                    </CardDescription>
+                  </div>
+                  <Badge variant={getToneVariant(summaryTone)} className="shrink-0">
+                    {attentionItems.length}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="p-3.5 pt-0">
+                {attentionItems.length > 0 ? (
+                  <div className="space-y-2">
+                    {attentionItems.slice(0, 3).map((item) => (
+                      <AttentionRow detail={item.detail} key={`${item.title}-${item.detail}`} title={item.title} tone={item.tone} />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="rounded-md border border-emerald-100 bg-emerald-50/70 px-3 py-2 text-sm font-medium leading-5 text-emerald-800">
+                    Nada crítico no momento. Continue marcando o checklist conforme concluir.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
       </header>
-
-      <Card className="border-neutral-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.055)]">
-        <CardHeader className="p-4 pb-2.5 sm:p-5 sm:pb-3">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <CardTitle className="text-neutral-950">Central de pendências</CardTitle>
-              <CardDescription className="mt-1">{summaryText}</CardDescription>
-            </div>
-            <Badge variant={getToneVariant(summaryTone)} className="w-fit shrink-0">
-              {summaryLabel}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3 p-4 pt-0 sm:p-5 sm:pt-0">
-          <div className="grid gap-2.5 sm:grid-cols-3">
-            <SummaryPill
-              icon={<CheckCircle2 className="h-4 w-4" />}
-              label="Concluídas"
-              tone="success"
-              value={`${doneCount} de ${total}`}
-            />
-            <SummaryPill
-              icon={<CalendarCheck className="h-4 w-4" />}
-              label="Pendentes"
-              tone={pendingCount === 0 ? "success" : "neutral"}
-              value={String(pendingCount)}
-            />
-            <SummaryPill
-              icon={<Clock3 className="h-4 w-4" />}
-              label="Atenção agora"
-              tone={attentionItems.length === 0 ? "success" : summaryTone}
-              value={String(attentionItems.length)}
-            />
-          </div>
-
-          {attentionItems.length > 0 ? (
-            <div className="space-y-2 border-t border-neutral-100 pt-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">O que olhar agora</p>
-              {attentionItems.slice(0, 4).map((item) => (
-                <AttentionRow detail={item.detail} key={`${item.title}-${item.detail}`} title={item.title} tone={item.tone} />
-              ))}
-            </div>
-          ) : (
-            <p className="rounded-md border border-emerald-100 bg-emerald-50/70 px-3 py-2 text-sm font-medium leading-6 text-emerald-800">
-              Nenhum prazo crítico agora. Continue marcando o checklist conforme concluir.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      <section className="grid gap-2.5 sm:grid-cols-2">
-        {obligations.map((item) => {
-          const Icon = item.icon;
-
-          return (
-            <Card
-              className="overflow-hidden border-neutral-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.05)]"
-              key={item.title}
-            >
-              <CardContent className="p-3.5 sm:p-4">
-                <div className="flex items-start gap-3">
-                  <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-md border", getStatusTone(item.status))}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
-                        <p className="text-base font-semibold leading-tight text-neutral-950">{item.title}</p>
-                        <p className="mt-1 text-sm leading-5 text-neutral-600">{item.description}</p>
-                      </div>
-                      <Badge variant={getStatusVariant(item.status)} className="shrink-0">
-                        {item.status}
-                      </Badge>
-                    </div>
-
-                    <div className="mt-2.5 flex flex-wrap gap-2 text-xs font-medium text-neutral-600">
-                      <span className="rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1">
-                        {item.frequency}
-                      </span>
-                      <span className="rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1">
-                        {item.helper}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </section>
-
-      <ObrigacoesReminders preferences={reminderPreferences} />
 
       <Card className="border-neutral-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
         <CardHeader className="p-4 pb-2.5 sm:p-5 sm:pb-3">
@@ -387,7 +346,7 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
             <div>
               <CardTitle className="text-neutral-950">O que fazer neste mês</CardTitle>
               <CardDescription className="mt-1">
-                Marque conforme concluir. A visão geral usa isso para orientar os alertas.
+                Marque conforme concluir. Esta é a visão principal de acompanhamento do mês.
               </CardDescription>
             </div>
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-emerald-100 bg-emerald-50 text-emerald-700">
@@ -399,11 +358,59 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
           <ObrigacoesChecklist items={checklist} monthKey={monthKey} />
         </CardContent>
       </Card>
+
+      <Card className="border-neutral-200 bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
+        <CardHeader className="p-3.5 pb-2.5">
+          <CardTitle className="text-sm font-semibold text-neutral-950">Obrigações principais</CardTitle>
+          <CardDescription className="mt-1 text-xs leading-5">
+            Obrigações recorrentes para manter no radar enquanto acompanha o checklist.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-3.5 pt-0">
+          <div className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 bg-white/70">
+            {obligations.map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <div className="px-3 py-3" key={item.title}>
+                  <div className="flex items-start gap-3">
+                    <div className={cn("mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border", getStatusTone(item.status))}>
+                      <Icon className="h-4.5 w-4.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-neutral-950">{item.title}</p>
+                          <p className="mt-1 text-xs leading-5 text-neutral-600">{item.description}</p>
+                        </div>
+                        <Badge variant={getStatusVariant(item.status)} className="shrink-0">
+                          {item.status}
+                        </Badge>
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <span className="rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1 text-[11px] font-medium text-neutral-600">
+                          {item.frequency}
+                        </span>
+                        <span className="rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1 text-[11px] font-medium text-neutral-600">
+                          {item.helper}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      <ObrigacoesReminders preferences={reminderPreferences} />
     </div>
   );
 }
 
-function SummaryPill({
+function StatusStat({
   icon,
   label,
   tone,
@@ -415,27 +422,25 @@ function SummaryPill({
   value: string;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-md border border-neutral-200 bg-neutral-50/70 p-2.5">
-      <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-md border", getSummaryToneClass(tone))}>
+    <div className="rounded-md border border-neutral-200 bg-neutral-50/80 p-2.5">
+      <span className={cn("flex h-7 w-7 items-center justify-center rounded-md border", getSummaryToneClass(tone))}>
         {icon}
       </span>
-      <div className="min-w-0">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">{label}</p>
-        <p className="mt-0.5 text-base font-bold text-neutral-950">{value}</p>
-      </div>
+      <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-neutral-500">{label}</p>
+      <p className="mt-1 text-base font-bold text-neutral-950">{value}</p>
     </div>
   );
 }
 
 function AttentionRow({ detail, title, tone }: AttentionItem) {
   return (
-    <div className="flex gap-2.5 rounded-md border border-neutral-200 bg-neutral-50/70 p-2.5">
+    <div className="flex gap-2.5 rounded-md border border-neutral-200 bg-neutral-50/80 p-2.5">
       <span className={cn("mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border", getSummaryToneClass(tone))}>
         <AlertTriangle className="h-4 w-4" />
       </span>
       <div className="min-w-0">
         <p className="text-sm font-semibold text-neutral-950">{title}</p>
-        <p className="mt-0.5 text-xs leading-5 text-neutral-600 sm:text-sm">{detail}</p>
+        <p className="mt-0.5 text-xs leading-5 text-neutral-600">{detail}</p>
       </div>
     </div>
   );

@@ -143,22 +143,22 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
   }
 
   return (
-    <Card className="border-neutral-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-      <CardHeader className="p-4 pb-2.5 sm:p-5 sm:pb-3">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+    <Card className="border-neutral-200 bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
+      <CardHeader className="p-3.5 pb-2.5">
+        <div className="flex items-start justify-between gap-3">
           <div>
-            <CardTitle className="text-neutral-950">Lembretes opcionais</CardTitle>
-            <CardDescription className="mt-1">
-              Escolha o que quer manter no radar. As preferências ficam salvas na sua conta.
+            <CardTitle className="text-sm font-semibold text-neutral-950">Lembretes opcionais</CardTitle>
+            <CardDescription className="mt-1 text-xs leading-5">
+              Ative só o que vale deixar no radar.
             </CardDescription>
           </div>
-          <Badge variant={activeCount > 0 ? "success" : "secondary"} className="w-fit shrink-0">
+          <Badge variant={activeCount > 0 ? "success" : "secondary"} className="shrink-0">
             {activeCount} ativo(s)
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3 p-4 pt-0 sm:p-5 sm:pt-0">
-        <div className="grid gap-2 sm:grid-cols-2">
+      <CardContent className="space-y-2.5 p-3.5 pt-0">
+        <div className="grid gap-2">
           {reminderOptions.map((option) => {
             const active = reminders[option.key];
 
@@ -166,7 +166,7 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
               <button
                 aria-pressed={active}
                 className={cn(
-                  "flex min-h-[72px] items-start gap-3 rounded-md border p-3 text-left transition-colors",
+                  "flex items-start gap-3 rounded-lg border px-3 py-3 text-left transition-colors",
                   active
                     ? "border-emerald-200 bg-emerald-50/70"
                     : "border-neutral-200 bg-neutral-50/70 hover:border-neutral-300 hover:bg-white",
@@ -188,22 +188,32 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold text-neutral-950">{option.label}</span>
                   <span className="mt-1 block text-xs leading-5 text-neutral-600">{option.description}</span>
-                  <span
-                    className={cn(
-                      "mt-1 block text-xs font-semibold",
-                      active ? "text-emerald-700" : "text-neutral-500",
-                    )}
-                  >
-                    {active ? "Lembrete ativado" : "Lembrete desligado"}
-                  </span>
+                </span>
+                <span
+                  className={cn(
+                    "shrink-0 rounded-md border px-2 py-1 text-[11px] font-semibold",
+                    active
+                      ? "border-emerald-200 bg-white text-emerald-700"
+                      : "border-neutral-200 bg-white text-neutral-500",
+                  )}
+                >
+                  {active ? "Ligado" : "Desligado"}
                 </span>
               </button>
             );
           })}
         </div>
-        <p className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs font-medium leading-5 text-neutral-600">
-          Base preparada para lembretes futuros. Nenhum e-mail ou notificação externa é enviado nesta etapa.
-        </p>
+
+        {activeCount === 0 ? (
+          <p className="text-xs font-medium leading-5 text-neutral-500">
+            Nenhum lembrete ativo por enquanto.
+          </p>
+        ) : (
+          <p className="text-xs font-medium leading-5 text-neutral-500">
+            Base preparada para lembretes futuros. Nenhum envio externo acontece nesta etapa.
+          </p>
+        )}
+
         {status ? (
           <p
             className={cn(
