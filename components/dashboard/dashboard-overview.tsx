@@ -1,19 +1,21 @@
 import {
-  AlertTriangle,
   ArrowDownLeft,
   ArrowUpRight,
+  BellRing,
   CheckCircle2,
-  CircleDollarSign,
+  ClipboardCheck,
   Landmark,
-  Plus,
-  ReceiptText,
+  MessageCircle,
+  Receipt,
+  Sparkles,
+  TrendingUp,
   Wallet,
 } from "lucide-react";
 import Link from "next/link";
 import { DashboardGreeting } from "@/components/dashboard/dashboard-greeting";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { Movimentacao } from "@/types/database";
 
@@ -33,7 +35,7 @@ type DashboardOverviewProps = {
 };
 
 const DAS_DUE_DAY = 20;
-const MEI_ANNUAL_LIMIT = 81000;
+const MEI_LIMIT = 81000;
 const DASHBOARD_CHECKLIST_ITEMS = 6;
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -66,275 +68,257 @@ export function DashboardOverview({
   monthlyIncome,
   recentMovements,
 }: DashboardOverviewProps) {
-  const balance = monthlyIncome - monthlyExpense;
-  const hasMovementsThisMonth = monthlyIncome > 0 || monthlyExpense > 0;
-  const limitUsage = annualIncome / MEI_ANNUAL_LIMIT;
+  const monthBalance = monthlyIncome - monthlyExpense;
+  const limitUsage = annualIncome / MEI_LIMIT;
   const limitUsagePercent = Math.min(limitUsage * 100, 100);
-  const remainingLimit = Math.max(MEI_ANNUAL_LIMIT - annualIncome, 0);
+  const remainingLimit = Math.max(MEI_LIMIT - annualIncome, 0);
   const today = new Date();
-  const dasIsLate = !dasDone && today.getDate() > DAS_DUE_DAY;
-  const checklistProgress = Math.min(checklistDoneCount, DASHBOARD_CHECKLIST_ITEMS);
+  const dasLate = !dasDone && today.getDate() > DAS_DUE_DAY;
 
-  const limitStatus =
-    limitUsage >= 1
-      ? "Limite ultrapassado"
-      : limitUsage >= 0.9
-        ? "Limite próximo"
-        : limitUsage >= 0.75
-          ? "Atenção"
-          : "Sem alerta";
-  const limitStatusVariant =
-    limitUsage >= 1 ? "danger" : limitUsage >= 0.75 ? "warning" : "success";
-  const limitBarTone =
-    limitUsage >= 1 ? "bg-red-400" : limitUsage >= 0.75 ? "bg-amber-300" : "bg-emerald-400";
-
-  const summaryCards = [
+  const alerts = [
     {
-      bar: "bg-emerald-600",
-      detail: monthlyIncome > 0 ? "Entrou neste mês" : "Sem entradas no mês",
-      icon: ArrowUpRight,
-      iconTone: "border-emerald-100 bg-emerald-50 text-emerald-700",
-      title: "Entradas",
-      value: toCurrency(monthlyIncome),
-      valueTone: "text-emerald-800",
+      description:
+        monthBalance >= 0
+          ? "As entradas do mes estao cobrindo as despesas registradas."
+          : "Revise as despesas antes de fechar o mes.",
+      icon: monthBalance >= 0 ? CheckCircle2 : Wallet,
+      label: monthBalance >= 0 ? "Mes no azul" : "Mes pede atencao",
+      tone: monthBalance >= 0 ? "success" : "danger",
     },
     {
-      bar: "bg-red-500",
-      detail: monthlyExpense > 0 ? "Saiu neste mês" : "Sem despesas no mês",
-      icon: ArrowDownLeft,
-      iconTone: "border-red-100 bg-red-50 text-red-700",
-      title: "Despesas",
-      value: toCurrency(monthlyExpense),
-      valueTone: "text-red-700",
+      description: `${limitUsagePercent.toFixed(1).replace(".", ",")}% do limite anual utilizado.`,
+      icon: TrendingUp,
+      label:
+        limitUsage >= 1 ? "Limite ultrapassado" : limitUsage >= 0.75 ? "Limite no radar" : "Limite sob controle",
+      tone: limitUsage >= 1 ? "danger" : limitUsage >= 0.75 ? "warning" : "success",
     },
     {
-      bar: balance >= 0 ? "bg-neutral-800" : "bg-red-500",
-      detail: balance >= 0 ? "Mês no azul" : "Mês no vermelho",
-      icon: Wallet,
-      iconTone:
-        balance >= 0
-          ? "border-neutral-200 bg-neutral-50 text-neutral-800"
-          : "border-red-100 bg-red-50 text-red-700",
-      title: "Saldo do mês",
-      value: toCurrency(balance),
-      valueTone: balance >= 0 ? "text-neutral-950" : "text-red-700",
+      description: dasDone
+        ? "O DAS ja esta marcado como pago no checklist."
+        : dasLate
+          ? "Abra obrigacoes e atualize o item do DAS."
+          : "Marque no checklist assim que concluir o pagamento.",
+      icon: Receipt,
+      label: dasDone ? "DAS em dia" : dasLate ? "DAS em aberto" : "DAS no radar",
+      tone: dasDone ? "success" : dasLate ? "danger" : "warning",
     },
-    {
-      bar: "bg-amber-500",
-      detail: "Para o limite do MEI",
-      icon: Landmark,
-      iconTone: "border-amber-100 bg-amber-50 text-amber-700",
-      title: "Faturamento no ano",
-      value: toCurrency(annualIncome),
-      valueTone: "text-neutral-950",
-    },
-  ];
-
-  const alertItems = [
-    {
-      detail: hasMovementsThisMonth
-        ? balance >= 0
-          ? "Entradas estão cobrindo as despesas registradas."
-          : "Revise despesas antes de fechar o mês."
-        : "Lance uma entrada ou despesa para começar.",
-      icon: hasMovementsThisMonth && balance >= 0 ? CheckCircle2 : AlertTriangle,
-      tone: hasMovementsThisMonth && balance >= 0 ? "text-emerald-700" : "text-amber-700",
-      title: hasMovementsThisMonth ? (balance >= 0 ? "Saldo positivo" : "Saldo negativo") : "Sem lançamentos",
-    },
-    {
-      detail: `${limitUsagePercent.toFixed(1).replace(".", ",")}% do limite anual usado.`,
-      icon: limitUsage >= 0.75 ? AlertTriangle : CheckCircle2,
-      tone: limitUsage >= 1 ? "text-red-700" : limitUsage >= 0.75 ? "text-amber-700" : "text-emerald-700",
-      title: limitStatus,
-    },
-    {
-      detail: dasDone
-        ? "Checklist do mês já marcou o DAS como pago."
-        : dasIsLate
-          ? "Abra obrigações e atualize o checklist."
-          : "Marque como pago quando concluir.",
-      icon: dasDone ? CheckCircle2 : ReceiptText,
-      tone: dasDone ? "text-emerald-700" : dasIsLate ? "text-red-700" : "text-neutral-700",
-      title: dasDone ? "DAS em dia" : dasIsLate ? "DAS em aberto" : "DAS no radar",
-    },
-  ];
+  ] as const;
 
   return (
-    <div className="space-y-4 pb-6 sm:space-y-5">
-      <div className="rounded-lg border border-neutral-200 bg-[linear-gradient(180deg,#ffffff_0%,#fafafa_100%)] p-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)] sm:p-5">
-        <div className="space-y-2">
-          <Badge variant="success" className="w-fit px-3 py-1">
-            Visão geral
-          </Badge>
-          <div className="space-y-1.5">
-            <DashboardGreeting />
-            <p className="max-w-2xl text-sm leading-6 text-neutral-600">
-              Entradas, despesas, saldo e limite do MEI em poucos segundos.
-            </p>
+    <div className="space-y-5 pb-6">
+      <section className="relative overflow-hidden rounded-[28px] bg-gradient-hero p-5 text-primary-foreground shadow-elevated sm:p-6">
+        <div className="absolute inset-0 grain opacity-40" />
+        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-secondary/25 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-16 -left-10 h-40 w-40 rounded-full bg-[hsl(var(--primary-glow)/0.28)] blur-3xl" />
+
+        <div className="relative space-y-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-2">
+              <Badge className="w-fit border-white/10 bg-white/10 text-primary-foreground" variant="secondary">
+                <Sparkles className="mr-1 h-3 w-3" />
+                Visao geral
+              </Badge>
+              <div className="space-y-1">
+                <DashboardGreeting />
+                <p className="max-w-2xl text-sm leading-6 text-primary-foreground/80">
+                  Entradas, despesas, fechamento e limite do MEI em uma leitura so.
+                </p>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur">
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground/70">
+                Saldo atual
+              </p>
+              <p
+                className={cn(
+                  "font-mono mt-1 text-2xl font-extrabold tabular",
+                  currentBalance >= 0 ? "text-primary-foreground" : "text-secondary",
+                )}
+              >
+                {toCurrency(currentBalance)}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <SummaryCard
+              detail="registrado neste mes"
+              icon={ArrowDownLeft}
+              label="Entradas"
+              tone="success"
+              value={toCurrency(monthlyIncome)}
+            />
+            <SummaryCard
+              detail="registrado neste mes"
+              icon={ArrowUpRight}
+              label="Despesas"
+              tone="danger"
+              value={toCurrency(monthlyExpense)}
+            />
+            <SummaryCard
+              detail={monthBalance >= 0 ? "mes no azul" : "mes no vermelho"}
+              icon={Wallet}
+              label="Saldo do mes"
+              tone={monthBalance >= 0 ? "primary" : "danger"}
+              value={toCurrency(monthBalance)}
+            />
+            <SummaryCard
+              detail="acumulado em 2025"
+              icon={Landmark}
+              label="Faturamento"
+              tone="neutral"
+              value={toCurrency(annualIncome)}
+            />
           </div>
         </div>
-      </div>
-
-      <section className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
-        {summaryCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <Card
-              className="relative overflow-hidden border-neutral-200 bg-white shadow-[0_6px_18px_rgba(15,23,42,0.045)]"
-              key={card.title}
-            >
-              <div className={cn("absolute inset-x-0 top-0 h-1", card.bar)} />
-              <CardContent className="p-3 sm:p-4">
-                <div className="flex items-start justify-between gap-2 pt-1">
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500 sm:text-[11px]">
-                      {card.title}
-                    </p>
-                    <p className={cn("mt-1.5 break-words text-base font-bold leading-tight tabular-nums sm:text-xl", card.valueTone)}>
-                      {card.value}
-                    </p>
-                  </div>
-                  <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-md border sm:h-8 sm:w-8", card.iconTone)}>
-                    <Icon className="h-4 w-4" />
-                  </div>
-                </div>
-                <p className="mt-1.5 text-xs leading-5 text-neutral-600 sm:text-sm">{card.detail}</p>
-              </CardContent>
-            </Card>
-          );
-        })}
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-[1.08fr_0.92fr] lg:items-start">
-        <Card className="overflow-hidden border-neutral-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8faf9_100%)] shadow-[0_10px_24px_rgba(15,23,42,0.055)]">
-          <CardHeader className="p-4 pb-2.5 sm:p-5 sm:pb-3">
-            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
+      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+        <Card className="overflow-hidden bg-gradient-hero text-primary-foreground">
+          <CardContent className="space-y-5 p-5 sm:p-6">
+            <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">
-                <CardTitle className="text-neutral-950">Limite do MEI</CardTitle>
-                <CardDescription className="text-neutral-600">
-                  Entradas do ano para acompanhar o teto de R$ 81 mil.
-                </CardDescription>
-              </div>
-              <Badge variant={limitStatusVariant} className="w-fit">
-                {limitStatus}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3 p-4 pt-0 sm:p-5 sm:pt-0">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="break-words text-2xl font-bold leading-tight tracking-tight text-neutral-950 sm:text-[2rem]">
-                  {toCurrency(annualIncome)}
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground/70">
+                  Limite anual MEI
                 </p>
-                <p className="mt-1 text-sm text-neutral-600">já usado no limite</p>
+                <p className="font-mono text-3xl font-extrabold tabular">{toCurrency(annualIncome)}</p>
+                <p className="text-sm text-primary-foreground/75">de {toCurrency(MEI_LIMIT)} utilizados no ano</p>
               </div>
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-emerald-100 bg-emerald-50 text-emerald-700 sm:h-11 sm:w-11">
-                <CircleDollarSign className="h-5 w-5" />
-              </div>
+              <Badge
+                className="w-fit border-white/10 bg-white/10 text-primary-foreground"
+                variant="secondary"
+              >
+                {limitUsage >= 1 ? "Excedido" : limitUsage >= 0.75 ? "Atencao" : "Tranquilo"}
+              </Badge>
             </div>
 
             <div className="space-y-2">
-              <div className="h-2.5 overflow-hidden rounded-md bg-neutral-200">
-                <div className={`h-full ${limitBarTone}`} style={{ width: `${limitUsagePercent}%` }} />
+              <div className="h-3 overflow-hidden rounded-full bg-white/10">
+                <div className="h-full rounded-full bg-gradient-glow" style={{ width: `${limitUsagePercent}%` }} />
               </div>
-              <div className="flex justify-between gap-3 text-xs font-medium text-neutral-500">
-                <span>{limitUsagePercent.toFixed(1).replace(".", ",")}% usado</span>
-                <span>{toCurrency(remainingLimit)} restante</span>
+              <div className="flex items-center justify-between text-xs text-primary-foreground/75">
+                <span>{limitUsagePercent.toFixed(1).replace(".", ",")}% do teto</span>
+                <span>{toCurrency(remainingLimit)} disponiveis</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              <CompactInfo label="Restante" value={toCurrency(remainingLimit)} />
-              <CompactInfo label="Limite anual" value={toCurrency(MEI_ANNUAL_LIMIT)} />
-              <CompactInfo
-                className="col-span-2 sm:col-span-1"
-                label="Tarefas do mês"
-                value={`${checklistProgress} de ${DASHBOARD_CHECKLIST_ITEMS}`}
-              />
+            <div className="grid grid-cols-3 gap-2">
+              <LimitStat label="Checklist" value={`${Math.min(checklistDoneCount, DASHBOARD_CHECKLIST_ITEMS)}/${DASHBOARD_CHECKLIST_ITEMS}`} />
+              <LimitStat label="Restante" value={toCurrency(remainingLimit)} />
+              <LimitStat label="Saldo" value={toCurrency(currentBalance)} />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-neutral-200 bg-white shadow-[0_6px_18px_rgba(15,23,42,0.045)]">
-          <CardHeader className="p-4 pb-3 sm:p-5 sm:pb-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1">
-                <CardTitle className="text-neutral-950">Últimos registros</CardTitle>
-                <CardDescription>O que entrou ou saiu mais recentemente.</CardDescription>
-              </div>
-              <Button asChild className="h-8 border-neutral-200 bg-white px-2.5" size="sm" variant="outline">
-                <Link href="/app/movimentacoes">Abrir</Link>
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-2 p-4 pt-0 sm:p-5 sm:pt-0">
-            {recentMovements.length === 0 ? (
-              <div className="rounded-md border border-dashed border-neutral-300 bg-neutral-50/70 p-4">
-                <p className="text-sm font-medium text-neutral-950">Nenhuma movimentação registrada ainda.</p>
-                <p className="mt-1 text-sm leading-6 text-neutral-600">
-                  Adicione uma entrada ou despesa para alimentar a visão geral.
+        <Card>
+          <CardContent className="space-y-4 p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                  Acoes rapidas
                 </p>
-                <Button asChild className="mt-4 h-9 w-full" size="sm">
-                  <Link href="/app/movimentacoes">
-                    <Plus className="h-4 w-4" />
-                    Adicionar movimentação
-                  </Link>
-                </Button>
+                <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">Onde seguir agora</h2>
               </div>
-            ) : (
-              recentMovements.map((movement) => {
-                const isIncome = movement.type === "entrada";
+            </div>
 
-                return (
-                  <div
-                    className={cn(
-                      "relative overflow-hidden rounded-md border border-neutral-200 bg-white px-3 py-2.5 pl-4 shadow-[0_3px_10px_rgba(15,23,42,0.035)]",
-                      "before:absolute before:inset-y-0 before:left-0 before:w-1",
-                      isIncome ? "before:bg-emerald-500" : "before:bg-red-400",
-                    )}
-                    key={movement.id}
-                  >
-                    <div className="grid grid-cols-[1fr_auto] gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-neutral-950">{movement.description}</p>
-                        <p className="mt-0.5 text-[11px] font-medium text-neutral-500 sm:text-xs">
-                          {isIncome ? "Entrada" : "Despesa"} · {movement.occurred_at ? toDateTime(movement.occurred_at) : toDate(movement.occurred_on)}
-                        </p>
-                      </div>
-                      <p
-                        className={cn(
-                          "shrink-0 text-right text-sm font-bold tabular-nums",
-                          isIncome ? "text-emerald-700" : "text-red-600",
-                        )}
-                      >
-                        {toCurrency(movement.amount)}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })
-            )}
+            <div className="grid grid-cols-2 gap-2.5">
+              <QuickAction href="/app/movimentacoes" icon={Receipt} label="Lancar movimentacoes" />
+              <QuickAction href="/app/fechamento-mensal" icon={ClipboardCheck} label="Revisar fechamento" />
+              <QuickAction href="/app/obrigacoes" icon={BellRing} label="Atualizar obrigacoes" />
+              <QuickAction href="/app/agente" icon={MessageCircle} label="Falar com Helena" />
+            </div>
           </CardContent>
         </Card>
       </section>
 
-      <section>
-        <Card className="border-neutral-200 bg-white shadow-[0_6px_18px_rgba(15,23,42,0.045)]">
-          <CardHeader className="p-4 pb-2.5 sm:p-5 sm:pb-3">
-            <CardTitle className="text-neutral-950">Pontos de atenção</CardTitle>
-            <CardDescription className="mt-1">O que vale olhar agora.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-2 p-4 pt-0 sm:p-5 sm:pt-0">
-            {alertItems.map((item) => {
-              const Icon = item.icon;
+      <section className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+        <Card>
+          <CardContent className="p-5 sm:p-6">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                  Ultimas movimentacoes
+                </p>
+                <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">O que entrou e saiu</h2>
+              </div>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/app/movimentacoes">Ver tudo</Link>
+              </Button>
+            </div>
+
+            {recentMovements.length === 0 ? (
+              <div className="rounded-[24px] border border-dashed border-border bg-muted/40 p-5 text-sm leading-6 text-muted-foreground">
+                <p className="font-bold text-foreground">Nenhuma movimentacao registrada ainda.</p>
+                <p className="mt-1">Adicione sua primeira entrada ou despesa para alimentar o painel.</p>
+                <Button asChild className="mt-4" size="sm">
+                  <Link href="/app/movimentacoes">Adicionar movimentacao</Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {recentMovements.map((movement) => {
+                  const income = movement.type === "entrada";
+
+                  return (
+                    <div
+                      className="flex items-center gap-3 rounded-2xl border border-border/70 bg-muted/30 px-4 py-3 transition-colors hover:bg-primary-soft/30"
+                      key={movement.id}
+                    >
+                      <div
+                        className={cn(
+                          "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
+                          income ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive",
+                        )}
+                      >
+                        {income ? <ArrowDownLeft className="h-5 w-5" /> : <ArrowUpRight className="h-5 w-5" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-foreground">{movement.description}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {income ? "Entrada" : "Despesa"} -{" "}
+                          {movement.occurred_at ? toDateTime(movement.occurred_at) : toDate(movement.occurred_on)}
+                        </p>
+                      </div>
+                      <p className={cn("font-mono text-sm font-extrabold tabular", income ? "text-success" : "text-foreground")}>
+                        {income ? "+" : "-"} {toCurrency(movement.amount)}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="space-y-3 p-5 sm:p-6">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                Alertas e status
+              </p>
+              <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">O que merece sua atencao</h2>
+            </div>
+            {alerts.map((alert) => {
+              const Icon = alert.icon;
+
               return (
-                <div className="flex gap-2 rounded-md border border-neutral-200 bg-neutral-50/70 p-2.5" key={item.title}>
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-neutral-200 bg-white">
-                    <Icon className={`h-4 w-4 ${item.tone}`} />
+                <div
+                  className="flex gap-3 rounded-2xl border border-border/70 bg-card p-4 shadow-card"
+                  key={alert.label}
+                >
+                  <div
+                    className={cn(
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
+                      alert.tone === "success" && "bg-success/10 text-success",
+                      alert.tone === "warning" && "bg-secondary-soft text-secondary-foreground",
+                      alert.tone === "danger" && "bg-destructive/10 text-destructive",
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-neutral-950">{item.title}</p>
-                    <p className="mt-0.5 text-xs leading-5 text-neutral-600 sm:text-sm">{item.detail}</p>
+                    <p className="text-sm font-bold text-foreground">{alert.label}</p>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{alert.description}</p>
                   </div>
                 </div>
               );
@@ -346,19 +330,70 @@ export function DashboardOverview({
   );
 }
 
-function CompactInfo({
-  className,
+function SummaryCard({
+  detail,
+  icon: Icon,
   label,
+  tone,
   value,
 }: {
-  className?: string;
+  detail: string;
+  icon: typeof ArrowDownLeft;
   label: string;
+  tone: "success" | "danger" | "primary" | "neutral";
   value: string;
 }) {
   return (
-    <div className={cn("rounded-md border border-neutral-200 bg-white p-2.5 shadow-sm", className)}>
-      <p className="text-sm font-semibold text-neutral-950">{value}</p>
-      <p className="mt-1 text-[11px] text-neutral-500 sm:text-xs">{label}</p>
+    <div className="rounded-3xl border border-white/10 bg-white/10 p-4 backdrop-blur">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-primary-foreground/70">{label}</p>
+          <p className="font-mono mt-2 text-xl font-extrabold tabular text-primary-foreground">{value}</p>
+          <p className="mt-1 text-xs text-primary-foreground/70">{detail}</p>
+        </div>
+        <div
+          className={cn(
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
+            tone === "success" && "bg-success/15 text-white",
+            tone === "danger" && "bg-destructive/15 text-white",
+            tone === "primary" && "bg-white/15 text-white",
+            tone === "neutral" && "bg-secondary/15 text-secondary",
+          )}
+        >
+          <Icon className="h-4 w-4" />
+        </div>
+      </div>
     </div>
+  );
+}
+
+function LimitStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/10 p-3 backdrop-blur">
+      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-primary-foreground/65">{label}</p>
+      <p className="mt-1 text-sm font-bold text-primary-foreground">{value}</p>
+    </div>
+  );
+}
+
+function QuickAction({
+  href,
+  icon: Icon,
+  label,
+}: {
+  href: string;
+  icon: typeof Receipt;
+  label: string;
+}) {
+  return (
+    <Link
+      className="group flex min-h-[110px] flex-col justify-between rounded-[24px] border border-border/70 bg-muted/30 p-4 transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:bg-primary-soft/40"
+      href={href}
+    >
+      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+        <Icon className="h-5 w-5" />
+      </div>
+      <p className="text-sm font-bold leading-5 text-foreground">{label}</p>
+    </Link>
   );
 }

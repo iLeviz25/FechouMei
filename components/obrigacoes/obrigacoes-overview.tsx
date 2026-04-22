@@ -1,15 +1,16 @@
 import type { ReactNode } from "react";
 import {
   AlertTriangle,
-  CalendarCheck,
+  BellRing,
+  CalendarDays,
   CheckCircle2,
-  Clock3,
+  ClipboardCheck,
   FileText,
-  ListChecks,
-  ReceiptText,
+  Receipt,
+  Sparkles,
 } from "lucide-react";
-import { Badge, type BadgeProps } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { ObrigacoesChecklist } from "@/components/obrigacoes/obrigacoes-checklist";
 import { ObrigacoesReminders } from "@/components/obrigacoes/obrigacoes-reminders";
 import { cn } from "@/lib/utils";
@@ -33,7 +34,7 @@ const DASN_DUE_MONTH = 4;
 const DASN_DUE_DAY = 31;
 const DAY_IN_MS = 1000 * 60 * 60 * 24;
 
-type DueStatus = "Concluído" | "Em dia" | "Em breve" | "Hoje" | "Atrasado";
+type DueStatus = "Concluido" | "Em dia" | "Em breve" | "Hoje" | "Atrasado";
 type StatusTone = "success" | "warning" | "danger" | "neutral";
 
 type AttentionItem = {
@@ -41,50 +42,6 @@ type AttentionItem = {
   title: string;
   tone: StatusTone;
 };
-
-function getToneVariant(tone: StatusTone): BadgeProps["variant"] {
-  if (tone === "success") {
-    return "success";
-  }
-
-  if (tone === "warning") {
-    return "warning";
-  }
-
-  if (tone === "danger") {
-    return "danger";
-  }
-
-  return "secondary";
-}
-
-function getStatusTone(status: DueStatus) {
-  if (status === "Concluído" || status === "Em dia") {
-    return "border-emerald-100 bg-emerald-50 text-emerald-700";
-  }
-
-  if (status === "Atrasado") {
-    return "border-red-100 bg-red-50 text-red-700";
-  }
-
-  if (status === "Hoje" || status === "Em breve") {
-    return "border-amber-100 bg-amber-50 text-amber-700";
-  }
-
-  return "border-neutral-200 bg-neutral-50 text-neutral-700";
-}
-
-function getStatusVariant(status: DueStatus): BadgeProps["variant"] {
-  if (status === "Concluído" || status === "Em dia") {
-    return "success";
-  }
-
-  if (status === "Atrasado") {
-    return "danger";
-  }
-
-  return "warning";
-}
 
 function getChecklistItem(checklist: ChecklistItem[], key: string) {
   return checklist.find((item) => item.key === key);
@@ -103,8 +60,8 @@ function formatShortDate(date: Date) {
 }
 
 function getDueHelper(status: DueStatus, dueDate: Date, daysUntil: number) {
-  if (status === "Concluído") {
-    return "Marcado como concluído.";
+  if (status === "Concluido") {
+    return "Marcado como concluido no checklist.";
   }
 
   if (status === "Atrasado") {
@@ -116,7 +73,7 @@ function getDueHelper(status: DueStatus, dueDate: Date, daysUntil: number) {
   }
 
   if (status === "Em breve") {
-    return daysUntil === 1 ? "Vence amanhã." : `Vence em ${daysUntil} dias.`;
+    return daysUntil === 1 ? "Vence amanha." : `Vence em ${daysUntil} dias.`;
   }
 
   return `Vence em ${formatShortDate(dueDate)}.`;
@@ -135,7 +92,7 @@ function getDueInfo({
 }) {
   const daysUntil = getDaysUntil(dueDate, today);
   const status: DueStatus = done
-    ? "Concluído"
+    ? "Concluido"
     : daysUntil < 0
       ? "Atrasado"
       : daysUntil === 0
@@ -145,15 +102,13 @@ function getDueInfo({
           : "Em dia";
 
   const tone: StatusTone =
-    status === "Concluído" || status === "Em dia"
+    status === "Concluido" || status === "Em dia"
       ? "success"
       : status === "Atrasado"
         ? "danger"
         : "warning";
 
   return {
-    daysUntil,
-    dueDate,
     helper: getDueHelper(status, dueDate, daysUntil),
     status,
     tone,
@@ -163,20 +118,25 @@ function getDueInfo({
 export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPreferences }: ObrigacoesOverviewProps) {
   const total = checklist.length;
   const doneCount = checklist.filter((item) => item.done).length;
-  const pendingItems = checklist.filter((item) => !item.done);
-  const pendingCount = pendingItems.length;
+  const pendingCount = total - doneCount;
   const progressPercent = total > 0 ? Math.round((doneCount / total) * 100) : 0;
   const today = new Date();
   const currentYear = today.getFullYear();
+
   const dasDone = getChecklistItem(checklist, "pagar-das")?.done ?? false;
-  const dasDueDate = new Date(currentYear, today.getMonth(), DAS_DUE_DAY);
-  const dasInfo = getDueInfo({ done: dasDone, dueDate: dasDueDate, soonWindowDays: 5, today });
+  const dasInfo = getDueInfo({
+    done: dasDone,
+    dueDate: new Date(currentYear, today.getMonth(), DAS_DUE_DAY),
+    soonWindowDays: 5,
+    today,
+  });
   const dasnDone = getChecklistItem(checklist, "entregar-dasn")?.done ?? false;
-  const dasnDueDate = new Date(currentYear, DASN_DUE_MONTH, DASN_DUE_DAY);
-  const dasnInfo = getDueInfo({ done: dasnDone, dueDate: dasnDueDate, soonWindowDays: 30, today });
-  const fechamentoDone = getChecklistItem(checklist, "revisar-fechamento")?.done ?? false;
-  const comprovantesDone = getChecklistItem(checklist, "guardar-comprovantes")?.done ?? false;
-  const nearMonthEnd = today.getDate() >= 25;
+  const dasnInfo = getDueInfo({
+    done: dasnDone,
+    dueDate: new Date(currentYear, DASN_DUE_MONTH, DASN_DUE_DAY),
+    soonWindowDays: 30,
+    today,
+  });
 
   const attentionItems: AttentionItem[] = [];
 
@@ -196,54 +156,33 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
     });
   }
 
-  if (!fechamentoDone && nearMonthEnd) {
+  if (pendingCount > 0 && today.getDate() >= 25) {
     attentionItems.push({
-      detail: "Revise o fechamento antes de virar o mês.",
-      title: "Fechamento mensal",
+      detail: "Revise o fechamento e guarde os comprovantes antes da virada do mes.",
+      title: "Fechamento do mes",
       tone: "warning",
     });
   }
 
-  if (!comprovantesDone && nearMonthEnd) {
-    attentionItems.push({
-      detail: "Guarde os comprovantes do mês enquanto está tudo fácil de achar.",
-      title: "Comprovantes",
-      tone: "warning",
-    });
-  }
-
-  const hasOverdue = attentionItems.some((item) => item.tone === "danger");
   const summaryTone: StatusTone =
-    pendingCount === 0 ? "success" : hasOverdue ? "danger" : attentionItems.length > 0 ? "warning" : "neutral";
-  const summaryLabel =
     pendingCount === 0
-      ? "Mês em dia"
-      : hasOverdue
-        ? "Atenção agora"
+      ? "success"
+      : attentionItems.some((item) => item.tone === "danger")
+        ? "danger"
         : attentionItems.length > 0
-          ? "Prazos no radar"
-          : "Mês com pendências";
-  const summaryText =
-    pendingCount === 0
-      ? "Tudo marcado neste mês. Agora é só manter os comprovantes organizados."
-      : hasOverdue
-        ? "Há item vencido ou algo importante pedindo ação agora."
-        : attentionItems.length > 0
-          ? "Alguns prazos se aproximam ou merecem conferência neste momento."
-          : "Ainda há itens pendentes, mas sem alerta forte de prazo agora.";
+          ? "warning"
+          : "neutral";
 
   const obligations = [
     {
       description: "Imposto mensal do MEI. Marque no checklist quando pagar.",
-      frequency: "Mensal",
       helper: dasInfo.helper,
-      icon: ReceiptText,
+      icon: Receipt,
       status: dasInfo.status,
       title: "DAS mensal",
     },
     {
-      description: "Declaração anual do MEI. Use o checklist para lembrar da entrega.",
-      frequency: "Anual",
+      description: "Declaracao anual do MEI. Use o checklist para nao perder o prazo.",
       helper: dasnInfo.helper,
       icon: FileText,
       status: dasnInfo.status,
@@ -252,160 +191,158 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
   ];
 
   return (
-    <div className="space-y-3 pb-6 sm:space-y-4">
-      <header className="rounded-lg border border-neutral-200 bg-[linear-gradient(180deg,#ffffff_0%,#fafafa_100%)] p-4 shadow-[0_10px_30px_rgba(15,23,42,0.055)] sm:p-5">
-        <div className="space-y-3">
-          <div className="space-y-2">
-            <Badge variant="success" className="w-fit px-2.5 py-0.5">
-              Checklist MEI
-            </Badge>
-            <div className="space-y-1">
-              <h1 className="text-xl font-semibold tracking-tight text-neutral-950 sm:text-3xl">
-                Obrigações do mês
-              </h1>
-              <p className="text-sm leading-5 text-neutral-600">
-                Veja o que já foi feito, o que falta marcar e onde vale prestar atenção agora.
+    <div className="space-y-5 pb-6">
+      <section className="relative overflow-hidden rounded-[28px] bg-gradient-hero p-5 text-primary-foreground shadow-elevated sm:p-6">
+        <div className="absolute inset-0 grain opacity-40" />
+        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-secondary/25 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-16 -left-10 h-40 w-40 rounded-full bg-[hsl(var(--primary-glow)/0.28)] blur-3xl" />
+
+        <div className="relative space-y-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-2">
+              <Badge className="w-fit border-white/10 bg-white/10 text-primary-foreground" variant="secondary">
+                <Sparkles className="mr-1 h-3 w-3" />
+                Checklist MEI
+              </Badge>
+              <div className="space-y-1">
+                <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Obrigacoes do mes</h1>
+                <p className="max-w-2xl text-sm leading-6 text-primary-foreground/80">
+                  Veja o que ja foi feito, o que falta marcar e o que merece sua atencao agora.
+                </p>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur">
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground/70">
+                Mes acompanhado
               </p>
+              <p className="mt-1 text-base font-extrabold">{monthLabel}</p>
             </div>
           </div>
 
-          <div className="grid gap-2.5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start">
-            <div className="rounded-lg border border-neutral-200 bg-white p-3.5 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500">Mês acompanhado</p>
-                  <p className="mt-1 text-sm font-semibold text-neutral-950">{monthLabel}</p>
-                  <p className="mt-1 text-xs leading-5 text-neutral-600">{summaryText}</p>
+          <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="rounded-[24px] border border-white/10 bg-white/10 p-4 backdrop-blur">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground/70">
+                    Progresso do mes
+                  </p>
+                  <p className="mt-1 text-3xl font-extrabold">{progressPercent}%</p>
                 </div>
-                <Badge variant={getToneVariant(summaryTone)} className="shrink-0">
-                  {summaryLabel}
+                <Badge
+                  className={cn(
+                    "w-fit border-white/10 text-primary-foreground",
+                    summaryTone === "success" && "bg-success/20",
+                    summaryTone === "warning" && "bg-secondary/20 text-secondary",
+                    summaryTone === "danger" && "bg-destructive/20",
+                    summaryTone === "neutral" && "bg-white/10",
+                  )}
+                  variant="secondary"
+                >
+                  {pendingCount === 0 ? "Em dia" : attentionItems.length > 0 ? "No radar" : "Pendencias"}
                 </Badge>
               </div>
 
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-neutral-100">
-                <div className="h-full rounded-full bg-emerald-500" style={{ width: `${progressPercent}%` }} />
+              <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/10">
+                <div className="h-full rounded-full bg-gradient-glow" style={{ width: `${progressPercent}%` }} />
               </div>
 
-              <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="mt-4 grid grid-cols-3 gap-2">
                 <StatusStat
                   icon={<CheckCircle2 className="h-4 w-4" />}
-                  label="Concluídas"
+                  label="Concluidas"
                   tone="success"
                   value={`${doneCount}/${total}`}
                 />
                 <StatusStat
-                  icon={<CalendarCheck className="h-4 w-4" />}
+                  icon={<ClipboardCheck className="h-4 w-4" />}
                   label="Pendentes"
                   tone={pendingCount === 0 ? "success" : "neutral"}
                   value={String(pendingCount)}
                 />
                 <StatusStat
-                  icon={<Clock3 className="h-4 w-4" />}
-                  label="Atenção"
+                  icon={<BellRing className="h-4 w-4" />}
+                  label="Alertas"
                   tone={attentionItems.length === 0 ? "success" : summaryTone}
                   value={String(attentionItems.length)}
                 />
               </div>
             </div>
 
-            <Card className="border-neutral-200 bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
-              <CardHeader className="p-3.5 pb-2.5">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-sm font-semibold text-neutral-950">Atenção do mês</CardTitle>
-                    <CardDescription className="mt-1 text-xs leading-5">
-                      O que merece conferência agora.
-                    </CardDescription>
-                  </div>
-                  <Badge variant={getToneVariant(summaryTone)} className="shrink-0">
-                    {attentionItems.length}
-                  </Badge>
+            <div className="space-y-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground/70">
+                Atencao do mes
+              </p>
+              {attentionItems.length > 0 ? (
+                attentionItems.map((item) => (
+                  <AttentionRow detail={item.detail} key={`${item.title}-${item.detail}`} title={item.title} tone={item.tone} />
+                ))
+              ) : (
+                <div className="rounded-[24px] border border-white/10 bg-white/10 p-4 text-sm leading-6 text-primary-foreground/80 backdrop-blur">
+                  Nada critico no momento. Continue marcando o checklist conforme concluir.
                 </div>
-              </CardHeader>
-              <CardContent className="p-3.5 pt-0">
-                {attentionItems.length > 0 ? (
-                  <div className="space-y-2">
-                    {attentionItems.slice(0, 3).map((item) => (
-                      <AttentionRow detail={item.detail} key={`${item.title}-${item.detail}`} title={item.title} tone={item.tone} />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="rounded-md border border-emerald-100 bg-emerald-50/70 px-3 py-2 text-sm font-medium leading-5 text-emerald-800">
-                    Nada crítico no momento. Continue marcando o checklist conforme concluir.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+              )}
+            </div>
           </div>
         </div>
-      </header>
+      </section>
 
-      <Card className="border-neutral-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-        <CardHeader className="p-4 pb-2.5 sm:p-5 sm:pb-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <CardTitle className="text-neutral-950">O que fazer neste mês</CardTitle>
-              <CardDescription className="mt-1">
-                Marque conforme concluir. Esta é a visão principal de acompanhamento do mês.
-              </CardDescription>
-            </div>
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-emerald-100 bg-emerald-50 text-emerald-700">
-              <ListChecks className="h-4 w-4" />
-            </div>
+      <Card>
+        <CardContent className="space-y-4 p-5 sm:p-6">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Checklist</p>
+            <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">O que fazer neste mes</h2>
           </div>
-        </CardHeader>
-        <CardContent className="p-4 pt-0 sm:p-5 sm:pt-0">
           <ObrigacoesChecklist items={checklist} monthKey={monthKey} />
         </CardContent>
       </Card>
 
-      <Card className="border-neutral-200 bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
-        <CardHeader className="p-3.5 pb-2.5">
-          <CardTitle className="text-sm font-semibold text-neutral-950">Obrigações principais</CardTitle>
-          <CardDescription className="mt-1 text-xs leading-5">
-            Obrigações recorrentes para manter no radar enquanto acompanha o checklist.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-3.5 pt-0">
-          <div className="divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 bg-white/70">
+      <section className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
+        <Card>
+          <CardContent className="space-y-3 p-5 sm:p-6">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                Obrigacoes principais
+              </p>
+              <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">O que fica no radar</h2>
+            </div>
+
             {obligations.map((item) => {
               const Icon = item.icon;
 
               return (
-                <div className="px-3 py-3" key={item.title}>
+                <div className="rounded-[24px] border border-border/70 bg-muted/30 p-4" key={item.title}>
                   <div className="flex items-start gap-3">
-                    <div className={cn("mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border", getStatusTone(item.status))}>
-                      <Icon className="h-4.5 w-4.5" />
+                    <div
+                      className={cn(
+                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
+                        item.status === "Concluido" && "bg-success/10 text-success",
+                        item.status === "Em dia" && "bg-primary-soft text-primary",
+                        (item.status === "Em breve" || item.status === "Hoje") &&
+                          "bg-secondary-soft text-secondary-foreground",
+                        item.status === "Atrasado" && "bg-destructive/10 text-destructive",
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-neutral-950">{item.title}</p>
-                          <p className="mt-1 text-xs leading-5 text-neutral-600">{item.description}</p>
-                        </div>
-                        <Badge variant={getStatusVariant(item.status)} className="shrink-0">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-bold text-foreground">{item.title}</p>
+                        <Badge variant={item.status === "Atrasado" ? "danger" : item.status === "Concluido" ? "success" : "warning"}>
                           {item.status}
                         </Badge>
                       </div>
-
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <span className="rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1 text-[11px] font-medium text-neutral-600">
-                          {item.frequency}
-                        </span>
-                        <span className="rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1 text-[11px] font-medium text-neutral-600">
-                          {item.helper}
-                        </span>
-                      </div>
+                      <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.description}</p>
+                      <p className="mt-2 text-xs font-semibold text-muted-foreground">{item.helper}</p>
                     </div>
                   </div>
                 </div>
               );
             })}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <ObrigacoesReminders preferences={reminderPreferences} />
+        <ObrigacoesReminders preferences={reminderPreferences} />
+      </section>
     </div>
   );
 }
@@ -422,25 +359,23 @@ function StatusStat({
   value: string;
 }) {
   return (
-    <div className="rounded-md border border-neutral-200 bg-neutral-50/80 p-2.5">
-      <span className={cn("flex h-7 w-7 items-center justify-center rounded-md border", getSummaryToneClass(tone))}>
-        {icon}
-      </span>
-      <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-neutral-500">{label}</p>
-      <p className="mt-1 text-base font-bold text-neutral-950">{value}</p>
+    <div className="rounded-2xl border border-white/10 bg-white/10 p-3 backdrop-blur">
+      <div className={cn("flex h-8 w-8 items-center justify-center rounded-2xl", getSummaryToneClass(tone))}>{icon}</div>
+      <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.08em] text-primary-foreground/65">{label}</p>
+      <p className="mt-1 text-base font-extrabold text-primary-foreground">{value}</p>
     </div>
   );
 }
 
 function AttentionRow({ detail, title, tone }: AttentionItem) {
   return (
-    <div className="flex gap-2.5 rounded-md border border-neutral-200 bg-neutral-50/80 p-2.5">
-      <span className={cn("mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border", getSummaryToneClass(tone))}>
+    <div className="flex gap-3 rounded-[24px] border border-white/10 bg-white/10 p-4 backdrop-blur">
+      <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl", getSummaryToneClass(tone))}>
         <AlertTriangle className="h-4 w-4" />
-      </span>
+      </div>
       <div className="min-w-0">
-        <p className="text-sm font-semibold text-neutral-950">{title}</p>
-        <p className="mt-0.5 text-xs leading-5 text-neutral-600">{detail}</p>
+        <p className="text-sm font-bold text-primary-foreground">{title}</p>
+        <p className="mt-1 text-sm leading-6 text-primary-foreground/80">{detail}</p>
       </div>
     </div>
   );
@@ -448,16 +383,16 @@ function AttentionRow({ detail, title, tone }: AttentionItem) {
 
 function getSummaryToneClass(tone: StatusTone) {
   if (tone === "success") {
-    return "border-emerald-100 bg-emerald-50 text-emerald-700";
+    return "bg-success/20 text-white";
   }
 
   if (tone === "warning") {
-    return "border-amber-100 bg-amber-50 text-amber-700";
+    return "bg-secondary/20 text-secondary";
   }
 
   if (tone === "danger") {
-    return "border-red-100 bg-red-50 text-red-700";
+    return "bg-destructive/20 text-white";
   }
 
-  return "border-neutral-200 bg-white text-neutral-700";
+  return "bg-white/10 text-primary-foreground";
 }

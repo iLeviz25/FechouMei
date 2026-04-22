@@ -9,8 +9,10 @@ export default async function AgentePage() {
   ]);
 
   return (
-    <div className="space-y-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:space-y-5 md:pb-8">
-      <WhatsAppActivationPanel initialActivation={initialActivation} />
+    <div className="grid gap-5 pb-6 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="space-y-5">
+        <WhatsAppActivationPanel initialActivation={initialActivation} />
+      </div>
       <AgentPlayground initialConversation={initialConversation} />
     </div>
   );

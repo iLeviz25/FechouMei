@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ChevronLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -78,7 +78,7 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
   const isLastStep = activeStepIndex === onboardingSteps.length - 1;
   const progressValue = ((activeStepIndex + 1) / onboardingSteps.length) * 100;
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage(null);
 

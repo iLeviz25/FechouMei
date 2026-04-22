@@ -5,13 +5,13 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   CalendarDays,
-  ChevronDown,
   CheckSquare,
+  Download,
+  Filter,
   Loader2,
   Pencil,
   Plus,
   Search,
-  SlidersHorizontal,
   Square,
   Trash2,
   X,
@@ -26,7 +26,7 @@ import {
 import { MovementsCsvExportButton } from "@/components/app/movements-csv-export-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -66,13 +66,13 @@ const emptyForm: FormState = {
 
 const categories = [
   "CLIENTE",
-  "SERVIÇO",
+  "SERVICO",
   "VENDA",
   "MATERIAL",
   "FERRAMENTA",
   "IMPOSTO",
   "TRANSPORTE",
-  "ALIMENTAÇÃO",
+  "ALIMENTACAO",
   "OUTRO",
 ];
 
@@ -185,15 +185,15 @@ function validateMovementForm(form: FormState) {
   const amount = form.amount.trim();
 
   if (!form.occurred_on) {
-    return "Informe a data da movimentação.";
+    return "Informe a data da movimentacao.";
   }
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(form.occurred_on)) {
-    return "Use uma data válida para a movimentação.";
+    return "Use uma data valida para a movimentacao.";
   }
 
   if (!amount) {
-    return "Informe o valor da movimentação.";
+    return "Informe o valor da movimentacao.";
   }
 
   if (!/^\d+([,.]\d{1,2})?$/.test(amount)) {
@@ -205,7 +205,7 @@ function validateMovementForm(form: FormState) {
   }
 
   if (!description) {
-    return "Informe uma descrição curta para identificar o registro.";
+    return "Informe uma descricao curta para identificar o registro.";
   }
 
   if (!form.category) {
@@ -227,9 +227,9 @@ function MovementFields({
   onChange: (field: keyof FormState, value: string) => void;
 }) {
   return (
-    <div className={cn("grid grid-cols-2 gap-3", compact ? "sm:grid-cols-2" : "md:grid-cols-2")}>
-      <div className="col-span-2 space-y-2">
-        <Label className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500" htmlFor={`${idPrefix}-type`}>
+    <div className={cn("grid gap-4", compact ? "md:grid-cols-2" : "md:grid-cols-2")}>
+      <div className="space-y-2 md:col-span-2">
+        <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground" htmlFor={`${idPrefix}-type`}>
           Entrada ou despesa
         </Label>
         <input name="type" type="hidden" value={form.type} />
@@ -240,17 +240,15 @@ function MovementFields({
             { value: "entrada", label: "Entrada" },
             { value: "despesa", label: "Despesa" },
           ]}
-          tone="type"
           value={form.type}
         />
       </div>
 
       <div className="space-y-2">
-        <Label className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500" htmlFor={`${idPrefix}-occurred-on`}>
+        <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground" htmlFor={`${idPrefix}-occurred-on`}>
           Data do registro
         </Label>
         <Input
-          className="h-11 border-neutral-200 bg-white shadow-none focus-visible:ring-emerald-700"
           id={`${idPrefix}-occurred-on`}
           name="occurred_on"
           onChange={(event) => onChange("occurred_on", event.target.value)}
@@ -261,14 +259,11 @@ function MovementFields({
       </div>
 
       <div className="space-y-2">
-        <Label className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500" htmlFor={`${idPrefix}-amount`}>
+        <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground" htmlFor={`${idPrefix}-amount`}>
           Valor em reais
         </Label>
         <Input
-          className={cn(
-            "h-11 border-neutral-200 bg-white text-base font-semibold shadow-none placeholder:font-normal focus-visible:ring-emerald-700",
-            form.type === "entrada" ? "text-emerald-800" : "text-red-700",
-          )}
+          className={cn(form.type === "entrada" ? "text-success" : "text-destructive")}
           id={`${idPrefix}-amount`}
           inputMode="decimal"
           name="amount"
@@ -283,32 +278,26 @@ function MovementFields({
         />
       </div>
 
-      <div className="col-span-2 space-y-2">
-        <Label className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500" htmlFor={`${idPrefix}-description`}>
-          Descrição curta
+      <div className="space-y-2 md:col-span-2">
+        <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground" htmlFor={`${idPrefix}-description`}>
+          Descricao curta
         </Label>
         <Input
-          className="h-11 border-neutral-200 bg-white shadow-none focus-visible:ring-emerald-700"
           id={`${idPrefix}-description`}
           name="description"
           onChange={(event) => onChange("description", event.target.value)}
-          placeholder="Ex: serviço para cliente"
+          placeholder="Ex.: servico para cliente"
           required
           value={form.description}
         />
       </div>
 
-      <div className="col-span-2 space-y-2">
-        <Label className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500" htmlFor={`${idPrefix}-category`}>
+      <div className="space-y-2 md:col-span-2">
+        <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground" htmlFor={`${idPrefix}-category`}>
           Categoria
         </Label>
         <input name="category" type="hidden" value={form.category} />
-        <Select
-          className="h-11 border-neutral-200 bg-white shadow-none focus-visible:ring-emerald-700 md:hidden"
-          id={`${idPrefix}-category`}
-          onChange={(event) => onChange("category", event.target.value)}
-          value={form.category}
-        >
+        <Select id={`${idPrefix}-category`} onChange={(event) => onChange("category", event.target.value)} value={form.category}>
           <option value="">Escolha uma categoria</option>
           {categories.map((category) => (
             <option key={category} value={category}>
@@ -316,17 +305,6 @@ function MovementFields({
             </option>
           ))}
         </Select>
-        <div className="hidden md:block">
-          <OptionGroup
-            name={`${idPrefix}-category`}
-            onChange={(value) => onChange("category", value)}
-            options={categories.map((category) => ({ value: category, label: category }))}
-            required
-            tone="category"
-            value={form.category}
-          />
-        </div>
-        {!form.category ? <p className="text-xs text-neutral-500 md:hidden">Escolha uma categoria para continuar.</p> : null}
       </div>
     </div>
   );
@@ -345,7 +323,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("todos");
   const [categoryFilter, setCategoryFilter] = useState("todas");
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("todos");
-  const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
+  const [mobileCreateOpen, setMobileCreateOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const summary = useMemo(() => {
@@ -402,6 +380,27 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
     });
   }, [categoryFilter, movements, periodFilter, searchTerm, typeFilter]);
 
+  const groupedMovements = useMemo(() => {
+    const groups = new Map<string, MovementItem[]>();
+
+    filteredMovements
+      .slice()
+      .sort((a, b) => {
+        const aValue = a.occurred_at ?? `${a.occurred_on}T00:00:00`;
+        const bValue = b.occurred_at ?? `${b.occurred_on}T00:00:00`;
+        return bValue.localeCompare(aValue);
+      })
+      .forEach((movement) => {
+        const key = movement.occurred_on;
+        if (!groups.has(key)) {
+          groups.set(key, []);
+        }
+        groups.get(key)!.push(movement);
+      });
+
+    return Array.from(groups.entries());
+  }, [filteredMovements]);
+
   const existingMovementIds = useMemo(() => new Set(movements.map((movement) => movement.id)), [movements]);
   const filteredMovementIds = useMemo(() => filteredMovements.map((movement) => movement.id), [filteredMovements]);
   const selectedMovements = useMemo(
@@ -450,7 +449,6 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
     setTypeFilter("todos");
     setCategoryFilter("todas");
     setPeriodFilter("todos");
-    setMobileToolsOpen(false);
   }
 
   function startSelectionMode() {
@@ -505,10 +503,11 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
 
     startTransition(async () => {
       const result = await createMovimentacao(formData);
-      setFeedback(result.ok ? { ok: true, message: "Movimentação salva com sucesso." } : result);
+      setFeedback(result.ok ? { ok: true, message: "Movimentacao salva com sucesso." } : result);
 
       if (result.ok) {
         setCreateForm(emptyForm);
+        setMobileCreateOpen(false);
       }
     });
   }
@@ -526,7 +525,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
 
     startTransition(async () => {
       const result = await updateMovimentacao(id, formData);
-      setFeedback(result.ok ? { ok: true, message: "Alterações salvas com sucesso." } : result);
+      setFeedback(result.ok ? { ok: true, message: "Alteracoes salvas com sucesso." } : result);
 
       if (result.ok) {
         cancelEdit();
@@ -548,7 +547,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
 
     startTransition(async () => {
       const result = await deleteMovimentacao(movement.id);
-      setFeedback(result.ok ? { ok: true, message: "Movimentação excluída com sucesso." } : result);
+      setFeedback(result.ok ? { ok: true, message: "Movimentacao excluida com sucesso." } : result);
 
       if (result.ok) {
         setPendingDelete(null);
@@ -576,8 +575,8 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
               ok: true,
               message:
                 result.deletedCount === 1
-                  ? "Movimentação excluída com sucesso."
-                  : `${result.deletedCount ?? selectedCount} movimentações excluídas com sucesso.`,
+                  ? "Movimentacao excluida com sucesso."
+                  : `${result.deletedCount ?? selectedCount} movimentacoes excluidas com sucesso.`,
             }
           : result,
       );
@@ -591,26 +590,35 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
   }
 
   return (
-    <div className="space-y-4 pb-6">
+    <div className="space-y-5 pb-6">
       <header className="space-y-2">
-        <Badge variant="success" className="w-fit border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800">
-          Entradas e despesas
-        </Badge>
-        <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight text-neutral-950 sm:text-3xl">Lançar movimentação</h1>
-          <p className="max-w-2xl text-sm leading-6 text-neutral-600">
-            Registre o que entrou ou saiu e consulte o histórico sem perder tempo no celular.
+        <Badge variant="success">Movimentacoes</Badge>
+        <div className="space-y-1">
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Entradas e despesas</h1>
+          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+            Registre o que entrou ou saiu e acompanhe seu historico com foco total no uso diario do celular.
           </p>
         </div>
       </header>
 
-      <section aria-label="Resumo financeiro" className="grid grid-cols-3 gap-2">
-        <SummaryCard icon={<ArrowUpRight className="h-4 w-4" />} label="Entradas" tone="income" value={toCurrency(summary.income)} />
-        <SummaryCard icon={<ArrowDownLeft className="h-4 w-4" />} label="Despesas" tone="expense" value={toCurrency(summary.expense)} />
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <SummaryCard
+          icon={<ArrowDownLeft className="h-4 w-4" />}
+          label="Entradas"
+          tone="success"
+          value={toCurrency(summary.income)}
+        />
+        <SummaryCard
+          icon={<ArrowUpRight className="h-4 w-4" />}
+          label="Despesas"
+          tone="danger"
+          value={toCurrency(summary.expense)}
+        />
+        <SummaryCard
+          className="col-span-2 lg:col-span-1"
           icon={<CalendarDays className="h-4 w-4" />}
           label="Saldo"
-          tone={balance >= 0 ? "balance" : "expense"}
+          tone={balance >= 0 ? "primary" : "danger"}
           value={toCurrency(balance)}
         />
       </section>
@@ -619,10 +627,8 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
         <p
           aria-live="polite"
           className={cn(
-            "rounded-md border px-3 py-2 text-sm leading-6",
-            feedback.ok
-              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-              : "border-red-200 bg-red-50 text-red-700",
+            "rounded-[24px] border px-4 py-3 text-sm leading-6",
+            feedback.ok ? "border-success/20 bg-success/10 text-success" : "border-destructive/20 bg-destructive/10 text-destructive",
           )}
           role="status"
         >
@@ -630,190 +636,136 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
         </p>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(320px,420px)_1fr] lg:items-start">
-        <Card className="overflow-hidden border-neutral-200 bg-[linear-gradient(180deg,#ffffff_0%,#fafafa_100%)] shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
-          <CardHeader className="border-b border-neutral-100 bg-white/80 p-4 sm:p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <CardTitle className="text-base text-neutral-950">Lançar agora</CardTitle>
-                <CardDescription className="mt-1 leading-6">Preencha os campos abaixo e salve a movimentação.</CardDescription>
-              </div>
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-emerald-100 bg-emerald-50 text-emerald-700">
-                <Plus className="h-4 w-4" />
-              </span>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-5">
-            <form className="space-y-4" noValidate onSubmit={handleCreate}>
-              <MovementFields form={createForm} idPrefix="create" onChange={updateCreateField} />
-
-              <Button className="h-11 w-full shadow-sm" disabled={isPending} type="submit">
-                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                Salvar movimentação
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        <section className="space-y-3">
-          <div className="space-y-3 rounded-lg border border-neutral-200 bg-white p-3 shadow-[0_8px_24px_rgba(15,23,42,0.04)] sm:p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h2 className="text-base font-semibold tracking-tight text-neutral-950 sm:text-lg">Histórico de lançamentos</h2>
-                <p className="text-sm text-neutral-500">
-                  {hasActiveFilters
-                    ? `${filteredMovements.length} de ${movements.length} registro(s)`
-                    : `${movements.length} registro(s)`}
-                </p>
-              </div>
-
-              <div className="hidden gap-2 sm:flex sm:items-center">
-                {movements.length > 0 ? (
-                  <Button
-                    className="h-9"
-                    onClick={selectionMode ? exitSelectionMode : startSelectionMode}
-                    type="button"
-                    variant={selectionMode ? "secondary" : "outline"}
-                  >
-                    {selectionMode ? <X className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
-                    {selectionMode ? "Cancelar seleção" : "Selecionar"}
-                  </Button>
-                ) : null}
-                <MovementsCsvExportButton
-                  buttonClassName="w-auto"
-                  className="w-auto"
-                  filename="fechoumei-movimentacoes.csv"
-                  label="Exportar CSV"
-                  movements={movements}
-                />
-              </div>
-            </div>
-
-            {movements.length > 0 ? (
-              <>
-                <div className="flex gap-2 sm:hidden">
-                  <Button
-                    className="h-9 flex-1"
-                    onClick={() => setMobileToolsOpen((current) => !current)}
-                    type="button"
-                    variant={mobileToolsOpen || hasActiveFilters ? "secondary" : "outline"}
-                  >
-                    <SlidersHorizontal className="h-4 w-4" />
-                    Filtros e ações
-                    <ChevronDown className={cn("h-4 w-4 transition-transform", mobileToolsOpen && "rotate-180")} />
-                  </Button>
-                  <MovementsCsvExportButton
-                    buttonClassName="h-9 w-auto px-3 text-xs"
-                    className="w-auto shrink-0"
-                    filename="fechoumei-movimentacoes.csv"
-                    label="CSV"
-                    movements={movements}
-                  />
-                  <Button
-                    className="h-9"
-                    disabled={movements.length === 0}
-                    onClick={selectionMode ? exitSelectionMode : startSelectionMode}
-                    type="button"
-                    variant={selectionMode ? "secondary" : "outline"}
-                  >
-                    {selectionMode ? <X className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
-                    <span className="sr-only">{selectionMode ? "Cancelar seleção" : "Selecionar registros"}</span>
-                  </Button>
-                </div>
-
-                <div className={cn("hidden sm:block", mobileToolsOpen && "block sm:block")}>
-                  <div className="rounded-md border border-neutral-200 bg-neutral-50/70 p-3">
-                    <div className="grid gap-2 md:grid-cols-[minmax(0,1.2fr)_0.8fr_0.9fr_0.9fr]">
-                      <label className="space-y-1.5 text-xs font-semibold text-neutral-600">
-                        Buscar
-                        <div className="relative">
-                          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-                          <Input
-                            className="h-10 border-neutral-200 bg-white pl-9 shadow-none focus-visible:ring-emerald-700"
-                            onChange={(event) => setSearchTerm(event.target.value)}
-                            placeholder="Descrição ou categoria"
-                            type="search"
-                            value={searchTerm}
-                          />
-                        </div>
-                      </label>
-
-                      <label className="space-y-1.5 text-xs font-semibold text-neutral-600">
-                        Tipo
-                        <Select
-                          className="h-10 border-neutral-200 bg-white shadow-none focus-visible:ring-emerald-700"
-                          onChange={(event) => setTypeFilter(event.target.value as TypeFilter)}
-                          value={typeFilter}
-                        >
-                          <option value="todos">Todos</option>
-                          <option value="entrada">Entradas</option>
-                          <option value="despesa">Despesas</option>
-                        </Select>
-                      </label>
-
-                      <label className="space-y-1.5 text-xs font-semibold text-neutral-600">
-                        Categoria
-                        <Select
-                          className="h-10 border-neutral-200 bg-white shadow-none focus-visible:ring-emerald-700"
-                          onChange={(event) => setCategoryFilter(event.target.value)}
-                          value={categoryFilter}
-                        >
-                          <option value="todas">Todas</option>
-                          {categoryOptions.map((category) => (
-                            <option key={category} value={category}>
-                              {category}
-                            </option>
-                          ))}
-                        </Select>
-                      </label>
-
-                      <label className="space-y-1.5 text-xs font-semibold text-neutral-600">
-                        Período
-                        <Select
-                          className="h-10 border-neutral-200 bg-white shadow-none focus-visible:ring-emerald-700"
-                          onChange={(event) => setPeriodFilter(event.target.value as PeriodFilter)}
-                          value={periodFilter}
-                        >
-                          <option value="todos">Todos</option>
-                          <option value="este-mes">Este mês</option>
-                          <option value="mes-anterior">Mês anterior</option>
-                          <option value="ultimos-30-dias">Últimos 30 dias</option>
-                        </Select>
-                      </label>
-                    </div>
-
-                    {hasActiveFilters ? (
-                      <div className="mt-3 flex flex-col gap-2 border-t border-neutral-200 pt-3 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="text-xs font-medium text-neutral-500">
-                          Mostrando apenas os registros que combinam com a busca e os filtros.
-                        </p>
-                        <Button className="h-8 w-full sm:w-auto" onClick={clearFilters} size="sm" type="button" variant="ghost">
-                          Limpar filtros
-                        </Button>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              </>
-            ) : null}
+      <div className="grid gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
+        <div className="space-y-4 xl:sticky xl:top-24 xl:self-start">
+          <div className="flex items-center justify-between gap-3 xl:hidden">
+            <p className="text-sm font-bold text-foreground">Nova movimentacao</p>
+            <Button onClick={() => setMobileCreateOpen((current) => !current)} size="sm" type="button">
+              {mobileCreateOpen ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              {mobileCreateOpen ? "Fechar" : "Abrir"}
+            </Button>
           </div>
 
+          <Card className={cn(!mobileCreateOpen ? "hidden xl:block" : "block")}>
+            <CardContent className="space-y-5 p-5 sm:p-6">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Lancar agora</p>
+                  <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">Nova movimentacao</h2>
+                </div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+                  <Plus className="h-4 w-4" />
+                </div>
+              </div>
+
+              <form className="space-y-5" noValidate onSubmit={handleCreate}>
+                <MovementFields form={createForm} idPrefix="create" onChange={updateCreateField} />
+
+                <Button className="w-full" disabled={isPending} type="submit">
+                  {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                  Salvar movimentacao
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+
+        <section className="space-y-4">
+          <Card>
+            <CardContent className="space-y-4 p-5 sm:p-6">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-1 items-center gap-2 rounded-[22px] border border-border/70 bg-muted/30 px-3">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    className="border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    placeholder="Buscar por descricao ou categoria..."
+                    value={searchTerm}
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    onClick={selectionMode ? exitSelectionMode : startSelectionMode}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    {selectionMode ? <X className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
+                    {selectionMode ? "Cancelar selecao" : "Selecionar"}
+                  </Button>
+                  <MovementsCsvExportButton
+                    buttonClassName="h-9 px-3 text-xs"
+                    filename="fechoumei-movimentacoes.csv"
+                    label="Exportar CSV"
+                    movements={filteredMovements}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Tipo</Label>
+                  <OptionGroup
+                    name="type-filter"
+                    onChange={(value) => setTypeFilter(value as TypeFilter)}
+                    options={[
+                      { value: "todos", label: "Todos" },
+                      { value: "entrada", label: "Entradas" },
+                      { value: "despesa", label: "Despesas" },
+                    ]}
+                    value={typeFilter}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Categoria</Label>
+                  <Select onChange={(event) => setCategoryFilter(event.target.value)} value={categoryFilter}>
+                    <option value="todas">Todas</option>
+                    {categoryOptions.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Periodo</Label>
+                  <Select onChange={(event) => setPeriodFilter(event.target.value as PeriodFilter)} value={periodFilter}>
+                    <option value="todos">Todos</option>
+                    <option value="este-mes">Este mes</option>
+                    <option value="mes-anterior">Mes anterior</option>
+                    <option value="ultimos-30-dias">Ultimos 30 dias</option>
+                  </Select>
+                </div>
+              </div>
+
+              {hasActiveFilters ? (
+                <div className="flex flex-col gap-2 rounded-[24px] border border-border/70 bg-muted/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-muted-foreground">Mostrando apenas os registros que combinam com seus filtros.</p>
+                  <Button onClick={clearFilters} size="sm" type="button" variant="ghost">
+                    <Filter className="h-4 w-4" />
+                    Limpar filtros
+                  </Button>
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+
           {selectionMode ? (
-            <div className="rounded-md border border-emerald-200 bg-emerald-50/80 p-3 shadow-sm">
+            <div className="rounded-[24px] border border-primary/20 bg-primary-soft/50 p-4 shadow-card">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-emerald-900">
-                    {selectedCount === 0
-                      ? "Selecione os registros que deseja excluir"
-                      : `${selectedCount} registro(s) selecionado(s)`}
+                  <p className="text-sm font-bold text-foreground">
+                    {selectedCount === 0 ? "Selecione os registros que deseja excluir" : `${selectedCount} registro(s) selecionado(s)`}
                   </p>
-                  <p className="text-xs leading-5 text-emerald-800">
-                    A exclusão em massa pede confirmação antes de remover.
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                    A exclusao em massa sempre pede confirmacao antes de remover.
                   </p>
                 </div>
-                <div className="grid gap-2 sm:flex sm:items-center">
+                <div className="flex flex-wrap gap-2">
                   <Button
-                    className="h-9 w-full sm:w-auto"
                     disabled={filteredMovementIds.length === 0}
                     onClick={allFilteredSelected ? clearSelectedMovements : selectAllFilteredMovements}
                     size="sm"
@@ -823,7 +775,6 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                     {allFilteredSelected ? "Desselecionar tudo" : "Selecionar tudo"}
                   </Button>
                   <Button
-                    className="h-9 w-full sm:w-auto"
                     disabled={selectedCount === 0 || isPending}
                     onClick={() => setBulkDeleteOpen(true)}
                     size="sm"
@@ -839,167 +790,155 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
           ) : null}
 
           {movements.length === 0 ? (
-            <Card className="border-dashed border-neutral-300 bg-neutral-50/70 shadow-none">
-              <CardContent className="p-5 text-sm leading-6 text-neutral-600">
-                <p className="font-medium text-neutral-950">Nenhuma movimentação registrada ainda.</p>
-                <p className="mt-1">Use o formulário acima para lançar sua primeira entrada recebida ou despesa paga.</p>
-                <p className="mt-1 text-xs font-medium text-neutral-500">
-                  Depois disso, os filtros, a busca e a exportação em CSV ficam disponíveis aqui.
-                </p>
-              </CardContent>
-            </Card>
+            <EmptyState
+              description="Use o formulario acima para lancar sua primeira entrada ou despesa."
+              onAction={() => setMobileCreateOpen(true)}
+              title="Nenhuma movimentacao registrada ainda."
+            />
           ) : filteredMovements.length === 0 ? (
-            <Card className="border-dashed border-neutral-300 bg-neutral-50/70 shadow-none">
-              <CardContent className="p-5 text-sm leading-6 text-neutral-600">
-                <p className="font-medium text-neutral-950">Nenhum registro encontrado.</p>
-                <p className="mt-1">Ajuste a busca, o tipo, a categoria ou o período para ver outros registros.</p>
-                <Button className="mt-3 h-9 w-full sm:w-auto" onClick={clearFilters} size="sm" type="button" variant="outline">
-                  Limpar filtros
-                </Button>
-              </CardContent>
-            </Card>
+            <EmptyState
+              actionLabel="Limpar filtros"
+              description="Ajuste a busca, o tipo, a categoria ou o periodo para ver outros registros."
+              onAction={clearFilters}
+              title="Nenhum registro encontrado."
+            />
           ) : (
-            <div className="max-h-[19rem] space-y-2 overflow-y-auto overflow-x-hidden pr-1 overscroll-contain md:max-h-[32rem] lg:max-h-[34rem]">
-              {filteredMovements.map((movement) => {
-                const isEditing = editingId === movement.id;
-                const isIncome = movement.type === "entrada";
-                const isSelected = selectedIds.has(movement.id);
+            <div className="space-y-4">
+              {groupedMovements.map(([date, items]) => (
+                <div className="space-y-2" key={date}>
+                  <div className="flex items-center gap-3 px-1">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{toDate(date)}</p>
+                    <div className="h-px flex-1 bg-border/70" />
+                  </div>
 
-                return (
-                  <Card
-                    className={cn(
-                      "relative overflow-hidden border-neutral-200 bg-white shadow-[0_4px_14px_rgba(15,23,42,0.04)] transition-colors",
-                      isIncome ? "before:bg-emerald-500" : "before:bg-red-400",
-                      "before:absolute before:inset-y-0 before:left-0 before:w-1",
-                      isEditing && "border-emerald-300 bg-emerald-50/20 shadow-[0_10px_30px_rgba(16,185,129,0.12)]",
-                      isSelected && "border-emerald-300 bg-emerald-50/40 shadow-[0_10px_30px_rgba(16,185,129,0.14)]",
-                    )}
-                    key={movement.id}
-                  >
-                    <CardContent className="space-y-2.5 p-3 pl-4 sm:p-4 sm:pl-5">
-                      <div className={cn("grid gap-2.5", selectionMode ? "grid-cols-[auto_1fr_auto]" : "grid-cols-[1fr_auto]")}>
-                        {selectionMode ? (
-                          <button
-                            aria-label={isSelected ? "Remover registro da seleção" : "Selecionar registro"}
-                            aria-pressed={isSelected}
-                            className={cn(
-                              "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md border bg-white shadow-sm transition-colors",
-                              isSelected
-                                ? "border-emerald-300 text-emerald-700"
-                                : "border-neutral-200 text-neutral-400 hover:border-emerald-200 hover:text-emerald-700",
-                            )}
-                            onClick={() => toggleSelection(movement.id)}
-                            type="button"
-                          >
-                            {isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
-                          </button>
-                        ) : null}
+                  <div className="space-y-2">
+                    {items.map((movement) => {
+                      const editing = editingId === movement.id;
+                      const income = movement.type === "entrada";
+                      const selected = selectedIds.has(movement.id);
 
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <Badge
-                              variant={isIncome ? "success" : "danger"}
-                              className={cn(
-                                "px-2 py-0.5 text-[11px]",
-                                isIncome
-                                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                                  : "border-red-200 bg-red-50 text-red-700",
-                              )}
-                            >
-                              {isIncome ? "Entrada" : "Despesa"}
-                            </Badge>
-                            <span className="inline-flex items-center gap-1 text-xs font-medium text-neutral-500">
-                              <CalendarDays className="h-3.5 w-3.5" />
-                              {movement.occurred_at ? toDateTime(movement.occurred_at) : toDate(movement.occurred_on)}
-                            </span>
-                          </div>
-                          <p className="mt-1 truncate text-sm font-semibold leading-5 text-neutral-950 sm:text-base">
-                            {movement.description}
-                          </p>
-                          <p className="mt-1 inline-flex rounded-md bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-600">
-                            {movement.category}
-                          </p>
-                        </div>
-
-                        <p
+                      return (
+                        <Card
                           className={cn(
-                            "shrink-0 pt-0.5 text-right text-sm font-bold tabular-nums sm:text-base",
-                            isIncome ? "text-emerald-700" : "text-red-600",
+                            "overflow-hidden transition-all",
+                            selected && "border-primary/20 bg-primary-soft/30",
+                            editing && "border-primary/20 bg-primary-soft/20",
                           )}
+                          key={movement.id}
                         >
-                          {toCurrency(movement.amount)}
-                        </p>
-                      </div>
+                          <CardContent className="space-y-4 p-4">
+                            <div className={cn("grid gap-3", selectionMode ? "grid-cols-[auto_1fr_auto]" : "grid-cols-[1fr_auto]")}>
+                              {selectionMode ? (
+                                <button
+                                  aria-label={selected ? "Remover registro da selecao" : "Selecionar registro"}
+                                  aria-pressed={selected}
+                                  className={cn(
+                                    "mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl border transition-colors",
+                                    selected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground",
+                                  )}
+                                  onClick={() => toggleSelection(movement.id)}
+                                  type="button"
+                                >
+                                  {selected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
+                                </button>
+                              ) : null}
 
-                      {isEditing ? (
-                        <form
-                          className="space-y-4 rounded-md border border-emerald-200 bg-white p-3 shadow-sm"
-                          noValidate
-                          onSubmit={(event) => handleUpdate(movement.id, event)}
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <Badge variant="success" className="w-fit">
-                              Editando este registro
-                            </Badge>
-                            <Button onClick={cancelEdit} size="sm" type="button" variant="ghost">
-                              <X className="h-4 w-4" />
-                              Cancelar edição
-                            </Button>
-                          </div>
+                              <div className="flex min-w-0 gap-3">
+                                <div
+                                  className={cn(
+                                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
+                                    income ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive",
+                                  )}
+                                >
+                                  {income ? <ArrowDownLeft className="h-5 w-5" /> : <ArrowUpRight className="h-5 w-5" />}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <Badge variant={income ? "success" : "danger"}>{income ? "Entrada" : "Despesa"}</Badge>
+                                    <span className="text-xs text-muted-foreground">
+                                      {movement.occurred_at ? toDateTime(movement.occurred_at) : toDate(movement.occurred_on)}
+                                    </span>
+                                  </div>
+                                  <p className="mt-2 truncate text-sm font-bold text-foreground">{movement.description}</p>
+                                  <p className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                                    {movement.category}
+                                  </p>
+                                </div>
+                              </div>
 
-                          <MovementFields compact form={editForm} idPrefix={`edit-${movement.id}`} onChange={updateEditField} />
+                              <p className={cn("font-mono text-sm font-extrabold tabular", income ? "text-success" : "text-foreground")}>
+                                {income ? "+" : "-"} {toCurrency(movement.amount)}
+                              </p>
+                            </div>
 
-                          <Button className="h-10 w-full sm:w-auto" disabled={isPending} type="submit">
-                            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
-                            Salvar alterações
-                          </Button>
-                        </form>
-                      ) : selectionMode ? (
-                        <div className="flex items-center justify-end border-t border-neutral-100 pt-2">
-                          <Button
-                            className="h-8 rounded-md px-2.5 text-xs font-semibold"
-                            onClick={() => toggleSelection(movement.id)}
-                            size="sm"
-                            type="button"
-                            variant={isSelected ? "secondary" : "ghost"}
-                          >
-                            {isSelected ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
-                            {isSelected ? "Selecionado" : "Selecionar"}
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-end gap-1.5 border-t border-neutral-100 pt-2">
-                          <Button
-                            className="h-8 rounded-md px-2 text-xs font-semibold text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950"
-                            onClick={() => startEdit(movement)}
-                            size="sm"
-                            type="button"
-                            variant="ghost"
-                          >
-                            <Pencil className="h-4 w-4" />
-                            <span className="sr-only sm:not-sr-only">Editar</span>
-                          </Button>
-                          <Button
-                            className="h-8 rounded-md px-2 text-xs font-semibold text-red-700 hover:bg-red-50 hover:text-red-700"
-                            disabled={isPending}
-                            onClick={() => requestDelete(movement)}
-                            size="sm"
-                            type="button"
-                            variant="ghost"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only sm:not-sr-only">Excluir</span>
-                          </Button>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                            {editing ? (
+                              <form className="space-y-4 rounded-[24px] border border-border/70 bg-muted/30 p-4" noValidate onSubmit={(event) => handleUpdate(movement.id, event)}>
+                                <div className="flex items-center justify-between gap-3">
+                                  <Badge variant="success">Editando este registro</Badge>
+                                  <Button onClick={cancelEdit} size="sm" type="button" variant="ghost">
+                                    <X className="h-4 w-4" />
+                                    Cancelar
+                                  </Button>
+                                </div>
+
+                                <MovementFields compact form={editForm} idPrefix={`edit-${movement.id}`} onChange={updateEditField} />
+
+                                <Button disabled={isPending} type="submit">
+                                  {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
+                                  Salvar alteracoes
+                                </Button>
+                              </form>
+                            ) : selectionMode ? (
+                              <div className="flex justify-end">
+                                <Button
+                                  onClick={() => toggleSelection(movement.id)}
+                                  size="sm"
+                                  type="button"
+                                  variant={selected ? "secondary" : "outline"}
+                                >
+                                  {selected ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+                                  {selected ? "Selecionado" : "Selecionar"}
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex flex-wrap justify-end gap-2">
+                                <Button onClick={() => startEdit(movement)} size="sm" type="button" variant="outline">
+                                  <Pencil className="h-4 w-4" />
+                                  Editar
+                                </Button>
+                                <Button
+                                  disabled={isPending}
+                                  onClick={() => requestDelete(movement)}
+                                  size="sm"
+                                  type="button"
+                                  variant="ghost"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  Excluir
+                                </Button>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </section>
       </div>
+
+      <Button
+        className="fixed bottom-24 right-4 z-30 xl:hidden"
+        onClick={() => setMobileCreateOpen((current) => !current)}
+        size="lg"
+        type="button"
+      >
+        {mobileCreateOpen ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+        {mobileCreateOpen ? "Fechar" : "Nova"}
+      </Button>
 
       {pendingDelete ? (
         <div
@@ -1008,12 +947,12 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
           className="fixed inset-0 z-50 flex items-end bg-black/45 p-3 sm:items-center sm:justify-center sm:p-4"
           role="dialog"
         >
-          <div className="w-full rounded-lg bg-white p-4 shadow-lg sm:max-w-sm">
-            <h2 className="text-base font-semibold text-neutral-950" id="delete-movement-title">
+          <div className="w-full rounded-[28px] bg-card p-5 shadow-elevated sm:max-w-sm">
+            <h2 className="text-base font-extrabold text-foreground" id="delete-movement-title">
               Excluir este registro?
             </h2>
-            <p className="mt-2 text-sm leading-6 text-neutral-600">
-              Você está prestes a excluir "{pendingDelete.description}". Esta ação não pode ser desfeita.
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Voce esta prestes a excluir "{pendingDelete.description}". Esta acao nao pode ser desfeita.
             </p>
             <div className="mt-4 grid grid-cols-2 gap-2">
               <Button disabled={isPending} onClick={() => setPendingDelete(null)} type="button" variant="outline">
@@ -1035,22 +974,24 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
           className="fixed inset-0 z-50 flex items-end bg-black/45 p-3 sm:items-center sm:justify-center sm:p-4"
           role="dialog"
         >
-          <div className="w-full rounded-lg bg-white p-4 shadow-lg sm:max-w-sm">
-            <h2 className="text-base font-semibold text-neutral-950" id="bulk-delete-movement-title">
+          <div className="w-full rounded-[28px] bg-card p-5 shadow-elevated sm:max-w-sm">
+            <h2 className="text-base font-extrabold text-foreground" id="bulk-delete-movement-title">
               Excluir registros selecionados?
             </h2>
-            <p className="mt-2 text-sm leading-6 text-neutral-600">
-              Você está prestes a excluir {selectedCount} registro(s). Essa ação não pode ser desfeita.
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Voce esta prestes a excluir {selectedCount} registro(s). Essa acao nao pode ser desfeita.
             </p>
             {selectedMovements.length > 0 ? (
-              <div className="mt-3 max-h-32 space-y-1 overflow-y-auto rounded-md border border-neutral-200 bg-neutral-50 p-2">
+              <div className="mt-3 max-h-32 space-y-1 overflow-y-auto rounded-[20px] border border-border/70 bg-muted/30 p-3">
                 {selectedMovements.slice(0, 5).map((movement) => (
-                  <p className="truncate text-xs font-medium text-neutral-600" key={movement.id}>
-                    {movement.description} · {toCurrency(movement.amount)}
+                  <p className="truncate text-xs font-semibold text-muted-foreground" key={movement.id}>
+                    {movement.description} - {toCurrency(movement.amount)}
                   </p>
                 ))}
                 {selectedMovements.length > 5 ? (
-                  <p className="text-xs font-medium text-neutral-500">+{selectedMovements.length - 5} outro(s) registro(s)</p>
+                  <p className="text-xs font-semibold text-muted-foreground">
+                    +{selectedMovements.length - 5} outro(s) registro(s)
+                  </p>
                 ) : null}
               </div>
             ) : null}
@@ -1071,51 +1012,64 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
 }
 
 function SummaryCard({
+  className,
   icon,
   label,
   tone,
   value,
 }: {
+  className?: string;
   icon: ReactNode;
   label: string;
-  tone: "income" | "expense" | "balance";
+  tone: "success" | "danger" | "primary";
   value: string;
 }) {
   return (
-    <Card
-      className={cn(
-        "relative overflow-hidden border-neutral-200 bg-[linear-gradient(180deg,#ffffff_0%,#f7f7f7_100%)] shadow-[0_8px_20px_rgba(15,23,42,0.06)]",
-        "after:absolute after:inset-x-0 after:top-0 after:h-1",
-        tone === "income" && "after:bg-emerald-500",
-        tone === "expense" && "after:bg-red-400",
-        tone === "balance" && "after:bg-neutral-800",
-      )}
-    >
-      <CardContent className="p-3">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500 sm:text-[11px]">{label}</p>
-          <span
+    <Card className={cn("overflow-hidden", className)}>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
+            <p className={cn("font-mono mt-2 text-xl font-extrabold tabular", tone === "success" && "text-success", tone === "danger" && "text-destructive", tone === "primary" && "text-foreground")}>
+              {value}
+            </p>
+          </div>
+          <div
             className={cn(
-              "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border bg-white shadow-sm",
-              tone === "income" && "border-emerald-100 text-emerald-700",
-              tone === "expense" && "border-red-100 text-red-600",
-              tone === "balance" && "border-neutral-200 text-neutral-700",
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
+              tone === "success" && "bg-success/10 text-success",
+              tone === "danger" && "bg-destructive/10 text-destructive",
+              tone === "primary" && "bg-primary-soft text-primary",
             )}
           >
             {icon}
-          </span>
+          </div>
         </div>
-        <div className="mt-2 min-w-0">
-          <p
-            className={cn(
-              "truncate text-sm font-bold tabular-nums text-neutral-950 sm:text-xl",
-              tone === "income" && "text-emerald-700",
-              tone === "expense" && "text-red-600",
-            )}
-          >
-            {value}
-          </p>
-        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function EmptyState({
+  actionLabel = "Nova movimentacao",
+  description,
+  onAction,
+  title,
+}: {
+  actionLabel?: string;
+  description: string;
+  onAction: () => void;
+  title: string;
+}) {
+  return (
+    <Card className="border-dashed">
+      <CardContent className="p-6 text-center">
+        <p className="text-base font-extrabold text-foreground">{title}</p>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
+        <Button className="mt-4" onClick={onAction} size="sm" type="button">
+          <Plus className="h-4 w-4" />
+          {actionLabel}
+        </Button>
       </CardContent>
     </Card>
   );
@@ -1130,61 +1084,37 @@ function OptionGroup({
   name,
   onChange,
   options,
-  required,
-  tone = "category",
   value,
 }: {
   name: string;
   onChange: (value: string) => void;
   options: Option[];
-  required?: boolean;
-  tone?: "type" | "category";
   value: string;
 }) {
   return (
-    <>
-      <div
-        className={cn(
-          tone === "type"
-            ? "grid grid-cols-2 rounded-md border border-neutral-200 bg-neutral-100 p-1"
-            : "flex flex-wrap gap-2",
-        )}
-      >
-        {options.map((option) => {
-          const selected = option.value === value;
-          const isExpense = option.value === "despesa";
+    <div className="flex flex-wrap gap-2">
+      {options.map((option) => {
+        const selected = option.value === value;
 
-          return (
-            <button
-              aria-pressed={selected}
-              className={cn(
-                "rounded-md text-sm font-semibold transition-colors",
-                tone === "type" && "min-h-10 border border-transparent px-3 py-1.5 text-center",
-                tone === "category" && "min-h-8 border px-2.5 py-1.5 text-xs",
-                selected &&
-                  (tone === "type" && isExpense
-                    ? "bg-white text-red-700 shadow-sm"
-                    : tone === "type"
-                      ? "bg-white text-emerald-800 shadow-sm"
-                      : isExpense
-                        ? "border-red-200 bg-red-50 text-red-700"
-                        : "border-emerald-200 bg-emerald-50 text-emerald-800"),
-                !selected &&
-                  (tone === "type"
-                    ? "text-neutral-600 hover:bg-white/70 hover:text-neutral-950"
-                    : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50"),
-              )}
-              key={option.value}
-              name={name}
-              onClick={() => onChange(option.value)}
-              type="button"
-            >
-              {option.label}
-            </button>
-          );
-        })}
-      </div>
-      {required && !value ? <p className="text-xs text-neutral-500">Escolha uma categoria para continuar.</p> : null}
-    </>
+        return (
+          <button
+            aria-pressed={selected}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-bold transition-all",
+              selected
+                ? "border-primary bg-primary text-primary-foreground shadow-glow"
+                : "border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground",
+            )}
+            key={option.value}
+            name={name}
+            onClick={() => onChange(option.value)}
+            type="button"
+          >
+            {selected ? <CheckSquare className="h-3.5 w-3.5" /> : null}
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 
 type MonthSelectorProps = {
@@ -45,88 +46,59 @@ export function MonthSelector({ monthValue, yearValue, nextHref, previousHref }:
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const monthParam = `${selectedYear}-${selectedMonth}`;
-    router.push(`/app/fechamento-mensal?month=${monthParam}`);
+    router.push(`/app/fechamento-mensal?month=${selectedYear}-${selectedMonth}`);
   }
 
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white/90 p-3 shadow-none">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500">Período</p>
-          <p className="mt-1 text-sm font-semibold text-neutral-950">Escolha o mês do fechamento</p>
+    <Card>
+      <CardContent className="space-y-4 p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Periodo</p>
+            <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">Escolha o mes do fechamento</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button asChild size="icon" variant="outline">
+              <Link aria-label="Mes anterior" href={previousHref}>
+                <ChevronLeft className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button asChild size="icon" variant="outline">
+              <Link aria-label="Proximo mes" href={nextHref}>
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          <Button
-            asChild
-            className="h-8 w-8 border-neutral-200 bg-white p-0 text-neutral-600 hover:text-neutral-950 sm:h-8 sm:w-auto sm:px-2.5"
-            size="sm"
-            variant="outline"
-          >
-            <Link aria-label="Mês anterior" href={previousHref}>
-              <ChevronLeft className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Anterior</span>
-            </Link>
+
+        <form className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_110px]" onSubmit={handleSubmit}>
+          <label className="space-y-2 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
+            Mes
+            <Select onChange={(event) => setSelectedMonth(event.target.value)} value={selectedMonth}>
+              {monthOptions.map((month) => (
+                <option key={month.value} value={month.value}>
+                  {month.label}
+                </option>
+              ))}
+            </Select>
+          </label>
+
+          <label className="space-y-2 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
+            Ano
+            <Select onChange={(event) => setSelectedYear(event.target.value)} value={selectedYear}>
+              {yearOptions.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </Select>
+          </label>
+
+          <Button className="sm:col-span-2" type="submit" variant="outline">
+            Ver fechamento
           </Button>
-          <Button
-            asChild
-            className="h-8 w-8 border-neutral-200 bg-white p-0 text-neutral-600 hover:text-neutral-950 sm:h-8 sm:w-auto sm:px-2.5"
-            size="sm"
-            variant="outline"
-          >
-            <Link aria-label="Próximo mês" href={nextHref}>
-              <span className="hidden sm:inline">Próximo</span>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Link>
-          </Button>
-        </div>
-      </div>
-
-      <form
-        className="mt-3 grid grid-cols-[minmax(0,1fr)_104px] gap-2 sm:grid-cols-[minmax(0,1fr)_96px_86px]"
-        onSubmit={handleSubmit}
-      >
-        <label className="space-y-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
-          Mês
-          <Select
-            className="h-9 border-neutral-200 bg-white px-2.5 py-1.5 text-sm leading-5 shadow-none focus-visible:ring-emerald-200"
-            name="monthValue"
-            onChange={(event) => setSelectedMonth(event.target.value)}
-            value={selectedMonth}
-          >
-            {monthOptions.map((month) => (
-              <option key={month.value} value={month.value}>
-                {month.label}
-              </option>
-            ))}
-          </Select>
-        </label>
-
-        <label className="space-y-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
-          Ano
-          <Select
-            className="h-9 border-neutral-200 bg-white px-2.5 py-1.5 text-sm leading-5 shadow-none focus-visible:ring-emerald-200"
-            name="year"
-            onChange={(event) => setSelectedYear(event.target.value)}
-            value={selectedYear}
-          >
-            {yearOptions.map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </Select>
-        </label>
-
-        <Button
-          className="col-span-2 h-9 px-3 text-xs sm:col-span-1 sm:self-end"
-          size="sm"
-          type="submit"
-          variant="outline"
-        >
-          Ver mês
-        </Button>
-      </form>
-    </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

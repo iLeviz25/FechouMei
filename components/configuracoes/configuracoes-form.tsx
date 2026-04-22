@@ -5,19 +5,23 @@ import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   Check,
+  CheckCircle2,
+  Eye,
+  EyeOff,
   KeyRound,
   Loader2,
   LogOut,
   Pencil,
+  Save,
   ShieldCheck,
   Trash2,
   UserRound,
-  X,
+  Wallet,
 } from "lucide-react";
 import { deleteAccount } from "@/app/app/configuracoes/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
@@ -31,14 +35,6 @@ type ConfiguracoesFormProps = {
   > | null;
 };
 
-type EditableField =
-  | "fullName"
-  | "businessMode"
-  | "workType"
-  | "mainCategory"
-  | "mainGoal"
-  | "initialBalance";
-
 type ProfileValues = {
   fullName: string;
   workType: string;
@@ -51,34 +47,34 @@ type ProfileValues = {
 };
 
 const workTypeOptions = [
-  "Prestador de serviço",
-  "Comércio",
-  "Autônomo formalizado",
+  "Prestador de servico",
+  "Comercio",
+  "Autonomo formalizado",
   "Criador ou profissional digital",
   "Outro",
 ];
 
 const businessModeOptions = [
-  { value: "servico", label: "Serviço" },
+  { value: "servico", label: "Servico" },
   { value: "produto", label: "Produto" },
   { value: "ambos", label: "Ambos" },
 ];
 
 const categoryOptions = [
-  "Beleza e estética",
-  "Alimentação",
+  "Beleza e estetica",
+  "Alimentacao",
   "Consultoria",
-  "Educação",
-  "Manutenção e reparos",
-  "Comércio varejista",
-  "Marketing e conteúdo",
+  "Educacao",
+  "Manutencao e reparos",
+  "Comercio varejista",
+  "Marketing e conteudo",
   "Tecnologia",
   "Outro",
 ];
 
 const goalOptions = [
   "organizar receitas e despesas",
-  "fechar o mês sem planilha",
+  "fechar o mes sem planilha",
   "acompanhar limite do MEI",
 ];
 
@@ -88,34 +84,45 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
   const [values, setValues] = useState(initialValues);
   const [draft, setDraft] = useState(initialValues);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [editingField, setEditingField] = useState<EditableField | null>(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
-  const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [isSavingProfile, startProfileTransition] = useTransition();
   const [isUpdatingPassword, startPasswordTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
 
-  function beginEdit(field: EditableField) {
+  const profileSnapshotItems = [
+    { label: "Nome", value: values.fullName || "Nao informado" },
+    { label: "Atua com", value: getBusinessModeLabel(values.businessMode) },
+    { label: "Tipo", value: resolveOtherValue(values.workType, values.customWorkType) || "Nao informado" },
+    {
+      label: "Categoria",
+      value: resolveOtherValue(values.mainCategory, values.customMainCategory) || "Nao informado",
+    },
+    { label: "Objetivo", value: values.mainGoal || "Nao informado" },
+    { label: "Saldo inicial", value: formatInitialBalanceLabel(values.initialBalance) },
+  ];
+
+  function openProfileEditor() {
     setProfileMessage(null);
     setDraft(values);
-    setEditingField(field);
+    setIsEditingProfile(true);
   }
 
-  function cancelEdit() {
+  function cancelProfileEditor() {
     setDraft(values);
-    setEditingField(null);
+    setIsEditingProfile(false);
     setProfileMessage(null);
   }
 
-  function saveProfileField(field: EditableField) {
+  function saveProfile() {
     setProfileMessage(null);
-
-    const validationMessage = validateProfileDraft(draft, field);
+    const validationMessage = validateProfileDraft(draft);
 
     if (validationMessage) {
       setProfileMessage(validationMessage);
@@ -151,29 +158,15 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
       );
 
       if (error) {
-        setProfileMessage("Não foi possível salvar essa alteração agora.");
+        setProfileMessage("Nao foi possivel salvar essas alteracoes agora.");
         return;
       }
 
       setValues(draft);
-      setEditingField(null);
-      setProfileMessage("Preferência atualizada.");
+      setIsEditingProfile(false);
+      setProfileMessage("Perfil atualizado.");
       router.refresh();
     });
-  }
-
-  function openProfileEditor() {
-    setProfileMessage(null);
-    setDraft(values);
-    setEditingField(null);
-    setIsEditingProfile(true);
-  }
-
-  function cancelProfileEditor() {
-    setDraft(values);
-    setEditingField(null);
-    setIsEditingProfile(false);
-    setProfileMessage(null);
   }
 
   function updateDraft(patch: Partial<ProfileValues>) {
@@ -190,7 +183,7 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
     }
 
     if (password !== confirmPassword) {
-      setPasswordMessage("As senhas não conferem.");
+      setPasswordMessage("As senhas nao conferem.");
       return;
     }
 
@@ -199,13 +192,14 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
       const { error } = await supabase.auth.updateUser({ password });
 
       if (error) {
-        setPasswordMessage("Não foi possível atualizar a senha agora.");
+        setPasswordMessage("Nao foi possivel atualizar a senha agora.");
         return;
       }
 
       setPasswordMessage("Senha atualizada com sucesso.");
       setPassword("");
       setConfirmPassword("");
+      setShowPassword(false);
     });
   }
 
@@ -220,7 +214,7 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
     setDeleteMessage(null);
 
     if (deleteConfirmation.trim().toUpperCase() !== "EXCLUIR") {
-      setDeleteMessage("Digite EXCLUIR para confirmar a exclusão definitiva da conta.");
+      setDeleteMessage("Digite EXCLUIR para confirmar a exclusao definitiva da conta.");
       return;
     }
 
@@ -239,409 +233,344 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
     });
   }
 
-  const profileSnapshotItems = [
-    { label: "Nome", value: values.fullName || "Não informado" },
-    { label: "Atua com", value: getBusinessModeLabel(values.businessMode) },
-    {
-      label: "Tipo",
-      value: resolveOtherValue(values.workType, values.customWorkType) || "Não informado",
-    },
-    {
-      label: "Categoria",
-      value: resolveOtherValue(values.mainCategory, values.customMainCategory) || "Não informado",
-    },
-    { label: "Objetivo", value: values.mainGoal || "Não informado" },
-    { label: "Saldo atual", value: formatInitialBalanceLabel(values.initialBalance) },
-  ];
-
   return (
-    <div className="space-y-3 pb-6 sm:space-y-4">
-      <section className="rounded-lg border border-neutral-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
-        <div className="space-y-3 p-4 sm:p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-2">
-              <Badge variant="success" className="w-fit">
-                Configurações
+    <div className="space-y-5 pb-6">
+      <section className="relative overflow-hidden rounded-[28px] bg-gradient-hero p-5 text-primary-foreground shadow-elevated sm:p-6">
+        <div className="absolute inset-0 grain opacity-40" />
+        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-secondary/25 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-16 -left-10 h-40 w-40 rounded-full bg-[hsl(var(--primary-glow)/0.28)] blur-3xl" />
+
+        <div className="relative flex flex-wrap items-start justify-between gap-4">
+          <div className="flex min-w-0 items-start gap-4">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[24px] bg-white/10 text-lg font-extrabold backdrop-blur">
+              {values.fullName
+                .split(" ")
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((item) => item[0]?.toUpperCase())
+                .join("") || "ME"}
+            </div>
+            <div className="min-w-0 space-y-2">
+              <Badge className="w-fit border-white/10 bg-white/10 text-primary-foreground" variant="secondary">
+                <ShieldCheck className="mr-1 h-3 w-3" />
+                Conta e preferencias
               </Badge>
-              <div className="space-y-1">
-                <h1 className="text-xl font-semibold tracking-tight text-neutral-950 sm:text-3xl">
-                  Conta e preferências
+              <div>
+                <h1 className="truncate text-2xl font-extrabold tracking-tight sm:text-3xl">
+                  {values.fullName || "Sua conta"}
                 </h1>
-                <p className="max-w-2xl text-sm leading-5 text-neutral-600">
-                  Veja seus dados principais, ajuste o que precisar e mantenha a conta protegida.
+                <p className="mt-1 text-sm leading-6 text-primary-foreground/80">
+                  Ajuste seus dados, sua senha e as acoes da conta sem mexer na estrutura do app.
                 </p>
               </div>
             </div>
-            <div className="flex w-full items-center gap-2 rounded-md border border-emerald-100 bg-emerald-50/70 px-3 py-2 text-sm text-emerald-900 sm:w-auto">
-              <ShieldCheck className="h-4 w-4 shrink-0" />
-              <span className="font-medium">Dados protegidos</span>
-            </div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur">
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground/70">
+              Saldo inicial
+            </p>
+            <p className="font-mono mt-1 text-lg font-extrabold tabular">
+              {formatInitialBalanceLabel(values.initialBalance)}
+            </p>
           </div>
         </div>
       </section>
 
-      <section className="space-y-2">
-        <SectionLabel eyebrow="Perfil" title="Seus dados principais" />
-
-        <Card className="overflow-hidden">
-          <CardHeader className="border-b border-neutral-100 bg-neutral-50/60 p-3.5 sm:p-4">
+      <section className="grid gap-4 lg:grid-cols-[1.02fr_0.98fr]">
+        <Card>
+          <CardContent className="space-y-4 p-5 sm:p-6">
             <div className="flex items-start justify-between gap-3">
-              <CardHeading
-                description="Essas preferencias vieram do onboarding e ajudam o FechouMEI a se adaptar a sua rotina."
-                icon={<UserRound className="h-4 w-4" />}
-                title="Resumo do seu perfil"
-              />
-              <Button
-                aria-label="Editar perfil"
-                className="h-9 w-9 shrink-0"
-                onClick={isEditingProfile ? cancelProfileEditor : openProfileEditor}
-                size="icon"
-                type="button"
-                variant={isEditingProfile ? "secondary" : "outline"}
-              >
-                {isEditingProfile ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Resumo do perfil</p>
+                <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">Seus dados principais</h2>
+              </div>
+              <Button onClick={isEditingProfile ? cancelProfileEditor : openProfileEditor} size="sm" type="button" variant="outline">
+                {isEditingProfile ? null : <Pencil className="h-4 w-4" />}
+                {isEditingProfile ? "Cancelar" : "Editar"}
               </Button>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4 p-3.5 sm:p-4">
-            <div className="grid grid-cols-2 gap-2.5">
+
+            <div className="grid grid-cols-2 gap-3">
               {profileSnapshotItems.map((item) => (
                 <ProfileSnapshotItem key={item.label} label={item.label} value={item.value} />
               ))}
             </div>
-
-            {isEditingProfile ? (
-              <>
-                <div className="space-y-1 px-0.5">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Editar perfil</p>
-                  <p className="text-sm leading-5 text-neutral-600">
-                    Ajuste so o que quiser mudar. Os dados acima mostram como sua conta esta configurada hoje.
-                  </p>
-                </div>
-
-                <div className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 bg-white">
-                  <EditableProfileRow
-                    description="Como o app identifica sua conta."
-                    editor={
-                      <Input
-                        className="h-11 border-neutral-200 bg-white focus-visible:ring-emerald-200"
-                        onChange={(event) => updateDraft({ fullName: event.target.value })}
-                        placeholder="Seu nome completo"
-                        value={draft.fullName}
-                      />
-                    }
-                    field="fullName"
-                    isEditing={editingField === "fullName"}
-                    isSaving={isSavingProfile}
-                    label="Nome"
-                    onCancel={cancelEdit}
-                    onEdit={beginEdit}
-                    onSave={saveProfileField}
-                    value={values.fullName || "Nao informado"}
-                  />
-                  <EditableProfileRow
-                    description="Se sua rotina e mais ligada a servico, produto ou ambos."
-                    editor={
-                      <OptionGroup
-                        name="businessMode"
-                        onChange={(businessMode) => updateDraft({ businessMode })}
-                        options={businessModeOptions}
-                        value={draft.businessMode}
-                      />
-                    }
-                    field="businessMode"
-                    isEditing={editingField === "businessMode"}
-                    isSaving={isSavingProfile}
-                    label="Atua com"
-                    onCancel={cancelEdit}
-                    onEdit={beginEdit}
-                    onSave={saveProfileField}
-                    value={getBusinessModeLabel(values.businessMode)}
-                  />
-                  <EditableProfileRow
-                    description="O tipo de trabalho que mais representa sua atividade."
-                    editor={
-                      <div className="space-y-3">
-                        <OptionGroup
-                          name="workType"
-                          onChange={(workType) =>
-                            updateDraft({
-                              customWorkType: workType === "Outro" ? draft.customWorkType : "",
-                              workType,
-                            })
-                          }
-                          options={workTypeOptions.map((option) => ({ label: option, value: option }))}
-                          value={draft.workType}
-                        />
-                        {draft.workType === "Outro" ? (
-                          <OtherInput
-                            label="Escreva seu tipo de trabalho"
-                            onChange={(customWorkType) => updateDraft({ customWorkType })}
-                            placeholder="Ex.: fotografia, eventos, costura"
-                            value={draft.customWorkType}
-                          />
-                        ) : null}
-                      </div>
-                    }
-                    field="workType"
-                    isEditing={editingField === "workType"}
-                    isSaving={isSavingProfile}
-                    label="Tipo de trabalho"
-                    onCancel={cancelEdit}
-                    onEdit={beginEdit}
-                    onSave={saveProfileField}
-                    value={resolveOtherValue(values.workType, values.customWorkType)}
-                  />
-                  <EditableProfileRow
-                    description="A area principal usada para organizar sua visao do app."
-                    editor={
-                      <div className="space-y-3">
-                        <OptionGroup
-                          name="mainCategory"
-                          onChange={(mainCategory) =>
-                            updateDraft({
-                              customMainCategory: mainCategory === "Outro" ? draft.customMainCategory : "",
-                              mainCategory,
-                            })
-                          }
-                          options={categoryOptions.map((option) => ({ label: option, value: option }))}
-                          value={draft.mainCategory}
-                        />
-                        {draft.mainCategory === "Outro" ? (
-                          <OtherInput
-                            label="Escreva sua categoria principal"
-                            onChange={(customMainCategory) => updateDraft({ customMainCategory })}
-                            placeholder="Ex.: pet shop, artesanato, arquitetura"
-                            value={draft.customMainCategory}
-                          />
-                        ) : null}
-                      </div>
-                    }
-                    field="mainCategory"
-                    isEditing={editingField === "mainCategory"}
-                    isSaving={isSavingProfile}
-                    label="Categoria principal"
-                    onCancel={cancelEdit}
-                    onEdit={beginEdit}
-                    onSave={saveProfileField}
-                    value={resolveOtherValue(values.mainCategory, values.customMainCategory)}
-                  />
-                  <EditableProfileRow
-                    description="O primeiro resultado que voce quer acompanhar com mais clareza."
-                    editor={
-                      <OptionGroup
-                        name="mainGoal"
-                        onChange={(mainGoal) => updateDraft({ mainGoal })}
-                        options={goalOptions.map((option) => ({ label: option, value: option }))}
-                        value={draft.mainGoal}
-                      />
-                    }
-                    field="mainGoal"
-                    isEditing={editingField === "mainGoal"}
-                    isSaving={isSavingProfile}
-                    label="Objetivo principal"
-                    onCancel={cancelEdit}
-                    onEdit={beginEdit}
-                    onSave={saveProfileField}
-                    value={values.mainGoal || "Nao informado"}
-                  />
-                  <EditableProfileRow
-                    description="Valor usado como ponto de partida do seu caixa, sem entrar como receita."
-                    editor={
-                      <OtherInput
-                        inputMode="decimal"
-                        label="Saldo atual para comecar"
-                        onBlur={() =>
-                          updateDraft({
-                            initialBalance: formatOptionalAmount(parseOptionalAmount(draft.initialBalance)),
-                          })
-                        }
-                        onChange={(initialBalance) =>
-                          updateDraft({ initialBalance: normalizeAmountInput(initialBalance) })
-                        }
-                        placeholder="Ex.: 2000,00"
-                        value={draft.initialBalance}
-                      />
-                    }
-                    field="initialBalance"
-                    isEditing={editingField === "initialBalance"}
-                    isSaving={isSavingProfile}
-                    label="Saldo atual para comecar"
-                    onCancel={cancelEdit}
-                    onEdit={beginEdit}
-                    onSave={saveProfileField}
-                    value={formatInitialBalanceLabel(values.initialBalance)}
-                  />
-                </div>
-              </>
-            ) : (
-              <p className="rounded-lg border border-neutral-200 bg-neutral-50/80 px-3 py-2.5 text-sm leading-5 text-neutral-600">
-                Toque no lapis para editar seu perfil completo em um so lugar.
-              </p>
-            )}
           </CardContent>
         </Card>
 
-        {profileMessage ? (
-          <FeedbackMessage tone={profileMessage === "Preferência atualizada." || profileMessage === "Perfil atualizado." ? "success" : "danger"}>
-            {profileMessage}
-          </FeedbackMessage>
-        ) : null}
-      </section>
-
-      <section className="space-y-2">
-        <SectionLabel eyebrow="Segurança" title="Senha e acesso" />
-
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.72fr)]">
-          <Card className="overflow-hidden">
-            <CardHeader className="border-b border-neutral-100 bg-neutral-50/60 p-3.5 sm:p-4">
-              <CardHeading
-                description="Crie uma nova senha para entrar no FechouMEI."
-                icon={<KeyRound className="h-4 w-4" />}
-                title="Senha de acesso"
-              />
-            </CardHeader>
-            <CardContent className="p-3.5 sm:p-4">
-              <form className="space-y-4" onSubmit={handleUpdatePassword}>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Nova senha</Label>
-                  <Input
-                    autoComplete="new-password"
-                    className="h-11 border-neutral-200 bg-white focus-visible:ring-emerald-200"
-                    id="password"
-                    minLength={6}
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder="Mínimo de 6 caracteres"
-                    required
-                    type="password"
-                    value={password}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirmar nova senha</Label>
-                  <Input
-                    autoComplete="new-password"
-                    className="h-11 border-neutral-200 bg-white focus-visible:ring-emerald-200"
-                    id="confirmPassword"
-                    minLength={6}
-                    onChange={(event) => setConfirmPassword(event.target.value)}
-                    placeholder="Repita a nova senha"
-                    required
-                    type="password"
-                    value={confirmPassword}
-                  />
-                </div>
-
-                {passwordMessage ? (
-                  <FeedbackMessage
-                    tone={passwordMessage === "Senha atualizada com sucesso." ? "success" : "danger"}
-                  >
-                    {passwordMessage}
-                  </FeedbackMessage>
-                ) : null}
-
-                <div className="flex justify-end border-t border-neutral-100 pt-4">
-                  <Button className="w-full sm:w-auto" disabled={isUpdatingPassword} type="submit">
-                    {isUpdatingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                    Salvar nova senha
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-
-          <Card className="overflow-hidden bg-white">
-            <CardHeader className="border-b border-neutral-100 bg-neutral-50/60 p-3.5 sm:p-4">
-              <CardHeading
-                description="Encerre o acesso neste aparelho quando precisar."
-                icon={<LogOut className="h-4 w-4" />}
-                title="Acesso neste aparelho"
-              />
-            </CardHeader>
-            <CardContent className="space-y-3 p-3.5 sm:p-4">
-              <p className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-medium leading-6 text-neutral-700">
-                Sair leva você de volta ao login e mantém seus dados salvos na conta.
-              </p>
-              <Button className="w-full sm:w-auto" onClick={handleSignOut} variant="outline">
-                <LogOut className="h-4 w-4" />
-                Sair da conta
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      <section className="space-y-2">
-        <SectionLabel eyebrow="Área sensível" title="Ações irreversíveis" />
-
-        <Card className="overflow-hidden border-red-200/80 bg-red-50/30">
-          <CardHeader className="border-b border-red-100/80 p-3.5 sm:p-4">
-            <div className="flex items-start gap-3">
-              <div className="rounded-md border border-red-100 bg-white p-2 text-red-700 shadow-sm">
-                <AlertTriangle className="h-4 w-4" />
-              </div>
-              <div className="min-w-0 space-y-1.5">
-                <CardTitle className="text-base text-red-950">Excluir conta e dados</CardTitle>
-                <CardDescription className="text-sm leading-5 text-red-800/80">
-                  Esta ação apaga seu usuário de login e os dados salvos no FechouMEI. Não é possível desfazer.
-                </CardDescription>
-              </div>
+        <Card>
+          <CardContent className="space-y-4 p-5 sm:p-6">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Conta</p>
+              <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">Acoes rapidas</h2>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-3 p-3.5 sm:p-4">
-            <p className="text-sm leading-6 text-red-900/80">
-              Use isso só se realmente quiser encerrar sua conta de forma definitiva.
-            </p>
-            <Button
-              className="w-full sm:w-auto"
+
+            <ActionCard
+              description="Volta voce para a tela de login e mantem seus dados salvos."
+              icon={<LogOut className="h-4 w-4" />}
+              label="Sair da conta"
+              onClick={handleSignOut}
+            />
+            <ActionCard
+              description="Area sensivel para excluir definitivamente o acesso e os dados."
+              icon={<Trash2 className="h-4 w-4" />}
+              label="Excluir conta"
               onClick={() => {
+                setDeleteOpen(true);
                 setDeleteMessage(null);
                 setDeleteConfirmation("");
-                setDeleteStep(1);
               }}
-              variant="destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-              Excluir conta
-            </Button>
-            {deleteMessage ? <FeedbackMessage tone="danger">{deleteMessage}</FeedbackMessage> : null}
+              tone="danger"
+            />
           </CardContent>
         </Card>
       </section>
 
-      {deleteStep === 1 ? (
-        <ConfirmDialog
-          description="Você vai iniciar a exclusão real da conta, incluindo o acesso de login e os dados vinculados ao seu usuário."
-          onCancel={() => setDeleteStep(0)}
-          onConfirm={() => {
-            setDeleteConfirmation("");
-            setDeleteStep(2);
-          }}
-          title="Antes de excluir"
-        />
-      ) : null}
+      <Card>
+        <CardContent className="space-y-5 p-5 sm:p-6">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Editar perfil</p>
+            <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">Preferencias da sua conta</h2>
+          </div>
 
-      {deleteStep === 2 ? (
-        <ConfirmDialog
-          confirmDisabled={deleteConfirmation.trim().toUpperCase() !== "EXCLUIR"}
-          confirmLabel="Excluir agora"
-          confirmationLabel="Digite EXCLUIR para confirmar"
-          confirmationPlaceholder="EXCLUIR"
-          confirmationValue={deleteConfirmation}
-          description="Essa ação é irreversível e remove sua conta de login, perfil, movimentações, checklist e preferências salvas."
-          feedbackMessage={deleteMessage}
-          isLoading={isDeleting}
-          onCancel={() => {
-            setDeleteMessage(null);
-            setDeleteStep(0);
-          }}
-          onConfirmationChange={(value) => {
-            setDeleteMessage(null);
-            setDeleteConfirmation(value);
-          }}
-          onConfirm={handleDeleteAccount}
-          title="Excluir conta definitivamente"
-        />
+          {isEditingProfile ? (
+            <div className="space-y-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field
+                  icon={<UserRound className="h-4 w-4" />}
+                  label="Nome completo"
+                  onChange={(value) => updateDraft({ fullName: value })}
+                  placeholder="Seu nome completo"
+                  value={draft.fullName}
+                />
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
+                    Atua com
+                  </Label>
+                  <OptionGroup
+                    onChange={(value) => updateDraft({ businessMode: value })}
+                    options={businessModeOptions}
+                    value={draft.businessMode}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
+                    Tipo de trabalho
+                  </Label>
+                  <OptionGroup
+                    onChange={(value) =>
+                      updateDraft({
+                        customWorkType: value === "Outro" ? draft.customWorkType : "",
+                        workType: value,
+                      })
+                    }
+                    options={workTypeOptions.map((option) => ({ label: option, value: option }))}
+                    value={draft.workType}
+                  />
+                  {draft.workType === "Outro" ? (
+                    <Field
+                      label="Escreva seu tipo de trabalho"
+                      onChange={(value) => updateDraft({ customWorkType: value })}
+                      placeholder="Ex.: fotografia, eventos, costura"
+                      value={draft.customWorkType}
+                    />
+                  ) : null}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
+                    Categoria principal
+                  </Label>
+                  <OptionGroup
+                    onChange={(value) =>
+                      updateDraft({
+                        customMainCategory: value === "Outro" ? draft.customMainCategory : "",
+                        mainCategory: value,
+                      })
+                    }
+                    options={categoryOptions.map((option) => ({ label: option, value: option }))}
+                    value={draft.mainCategory}
+                  />
+                  {draft.mainCategory === "Outro" ? (
+                    <Field
+                      label="Escreva sua categoria principal"
+                      onChange={(value) => updateDraft({ customMainCategory: value })}
+                      placeholder="Ex.: pet shop, artesanato, arquitetura"
+                      value={draft.customMainCategory}
+                    />
+                  ) : null}
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
+                    Objetivo principal
+                  </Label>
+                  <OptionGroup
+                    onChange={(value) => updateDraft({ mainGoal: value })}
+                    options={goalOptions.map((option) => ({ label: option, value: option }))}
+                    value={draft.mainGoal}
+                  />
+                </div>
+
+                <Field
+                  icon={<Wallet className="h-4 w-4" />}
+                  label="Saldo inicial"
+                  onBlur={() =>
+                    updateDraft({
+                      initialBalance: formatOptionalAmount(parseOptionalAmount(draft.initialBalance)),
+                    })
+                  }
+                  onChange={(value) => updateDraft({ initialBalance: normalizeAmountInput(value) })}
+                  placeholder="Ex.: 2000,00"
+                  value={draft.initialBalance}
+                />
+              </div>
+
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button onClick={cancelProfileEditor} type="button" variant="outline">
+                  Cancelar
+                </Button>
+                <Button disabled={isSavingProfile} onClick={saveProfile} type="button">
+                  {isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Salvar alteracoes
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-[24px] border border-border/70 bg-muted/30 p-5 text-sm leading-6 text-muted-foreground">
+              Toque em editar para atualizar seu perfil, categoria, objetivo e saldo inicial.
+            </div>
+          )}
+
+          {profileMessage ? (
+            <p
+              className={cn(
+                "rounded-2xl border px-4 py-3 text-sm leading-6",
+                profileMessage === "Perfil atualizado."
+                  ? "border-success/20 bg-success/10 text-success"
+                  : "border-destructive/20 bg-destructive/10 text-destructive",
+              )}
+            >
+              {profileMessage}
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="space-y-5 p-5 sm:p-6">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Seguranca</p>
+            <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">Senha de acesso</h2>
+          </div>
+
+          <form className="space-y-4" onSubmit={handleUpdatePassword}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <PasswordField
+                label="Nova senha"
+                onChange={setPassword}
+                showPassword={showPassword}
+                togglePassword={() => setShowPassword((current) => !current)}
+                value={password}
+              />
+              <PasswordField
+                label="Confirmar nova senha"
+                onChange={setConfirmPassword}
+                showPassword={showPassword}
+                togglePassword={() => setShowPassword((current) => !current)}
+                value={confirmPassword}
+              />
+            </div>
+
+            {passwordMessage ? (
+              <p
+                className={cn(
+                  "rounded-2xl border px-4 py-3 text-sm leading-6",
+                  passwordMessage === "Senha atualizada com sucesso."
+                    ? "border-success/20 bg-success/10 text-success"
+                    : "border-destructive/20 bg-destructive/10 text-destructive",
+                )}
+              >
+                {passwordMessage}
+              </p>
+            ) : null}
+
+            <div className="flex justify-end">
+              <Button disabled={isUpdatingPassword} type="submit">
+                {isUpdatingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+                Salvar nova senha
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {deleteOpen ? (
+        <div
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-end bg-neutral-950/45 p-3 backdrop-blur-[2px] sm:items-center sm:justify-center sm:p-4"
+          role="dialog"
+        >
+          <div className="w-full rounded-[28px] border border-destructive/20 bg-card p-5 shadow-elevated sm:max-w-md">
+            <div className="flex items-start gap-3">
+              <div className="rounded-2xl bg-destructive/10 p-2 text-destructive">
+                <AlertTriangle className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-base font-extrabold text-foreground">Excluir conta definitivamente</h2>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Essa acao remove seu login, perfil, movimentacoes, checklist e preferencias salvas.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              <Label htmlFor="deleteConfirmation">Digite EXCLUIR para confirmar</Label>
+              <Input
+                autoComplete="off"
+                className="border-destructive/20 focus-visible:ring-destructive/10"
+                id="deleteConfirmation"
+                onChange={(event) => {
+                  setDeleteMessage(null);
+                  setDeleteConfirmation(event.target.value);
+                }}
+                placeholder="EXCLUIR"
+                value={deleteConfirmation}
+              />
+            </div>
+
+            {deleteMessage ? (
+              <p className="mt-4 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm leading-6 text-destructive">
+                {deleteMessage}
+              </p>
+            ) : null}
+
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <Button
+                onClick={() => {
+                  setDeleteOpen(false);
+                  setDeleteConfirmation("");
+                  setDeleteMessage(null);
+                }}
+                type="button"
+                variant="outline"
+              >
+                Cancelar
+              </Button>
+              <Button
+                disabled={isDeleting || deleteConfirmation.trim().toUpperCase() !== "EXCLUIR"}
+                onClick={handleDeleteAccount}
+                type="button"
+                variant="destructive"
+              >
+                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Excluir
+              </Button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   );
@@ -665,179 +594,84 @@ function getInitialProfileValues(profile: ConfiguracoesFormProps["profile"]): Pr
   };
 }
 
-function validateProfileDraft(values: ProfileValues, field: EditableField) {
-  if (field === "fullName" && !values.fullName.trim()) {
+function validateProfileDraft(values: ProfileValues) {
+  if (!values.fullName.trim()) {
     return "Informe seu nome para salvar.";
   }
 
-  if (field === "workType" && values.workType === "Outro" && !values.customWorkType.trim()) {
-    return "Escreva qual é o seu tipo de trabalho.";
+  if (values.workType === "Outro" && !values.customWorkType.trim()) {
+    return "Escreva qual e o seu tipo de trabalho.";
   }
 
-  if (field === "mainCategory" && values.mainCategory === "Outro" && !values.customMainCategory.trim()) {
-    return "Escreva qual é a sua categoria principal.";
+  if (values.mainCategory === "Outro" && !values.customMainCategory.trim()) {
+    return "Escreva qual e a sua categoria principal.";
   }
 
-  if (field === "initialBalance" && parseOptionalAmount(values.initialBalance) === null) {
-    return "Use um valor de saldo válido, como 2000 ou 1200,50.";
+  if (parseOptionalAmount(values.initialBalance) === null) {
+    return "Use um valor de saldo valido, como 2000 ou 1200,50.";
   }
 
   return null;
 }
 
-function SectionLabel({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <div className="space-y-0.5 px-0.5">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">{eyebrow}</p>
-      <h2 className="text-base font-semibold text-neutral-950">{title}</h2>
-    </div>
-  );
-}
-
-function CardHeading({
+function ActionCard({
   description,
   icon,
-  title,
+  label,
+  onClick,
+  tone = "default",
 }: {
   description: string;
   icon: ReactNode;
-  title: string;
+  label: string;
+  onClick: () => void;
+  tone?: "default" | "danger";
 }) {
   return (
-    <div className="flex items-start gap-3">
-      <div className="rounded-md border border-emerald-100 bg-white p-2 text-emerald-700 shadow-sm">
+    <button
+      className={cn(
+        "flex w-full items-start gap-3 rounded-[24px] border p-4 text-left transition-all",
+        tone === "danger"
+          ? "border-destructive/20 bg-destructive/5 hover:border-destructive/30"
+          : "border-border/70 bg-muted/30 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-primary-soft/20",
+      )}
+      onClick={onClick}
+      type="button"
+    >
+      <div
+        className={cn(
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
+          tone === "danger" ? "bg-destructive/10 text-destructive" : "bg-primary-soft text-primary",
+        )}
+      >
         {icon}
       </div>
-      <div className="min-w-0 space-y-1">
-        <CardTitle className="text-base text-neutral-950">{title}</CardTitle>
-        <CardDescription className="text-sm leading-5">{description}</CardDescription>
+      <div className="min-w-0">
+        <p className="text-sm font-bold text-foreground">{label}</p>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
       </div>
-    </div>
+    </button>
   );
 }
 
-function EditableProfileRow({
-  description,
-  editor,
-  field,
-  isEditing,
-  isSaving,
-  label,
-  onCancel,
-  onEdit,
-  onSave,
-  value,
-}: {
-  description: string;
-  editor: ReactNode;
-  field: EditableField;
-  isEditing: boolean;
-  isSaving: boolean;
-  label: string;
-  onCancel: () => void;
-  onEdit: (field: EditableField) => void;
-  onSave: (field: EditableField) => void;
-  value: string;
-}) {
+function ProfileSnapshotItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="px-3.5 py-3.5 sm:px-4 sm:py-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <p className="text-sm font-semibold text-neutral-950">{label}</p>
-          <p className="text-xs leading-5 text-neutral-600">{description}</p>
-        </div>
-        {!isEditing ? (
-          <Button
-            aria-label={`Editar ${label}`}
-            className="h-8 w-8 shrink-0"
-            onClick={() => onEdit(field)}
-            size="icon"
-            type="button"
-            variant="outline"
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-        ) : null}
-      </div>
-
-      {!isEditing ? (
-        <p className="mt-3 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm font-semibold leading-5 text-neutral-900">
-          {value}
-        </p>
-      ) : (
-        <div className="mt-3 space-y-3 rounded-lg border border-neutral-200 bg-neutral-50/80 p-3">
-          {editor}
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
-            <Button disabled={isSaving} onClick={onCancel} type="button" variant="outline">
-              <X className="h-4 w-4" />
-              Cancelar
-            </Button>
-            <Button disabled={isSaving} onClick={() => onSave(field)} type="button">
-              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-              Salvar
-            </Button>
-          </div>
-        </div>
-      )}
+    <div className="min-w-0 rounded-[24px] border border-border/70 bg-muted/30 px-4 py-3">
+      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
+      <p className="mt-1 break-words text-sm font-bold leading-6 text-foreground">{value}</p>
     </div>
   );
 }
 
-function OptionGroup({
-  name,
-  onChange,
-  options,
-  value,
-}: {
-  name: string;
-  onChange: (value: string) => void;
-  options: Option[];
-  value: string;
-}) {
-  return (
-    <div className="grid gap-1.5 sm:grid-cols-2">
-      {options.map((option) => {
-        const selected = option.value === value;
-
-        return (
-          <button
-            aria-pressed={selected}
-            className={cn(
-              "group flex min-h-[44px] w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm font-medium leading-5 transition-colors",
-              selected
-                ? "border-emerald-300 bg-white text-emerald-900 shadow-[0_1px_2px_rgba(16,185,129,0.08)]"
-                : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50",
-            )}
-            key={option.value}
-            name={name}
-            onClick={() => onChange(option.value)}
-            type="button"
-          >
-            <span>{option.label}</span>
-            <span
-              className={cn(
-                "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors",
-                selected ? "border-emerald-500 bg-emerald-600 text-white" : "border-neutral-300 bg-white",
-              )}
-            >
-              {selected ? <Check className="h-3 w-3" /> : null}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function OtherInput({
-  inputMode,
+function Field({
+  icon,
   label,
   onBlur,
   onChange,
   placeholder,
   value,
 }: {
-  inputMode?: "text" | "decimal";
+  icon?: ReactNode;
   label: string;
   onBlur?: () => void;
   onChange: (value: string) => void;
@@ -845,121 +679,92 @@ function OtherInput({
   value: string;
 }) {
   return (
-    <label className="block space-y-2">
-      <span className="text-sm font-semibold text-neutral-900">{label}</span>
-      <Input
-        className="h-11 border-neutral-200 bg-white focus-visible:ring-emerald-200"
-        inputMode={inputMode}
-        onBlur={onBlur}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        value={value}
-      />
+    <label className="space-y-2">
+      <span className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</span>
+      <div className="relative">
+        {icon ? <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground">{icon}</span> : null}
+        <Input
+          className={cn(icon ? "pl-10" : "")}
+          onBlur={onBlur}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          value={value}
+        />
+      </div>
     </label>
   );
 }
 
-function FeedbackMessage({
-  children,
-  tone = "success",
+function PasswordField({
+  label,
+  onChange,
+  showPassword,
+  togglePassword,
+  value,
 }: {
-  children: ReactNode;
-  tone?: "success" | "danger";
+  label: string;
+  onChange: (value: string) => void;
+  showPassword: boolean;
+  togglePassword: () => void;
+  value: string;
 }) {
   return (
-    <p
-      className={cn(
-        "rounded-md border px-3 py-2 text-sm leading-6",
-        tone === "danger"
-          ? "border-red-200 bg-red-50 text-red-700"
-          : "border-emerald-200 bg-emerald-50 text-emerald-700",
-      )}
-    >
-      {children}
-    </p>
-  );
-}
-
-function ProfileSnapshotItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0 rounded-lg border border-neutral-200 bg-neutral-50/80 px-3 py-2.5">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500">{label}</p>
-      <p className="mt-1 break-words text-sm font-semibold leading-5 text-neutral-950">{value}</p>
-    </div>
-  );
-}
-
-function ConfirmDialog({
-  confirmDisabled,
-  confirmLabel = "Continuar",
-  confirmationLabel,
-  confirmationPlaceholder,
-  confirmationValue,
-  description,
-  feedbackMessage,
-  isLoading,
-  onCancel,
-  onConfirmationChange,
-  onConfirm,
-  title,
-}: {
-  confirmDisabled?: boolean;
-  confirmLabel?: string;
-  confirmationLabel?: string;
-  confirmationPlaceholder?: string;
-  confirmationValue?: string;
-  description: string;
-  feedbackMessage?: string | null;
-  isLoading?: boolean;
-  onCancel: () => void;
-  onConfirmationChange?: (value: string) => void;
-  onConfirm: () => void;
-  title: string;
-}) {
-  return (
-    <div
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-end bg-neutral-950/45 p-3 backdrop-blur-[2px] sm:items-center sm:justify-center sm:p-4"
-      role="dialog"
-    >
-      <div className="w-full rounded-lg border border-neutral-200 bg-white p-4 shadow-[0_18px_45px_rgba(15,23,42,0.18)] sm:max-w-sm">
-        <div className="flex items-start gap-3">
-          <div className="rounded-md bg-red-50 p-2 text-red-700">
-            <AlertTriangle className="h-4 w-4" />
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-base font-semibold text-neutral-950">{title}</h2>
-            <p className="mt-1 text-sm leading-6 text-neutral-600">{description}</p>
-          </div>
-        </div>
-        {onConfirmationChange ? (
-          <div className="mt-4 space-y-2">
-            <Label htmlFor="deleteConfirmation">{confirmationLabel}</Label>
-            <Input
-              autoComplete="off"
-              className="h-11 border-red-200 focus-visible:ring-red-200"
-              id="deleteConfirmation"
-              onChange={(event) => onConfirmationChange(event.target.value)}
-              placeholder={confirmationPlaceholder}
-              value={confirmationValue}
-            />
-          </div>
-        ) : null}
-        {feedbackMessage ? (
-          <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm leading-6 text-red-700">
-            {feedbackMessage}
-          </p>
-        ) : null}
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <Button onClick={onCancel} type="button" variant="outline">
-            Cancelar
-          </Button>
-          <Button disabled={isLoading || confirmDisabled} onClick={onConfirm} type="button" variant="destructive">
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {confirmLabel}
-          </Button>
-        </div>
+    <label className="space-y-2">
+      <span className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</span>
+      <div className="relative">
+        <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          className="pl-10 pr-11"
+          onChange={(event) => onChange(event.target.value)}
+          placeholder="Minimo de 6 caracteres"
+          type={showPassword ? "text" : "password"}
+          value={value}
+        />
+        <button
+          aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+          onClick={togglePassword}
+          type="button"
+        >
+          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
       </div>
+    </label>
+  );
+}
+
+function OptionGroup({
+  onChange,
+  options,
+  value,
+}: {
+  onChange: (value: string) => void;
+  options: Option[];
+  value: string;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((option) => {
+        const selected = option.value === value;
+
+        return (
+          <button
+            aria-pressed={selected}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-bold transition-all",
+              selected
+                ? "border-primary bg-primary text-primary-foreground shadow-glow"
+                : "border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground",
+            )}
+            key={option.value}
+            onClick={() => onChange(option.value)}
+            type="button"
+          >
+            {selected ? <Check className="h-3.5 w-3.5" /> : null}
+            {option.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

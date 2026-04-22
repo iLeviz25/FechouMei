@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BellRing, Check } from "lucide-react";
 import { updateReminderPreferences } from "@/app/app/obrigacoes/actions";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { ReminderPreferences } from "@/types/database";
 
@@ -32,14 +32,14 @@ const reminderOptions: Array<{
     label: "DAS mensal",
   },
   {
-    description: "Entrega anual da declaração do MEI.",
+    description: "Entrega anual da declaracao do MEI.",
     key: "dasn_annual_enabled",
     label: "DASN-SIMEI anual",
   },
   {
     description: "Conferir entradas, despesas e fechamento.",
     key: "monthly_review_enabled",
-    label: "Revisão do mês",
+    label: "Revisao do mes",
   },
   {
     description: "Separar recibos, notas e comprovantes.",
@@ -95,7 +95,7 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
 
     latestStateRef.current = nextState;
     setReminders(nextState);
-    setStatus({ kind: "saving", message: "Salvando preferências..." });
+    setStatus({ kind: "saving", message: "Salvando preferencias..." });
 
     if (saveInFlightRef.current) {
       queuedStateRef.current = nextState;
@@ -117,7 +117,7 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
       confirmedStateRef.current = stateToSave;
       setStatus({
         kind: "success",
-        message: hasNewerState || queuedState ? "Preferências salvas no app." : result.message,
+        message: hasNewerState || queuedState ? "Preferencias salvas no app." : result.message,
       });
     } else {
       if (!hasNewerState && !queuedState) {
@@ -143,22 +143,19 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
   }
 
   return (
-    <Card className="border-neutral-200 bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
-      <CardHeader className="p-3.5 pb-2.5">
+    <Card>
+      <CardContent className="space-y-4 p-5 sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <CardTitle className="text-sm font-semibold text-neutral-950">Lembretes opcionais</CardTitle>
-            <CardDescription className="mt-1 text-xs leading-5">
-              Ative só o que vale deixar no radar.
-            </CardDescription>
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+              Lembretes no app
+            </p>
+            <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">Ative o que faz sentido</h2>
           </div>
-          <Badge variant={activeCount > 0 ? "success" : "secondary"} className="shrink-0">
-            {activeCount} ativo(s)
-          </Badge>
+          <Badge variant={activeCount > 0 ? "success" : "secondary"}>{activeCount} ativos</Badge>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-2.5 p-3.5 pt-0">
-        <div className="grid gap-2">
+
+        <div className="space-y-3">
           {reminderOptions.map((option) => {
             const active = reminders[option.key];
 
@@ -166,10 +163,10 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
               <button
                 aria-pressed={active}
                 className={cn(
-                  "flex items-start gap-3 rounded-lg border px-3 py-3 text-left transition-colors",
+                  "flex w-full items-start gap-3 rounded-[24px] border px-4 py-4 text-left transition-all",
                   active
-                    ? "border-emerald-200 bg-emerald-50/70"
-                    : "border-neutral-200 bg-neutral-50/70 hover:border-neutral-300 hover:bg-white",
+                    ? "border-primary/20 bg-primary-soft/50"
+                    : "border-border/70 bg-muted/30 hover:border-primary/20 hover:bg-primary-soft/20",
                 )}
                 key={option.key}
                 onClick={() => toggleReminder(option.key)}
@@ -177,24 +174,20 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
               >
                 <span
                   className={cn(
-                    "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border",
-                    active
-                      ? "border-emerald-200 bg-white text-emerald-700"
-                      : "border-neutral-200 bg-white text-neutral-500",
+                    "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
+                    active ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground",
                   )}
                 >
                   {active ? <Check className="h-4 w-4" /> : <BellRing className="h-4 w-4" />}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-semibold text-neutral-950">{option.label}</span>
-                  <span className="mt-1 block text-xs leading-5 text-neutral-600">{option.description}</span>
+                  <span className="block text-sm font-bold text-foreground">{option.label}</span>
+                  <span className="mt-1 block text-sm leading-6 text-muted-foreground">{option.description}</span>
                 </span>
                 <span
                   className={cn(
-                    "shrink-0 rounded-md border px-2 py-1 text-[11px] font-semibold",
-                    active
-                      ? "border-emerald-200 bg-white text-emerald-700"
-                      : "border-neutral-200 bg-white text-neutral-500",
+                    "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em]",
+                    active ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground",
                   )}
                 >
                   {active ? "Ligado" : "Desligado"}
@@ -204,28 +197,19 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
           })}
         </div>
 
-        {activeCount === 0 ? (
-          <p className="text-xs font-medium leading-5 text-neutral-500">
-            Nenhum lembrete ativo por enquanto.
-          </p>
-        ) : (
-          <p className="text-xs font-medium leading-5 text-neutral-500">
-            Base preparada para lembretes futuros. Nenhum envio externo acontece nesta etapa.
-          </p>
-        )}
+        <p className="text-xs font-semibold leading-6 text-muted-foreground">
+          Base preparada para lembretes futuros. Nenhum envio externo acontece nesta etapa.
+        </p>
 
         {status ? (
           <p
-            className={cn(
-              "text-xs font-medium",
-              status.kind === "error" ? "text-rose-600" : "text-neutral-500",
-            )}
+            className={cn("text-xs font-semibold", status.kind === "error" ? "text-destructive" : "text-muted-foreground")}
             role="status"
           >
             {status.message}
           </p>
         ) : null}
-        {isSaving ? <span className="sr-only">Salvando preferências.</span> : null}
+        {isSaving ? <span className="sr-only">Salvando preferencias.</span> : null}
       </CardContent>
     </Card>
   );

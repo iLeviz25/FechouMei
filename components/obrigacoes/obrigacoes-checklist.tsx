@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import { toggleChecklistItem } from "@/app/app/obrigacoes/actions";
 import { cn } from "@/lib/utils";
 
@@ -55,7 +55,7 @@ export function ObrigacoesChecklist({ items, monthKey }: ObrigacoesChecklistProp
 
     setLocalItems((current) => updateItemState(current, item.key, nextDone));
     setPendingKeys((current) => [...current, item.key]);
-    setStatus({ kind: "saving", message: "Salvando atualização..." });
+    setStatus({ kind: "saving", message: "Salvando atualizacao..." });
 
     void persistChecklistItem(item.key, nextDone);
   }
@@ -110,64 +110,45 @@ export function ObrigacoesChecklist({ items, monthKey }: ObrigacoesChecklistProp
   }
 
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-3">
       {localItems.map((item) => {
         const disabled = pendingKeys.includes(item.key);
 
         return (
-          <label
+          <button
             className={cn(
-              "flex min-h-[72px] cursor-pointer items-start gap-3 rounded-lg border border-neutral-200 bg-white px-3 py-3 text-sm text-neutral-800 shadow-[0_4px_14px_rgba(15,23,42,0.035)] transition-colors",
-              item.done && "border-emerald-100 bg-emerald-50/50 text-neutral-500",
+              "flex w-full items-start gap-3 rounded-[24px] border px-4 py-4 text-left transition-all",
+              item.done
+                ? "border-success/20 bg-success/10 text-muted-foreground"
+                : "border-border/70 bg-muted/30 text-foreground hover:-translate-y-0.5 hover:border-primary/20 hover:bg-primary-soft/30",
               disabled && "opacity-80",
             )}
             key={item.key}
+            onClick={() => handleToggle(item)}
+            type="button"
           >
             <span
               className={cn(
-                "relative mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border bg-white",
-                item.done ? "border-emerald-500 bg-emerald-600" : "border-neutral-300",
+                "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border-2 transition-colors",
+                item.done ? "border-success bg-success text-success-foreground" : "border-border bg-card",
               )}
             >
-              <input
-                checked={item.done}
-                className="absolute inset-0 cursor-pointer opacity-0"
-                disabled={disabled}
-                onChange={() => handleToggle(item)}
-                type="checkbox"
-              />
-              {item.done ? <Check className="h-3 w-3 text-white" /> : null}
+              {item.done ? <CheckCircle2 className="h-4 w-4" /> : null}
             </span>
             <span className="min-w-0 flex-1">
-              <span
-                className={cn(
-                  "block text-sm font-medium leading-5",
-                  item.done ? "text-neutral-500 line-through" : "text-neutral-800",
-                )}
-              >
+              <span className={cn("block text-sm font-bold leading-6", item.done && "line-through")}>
                 {item.label}
               </span>
-              <span
-                className={cn(
-                  "mt-1 block text-xs font-medium",
-                  item.done ? "text-emerald-700" : "text-neutral-600",
-                )}
-              >
-                {item.done ? "Concluído" : "Ainda falta"}
+              <span className={cn("mt-1 block text-xs font-semibold", item.done ? "text-success" : "text-muted-foreground")}>
+                {item.done ? "Concluido" : "Ainda falta"}
               </span>
             </span>
-            {disabled ? <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-neutral-400" /> : null}
-          </label>
+            {disabled ? <Loader2 className="mt-1 h-4 w-4 shrink-0 animate-spin text-muted-foreground" /> : null}
+          </button>
         );
       })}
       {status ? (
-        <p
-          className={cn(
-            "text-xs font-medium",
-            status.kind === "error" ? "text-rose-600" : "text-neutral-500",
-          )}
-          role="status"
-        >
+        <p className={cn("text-xs font-semibold", status.kind === "error" ? "text-destructive" : "text-muted-foreground")} role="status">
           {status.message}
         </p>
       ) : null}
