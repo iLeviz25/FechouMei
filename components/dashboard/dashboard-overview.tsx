@@ -105,16 +105,16 @@ export function DashboardOverview({
   ] as const;
 
   return (
-    <div className="space-y-5 pb-6">
+    <div className="mobile-section-gap">
       <section className="relative overflow-hidden rounded-[28px] bg-gradient-hero p-5 text-primary-foreground shadow-elevated sm:p-6">
         <div className="absolute inset-0 grain opacity-40" />
         <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-secondary/25 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-16 -left-10 h-40 w-40 rounded-full bg-[hsl(var(--primary-glow)/0.28)] blur-3xl" />
 
-        <div className="relative space-y-5">
+        <div className="relative space-y-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-2">
-              <Badge className="w-fit border-white/10 bg-white/10 text-primary-foreground" variant="secondary">
+              <Badge className="hero-pill w-fit" variant="secondary">
                 <Sparkles className="mr-1 h-3 w-3" />
                 Visao geral
               </Badge>
@@ -125,14 +125,14 @@ export function DashboardOverview({
                 </p>
               </div>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur">
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground/70">
+            <div className="hero-panel rounded-[24px] px-4 py-3 sm:px-5">
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
                 Saldo atual
               </p>
               <p
                 className={cn(
                   "font-mono mt-1 text-2xl font-extrabold tabular",
-                  currentBalance >= 0 ? "text-primary-foreground" : "text-secondary",
+                  currentBalance >= 0 ? "text-foreground" : "text-destructive",
                 )}
               >
                 {toCurrency(currentBalance)}
@@ -140,7 +140,7 @@ export function DashboardOverview({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <SummaryCard
               detail="registrado neste mes"
               icon={ArrowDownLeft}
@@ -178,34 +178,33 @@ export function DashboardOverview({
           <CardContent className="space-y-5 p-5 sm:p-6">
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">
-                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground/70">
+                <p className="hero-kicker text-[11px] font-bold uppercase tracking-[0.1em]">
                   Limite anual MEI
                 </p>
                 <p className="font-mono text-3xl font-extrabold tabular">{toCurrency(annualIncome)}</p>
                 <p className="text-sm text-primary-foreground/75">de {toCurrency(MEI_LIMIT)} utilizados no ano</p>
               </div>
-              <Badge
-                className="w-fit border-white/10 bg-white/10 text-primary-foreground"
-                variant="secondary"
-              >
+              <Badge className="hero-pill w-fit" variant="secondary">
                 {limitUsage >= 1 ? "Excedido" : limitUsage >= 0.75 ? "Atencao" : "Tranquilo"}
               </Badge>
             </div>
 
-            <div className="space-y-2">
-              <div className="h-3 overflow-hidden rounded-full bg-white/10">
-                <div className="h-full rounded-full bg-gradient-glow" style={{ width: `${limitUsagePercent}%` }} />
+            <div className="hero-panel rounded-[24px] p-4 sm:p-5">
+              <div className="space-y-2">
+                <div className="h-3 overflow-hidden rounded-full bg-muted/80">
+                  <div className="h-full rounded-full bg-gradient-glow" style={{ width: `${limitUsagePercent}%` }} />
+                </div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{limitUsagePercent.toFixed(1).replace(".", ",")}% do teto</span>
+                  <span>{toCurrency(remainingLimit)} disponiveis</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between text-xs text-primary-foreground/75">
-                <span>{limitUsagePercent.toFixed(1).replace(".", ",")}% do teto</span>
-                <span>{toCurrency(remainingLimit)} disponiveis</span>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <LimitStat label="Checklist" value={`${Math.min(checklistDoneCount, DASHBOARD_CHECKLIST_ITEMS)}/${DASHBOARD_CHECKLIST_ITEMS}`} />
-              <LimitStat label="Restante" value={toCurrency(remainingLimit)} />
-              <LimitStat label="Saldo" value={toCurrency(currentBalance)} />
+              <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <LimitStat label="Checklist" value={`${Math.min(checklistDoneCount, DASHBOARD_CHECKLIST_ITEMS)}/${DASHBOARD_CHECKLIST_ITEMS}`} />
+                <LimitStat label="Restante" value={toCurrency(remainingLimit)} />
+                <LimitStat label="Saldo" value={toCurrency(currentBalance)} />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -221,7 +220,7 @@ export function DashboardOverview({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-3">
               <QuickAction href="/app/movimentacoes" icon={Receipt} label="Lancar movimentacoes" />
               <QuickAction href="/app/fechamento-mensal" icon={ClipboardCheck} label="Revisar fechamento" />
               <QuickAction href="/app/obrigacoes" icon={BellRing} label="Atualizar obrigacoes" />
@@ -260,10 +259,7 @@ export function DashboardOverview({
                   const income = movement.type === "entrada";
 
                   return (
-                    <div
-                      className="flex items-center gap-3 rounded-2xl border border-border/70 bg-muted/30 px-4 py-3 transition-colors hover:bg-primary-soft/30"
-                      key={movement.id}
-                    >
+                    <div className="surface-panel-muted flex items-center gap-3 rounded-[24px] px-4 py-3.5 transition-colors hover:border-primary/20 hover:bg-primary-soft/20" key={movement.id}>
                       <div
                         className={cn(
                           "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
@@ -302,10 +298,7 @@ export function DashboardOverview({
               const Icon = alert.icon;
 
               return (
-                <div
-                  className="flex gap-3 rounded-2xl border border-border/70 bg-card p-4 shadow-card"
-                  key={alert.label}
-                >
+                <div className="surface-panel flex gap-3 rounded-[24px] p-4" key={alert.label}>
                   <div
                     className={cn(
                       "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
@@ -344,20 +337,20 @@ function SummaryCard({
   value: string;
 }) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/10 p-4 backdrop-blur">
+    <div className="hero-panel rounded-[24px] p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-primary-foreground/70">{label}</p>
-          <p className="font-mono mt-2 text-xl font-extrabold tabular text-primary-foreground">{value}</p>
-          <p className="mt-1 text-xs text-primary-foreground/70">{detail}</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
+          <p className="font-mono mt-2 text-xl font-extrabold tabular text-foreground">{value}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
         </div>
         <div
           className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
-            tone === "success" && "bg-success/15 text-white",
-            tone === "danger" && "bg-destructive/15 text-white",
-            tone === "primary" && "bg-white/15 text-white",
-            tone === "neutral" && "bg-secondary/15 text-secondary",
+            "icon-tile flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
+            tone === "success" && "bg-success/12 text-success",
+            tone === "danger" && "bg-destructive/12 text-destructive",
+            tone === "primary" && "bg-primary-soft text-primary",
+            tone === "neutral" && "bg-secondary-soft text-secondary-foreground",
           )}
         >
           <Icon className="h-4 w-4" />
@@ -369,9 +362,9 @@ function SummaryCard({
 
 function LimitStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/10 p-3 backdrop-blur">
-      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-primary-foreground/65">{label}</p>
-      <p className="mt-1 text-sm font-bold text-primary-foreground">{value}</p>
+    <div className="surface-panel-muted rounded-[22px] p-3">
+      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
+      <p className="mt-1 text-sm font-bold text-foreground">{value}</p>
     </div>
   );
 }
@@ -387,10 +380,10 @@ function QuickAction({
 }) {
   return (
     <Link
-      className="group flex min-h-[110px] flex-col justify-between rounded-[24px] border border-border/70 bg-muted/30 p-4 transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:bg-primary-soft/40"
+      className="surface-panel-muted group flex min-h-[116px] flex-col justify-between rounded-[24px] p-4 transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:bg-primary-soft/25"
       href={href}
     >
-      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+      <div className="icon-tile flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-soft text-primary">
         <Icon className="h-5 w-5" />
       </div>
       <p className="text-sm font-bold leading-5 text-foreground">{label}</p>

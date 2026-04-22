@@ -119,8 +119,8 @@ export function ObrigacoesChecklist({ items, monthKey }: ObrigacoesChecklistProp
             className={cn(
               "flex w-full items-start gap-3 rounded-[24px] border px-4 py-4 text-left transition-all",
               item.done
-                ? "border-success/20 bg-success/10 text-muted-foreground"
-                : "border-border/70 bg-muted/30 text-foreground hover:-translate-y-0.5 hover:border-primary/20 hover:bg-primary-soft/30",
+                ? "border-success/20 bg-[linear-gradient(180deg,hsl(152_56%_96%),hsl(152_30%_93%))] text-muted-foreground"
+                : "surface-panel-muted text-foreground hover:-translate-y-0.5 hover:border-primary/20 hover:bg-primary-soft/20",
               disabled && "opacity-80",
             )}
             key={item.key}
@@ -130,7 +130,7 @@ export function ObrigacoesChecklist({ items, monthKey }: ObrigacoesChecklistProp
             <span
               className={cn(
                 "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border-2 transition-colors",
-                item.done ? "border-success bg-success text-success-foreground" : "border-border bg-card",
+                item.done ? "border-success bg-success text-success-foreground" : "border-border bg-white",
               )}
             >
               {item.done ? <CheckCircle2 className="h-4 w-4" /> : null}

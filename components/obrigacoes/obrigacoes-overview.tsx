@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import {
   AlertTriangle,
   BellRing,
-  CalendarDays,
   CheckCircle2,
   ClipboardCheck,
   FileText,
@@ -191,16 +190,16 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
   ];
 
   return (
-    <div className="space-y-5 pb-6">
+    <div className="mobile-section-gap">
       <section className="relative overflow-hidden rounded-[28px] bg-gradient-hero p-5 text-primary-foreground shadow-elevated sm:p-6">
         <div className="absolute inset-0 grain opacity-40" />
         <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-secondary/25 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-16 -left-10 h-40 w-40 rounded-full bg-[hsl(var(--primary-glow)/0.28)] blur-3xl" />
 
-        <div className="relative space-y-5">
+        <div className="relative space-y-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-2">
-              <Badge className="w-fit border-white/10 bg-white/10 text-primary-foreground" variant="secondary">
+              <Badge className="hero-pill w-fit" variant="secondary">
                 <Sparkles className="mr-1 h-3 w-3" />
                 Checklist MEI
               </Badge>
@@ -211,30 +210,30 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
                 </p>
               </div>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur">
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground/70">
+            <div className="hero-panel rounded-[24px] px-4 py-3 sm:px-5">
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
                 Mes acompanhado
               </p>
-              <p className="mt-1 text-base font-extrabold">{monthLabel}</p>
+              <p className="mt-1 text-base font-extrabold text-foreground">{monthLabel}</p>
             </div>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="rounded-[24px] border border-white/10 bg-white/10 p-4 backdrop-blur">
+            <div className="hero-panel rounded-[24px] p-4 sm:p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground/70">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
                     Progresso do mes
                   </p>
-                  <p className="mt-1 text-3xl font-extrabold">{progressPercent}%</p>
+                  <p className="mt-1 text-3xl font-extrabold text-foreground">{progressPercent}%</p>
                 </div>
                 <Badge
                   className={cn(
-                    "w-fit border-white/10 text-primary-foreground",
-                    summaryTone === "success" && "bg-success/20",
-                    summaryTone === "warning" && "bg-secondary/20 text-secondary",
-                    summaryTone === "danger" && "bg-destructive/20",
-                    summaryTone === "neutral" && "bg-white/10",
+                    "w-fit",
+                    summaryTone === "success" && "border-success/15 bg-success/10 text-success",
+                    summaryTone === "warning" && "border-secondary/15 bg-secondary-soft text-secondary-foreground",
+                    summaryTone === "danger" && "border-destructive/15 bg-destructive/10 text-destructive",
+                    summaryTone === "neutral" && "border-border/70 bg-muted/70 text-foreground",
                   )}
                   variant="secondary"
                 >
@@ -242,11 +241,11 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
                 </Badge>
               </div>
 
-              <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/10">
+              <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted/80">
                 <div className="h-full rounded-full bg-gradient-glow" style={{ width: `${progressPercent}%` }} />
               </div>
 
-              <div className="mt-4 grid grid-cols-3 gap-2">
+              <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <StatusStat
                   icon={<CheckCircle2 className="h-4 w-4" />}
                   label="Concluidas"
@@ -269,7 +268,7 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
             </div>
 
             <div className="space-y-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground/70">
+              <p className="hero-kicker text-[11px] font-bold uppercase tracking-[0.1em]">
                 Atencao do mes
               </p>
               {attentionItems.length > 0 ? (
@@ -277,7 +276,7 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
                   <AttentionRow detail={item.detail} key={`${item.title}-${item.detail}`} title={item.title} tone={item.tone} />
                 ))
               ) : (
-                <div className="rounded-[24px] border border-white/10 bg-white/10 p-4 text-sm leading-6 text-primary-foreground/80 backdrop-blur">
+                <div className="hero-panel-soft rounded-[24px] p-4 text-sm leading-6 text-primary-foreground/85">
                   Nada critico no momento. Continue marcando o checklist conforme concluir.
                 </div>
               )}
@@ -310,11 +309,11 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
               const Icon = item.icon;
 
               return (
-                <div className="rounded-[24px] border border-border/70 bg-muted/30 p-4" key={item.title}>
+                <div className="surface-panel-muted rounded-[24px] p-4" key={item.title}>
                   <div className="flex items-start gap-3">
                     <div
                       className={cn(
-                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
+                        "icon-tile flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
                         item.status === "Concluido" && "bg-success/10 text-success",
                         item.status === "Em dia" && "bg-primary-soft text-primary",
                         (item.status === "Em breve" || item.status === "Hoje") &&
@@ -359,17 +358,17 @@ function StatusStat({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/10 p-3 backdrop-blur">
+    <div className="surface-panel-muted rounded-[22px] p-3">
       <div className={cn("flex h-8 w-8 items-center justify-center rounded-2xl", getSummaryToneClass(tone))}>{icon}</div>
-      <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.08em] text-primary-foreground/65">{label}</p>
-      <p className="mt-1 text-base font-extrabold text-primary-foreground">{value}</p>
+      <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
+      <p className="mt-1 text-base font-extrabold text-foreground">{value}</p>
     </div>
   );
 }
 
 function AttentionRow({ detail, title, tone }: AttentionItem) {
   return (
-    <div className="flex gap-3 rounded-[24px] border border-white/10 bg-white/10 p-4 backdrop-blur">
+    <div className="hero-panel-soft flex gap-3 rounded-[24px] p-4">
       <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl", getSummaryToneClass(tone))}>
         <AlertTriangle className="h-4 w-4" />
       </div>
@@ -394,5 +393,5 @@ function getSummaryToneClass(tone: StatusTone) {
     return "bg-destructive/20 text-white";
   }
 
-  return "bg-white/10 text-primary-foreground";
+  return "bg-white/12 text-primary-foreground";
 }

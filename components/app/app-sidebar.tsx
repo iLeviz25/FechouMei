@@ -166,7 +166,7 @@ export function AppSidebar({ profile }: AppSidebarProps) {
         </div>
       </aside>
 
-      <header className="fixed inset-x-0 top-0 z-20 border-b border-border/70 bg-card/95 px-4 py-3 shadow-sm backdrop-blur lg:hidden">
+      <header className="fixed inset-x-0 top-0 z-20 border-b border-border/70 bg-background/92 px-4 py-3 shadow-sm backdrop-blur lg:hidden">
         <div className="flex items-center justify-between gap-3">
           <Link
             className="flex items-center gap-2"
@@ -180,7 +180,7 @@ export function AppSidebar({ profile }: AppSidebarProps) {
             <Logo size="sm" />
           </Link>
           <Link
-            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border bg-background text-muted-foreground shadow-card"
+            className="surface-panel-ghost flex h-11 w-11 items-center justify-center rounded-[18px] text-muted-foreground"
             href="/app/configuracoes"
           >
             <UserCircle2 className="h-5 w-5" />
@@ -188,7 +188,7 @@ export function AppSidebar({ profile }: AppSidebarProps) {
         </div>
       </header>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-border/70 bg-card/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-border/70 bg-background/94 px-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2.5 shadow-[0_-12px_28px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden">
         {navItems.map((item) => {
           const isActive = visiblePathname === item.href;
           const Icon = item.icon;
@@ -197,8 +197,10 @@ export function AppSidebar({ profile }: AppSidebarProps) {
             <Link
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl px-1 text-[10px] font-bold transition-colors",
-                isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                "relative flex min-h-[62px] flex-col items-center justify-center gap-1.5 rounded-[20px] px-1.5 text-[10px] font-bold transition-all",
+                isActive
+                  ? "surface-panel-muted text-primary shadow-card"
+                  : "text-muted-foreground hover:bg-white/70 hover:text-foreground",
               )}
               href={item.href}
               key={item.href}
@@ -208,8 +210,15 @@ export function AppSidebar({ profile }: AppSidebarProps) {
               onTouchStart={() => warmRoute(item.href)}
               prefetch
             >
-              {isActive ? <span className="absolute -top-1 h-1 w-6 rounded-full bg-primary" /> : null}
-              <Icon className="h-4 w-4" />
+              {isActive ? <span className="absolute -top-1 h-1 w-7 rounded-full bg-primary" /> : null}
+              <span
+                className={cn(
+                  "icon-tile flex h-8 w-8 items-center justify-center rounded-2xl transition-colors",
+                  isActive ? "bg-primary text-primary-foreground" : "bg-transparent text-current",
+                )}
+              >
+                <Icon className="h-4 w-4" />
+              </span>
               <span className="max-w-full truncate">{item.shortLabel}</span>
             </Link>
           );

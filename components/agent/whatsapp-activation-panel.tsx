@@ -3,8 +3,6 @@
 import { useState, useTransition } from "react";
 import {
   Check,
-  CircleAlert,
-  Clock3,
   Copy,
   ExternalLink,
   Link2Off,
@@ -89,12 +87,12 @@ export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivatio
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge className="w-fit border-white/10 bg-white/10 text-primary-foreground" variant="secondary">
+                <Badge className="hero-pill w-fit" variant="secondary">
                   <Sparkles className="mr-1 h-3 w-3" />
                   Helena
                 </Badge>
                 {linked ? (
-                  <Badge className="w-fit border-white/10 bg-success/20 text-primary-foreground" variant="secondary">
+                  <Badge className="border-success/20 bg-success/15 text-primary-foreground" variant="secondary">
                     WhatsApp vinculado
                   </Badge>
                 ) : null}
@@ -106,23 +104,23 @@ export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivatio
                 </p>
               </div>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur">
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground/70">
+            <div className="hero-panel rounded-[24px] px-4 py-3 sm:px-5">
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
                 Status
               </p>
-              <p className="mt-1 text-base font-extrabold">{status.label}</p>
+              <p className="mt-1 text-base font-extrabold text-foreground">{status.label}</p>
             </div>
           </div>
 
-          <div className="rounded-[24px] border border-white/10 bg-white/10 p-4 backdrop-blur">
+          <div className="hero-panel rounded-[24px] p-4 sm:p-5">
             <div className="space-y-1">
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground/70">
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
                 {linked ? "Canal ativo" : "Ativacao"}
               </p>
-              <p className="text-lg font-extrabold">{status.label}</p>
-              <p className="text-sm leading-6 text-primary-foreground/80">{status.description}</p>
+              <p className="text-lg font-extrabold text-foreground">{status.label}</p>
+              <p className="text-sm leading-6 text-muted-foreground">{status.description}</p>
               {displayUserNumber ? (
-                <p className="text-sm font-semibold text-primary-foreground">WhatsApp vinculado: {displayUserNumber}</p>
+                <p className="text-sm font-semibold text-foreground">WhatsApp vinculado: {displayUserNumber}</p>
               ) : null}
             </div>
 
@@ -157,13 +155,13 @@ export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivatio
             </div>
 
             {pendingActivation ? (
-              <div className="mt-4 rounded-[20px] border border-white/10 bg-black/10 p-4">
+              <div className="surface-panel-muted mt-4 rounded-[20px] p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="space-y-1">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground/70">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
                       Codigo de ativacao
                     </p>
-                    <p className="font-mono text-xl font-extrabold tracking-[0.2em] text-primary-foreground">
+                    <p className="font-mono text-xl font-extrabold tracking-[0.2em] text-foreground">
                       {activation.activationCode}
                     </p>
                   </div>
@@ -172,7 +170,7 @@ export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivatio
                     {copyState === "code" ? "Codigo copiado" : "Copiar codigo"}
                   </Button>
                 </div>
-                <p className="mt-3 text-sm leading-6 text-primary-foreground/80">
+                <p className="mt-3 text-sm leading-6 text-muted-foreground">
                   O botao ja abre o WhatsApp com a mensagem pronta para envio.
                 </p>
               </div>
@@ -213,7 +211,7 @@ export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivatio
           {linked ? (
             <div className="grid gap-2 sm:grid-cols-2">
               {exampleMessages.map((example) => (
-                <div className="rounded-[24px] border border-border/70 bg-muted/30 px-4 py-3 text-sm font-semibold text-foreground" key={example}>
+                <div className="surface-panel-muted rounded-[24px] px-4 py-3 text-sm font-semibold text-foreground" key={example}>
                   "{example}"
                 </div>
               ))}
@@ -221,8 +219,8 @@ export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivatio
           ) : (
             <div className="space-y-2">
               {getSteps(activation.status).map((step, index) => (
-                <div className="flex gap-3 rounded-[24px] border border-border/70 bg-muted/30 px-4 py-3 text-sm leading-6 text-foreground" key={step}>
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-sm font-extrabold text-primary">
+                <div className="surface-panel-muted flex gap-3 rounded-[24px] px-4 py-3 text-sm leading-6 text-foreground" key={step}>
+                  <span className="icon-tile flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-sm font-extrabold text-primary">
                     {index + 1}
                   </span>
                   <span>{step}</span>
@@ -232,8 +230,8 @@ export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivatio
           )}
 
           {linked ? (
-            <div className="flex gap-3 rounded-[24px] border border-border/70 bg-primary-soft/40 p-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+            <div className="surface-panel-muted flex gap-3 rounded-[24px] p-4">
+              <div className="icon-tile flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
                 <ShieldCheck className="h-4 w-4" />
               </div>
               <div>

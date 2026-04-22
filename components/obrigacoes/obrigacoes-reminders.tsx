@@ -165,8 +165,8 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
                 className={cn(
                   "flex w-full items-start gap-3 rounded-[24px] border px-4 py-4 text-left transition-all",
                   active
-                    ? "border-primary/20 bg-primary-soft/50"
-                    : "border-border/70 bg-muted/30 hover:border-primary/20 hover:bg-primary-soft/20",
+                    ? "surface-panel border-primary/20 bg-primary-soft/25"
+                    : "surface-panel-muted hover:border-primary/20 hover:bg-primary-soft/20",
                 )}
                 key={option.key}
                 onClick={() => toggleReminder(option.key)}
@@ -174,8 +174,8 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
               >
                 <span
                   className={cn(
-                    "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
-                    active ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground",
+                    "icon-tile mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
+                    active ? "bg-primary text-primary-foreground" : "bg-white text-muted-foreground",
                   )}
                 >
                   {active ? <Check className="h-4 w-4" /> : <BellRing className="h-4 w-4" />}
@@ -187,7 +187,7 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
                 <span
                   className={cn(
                     "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em]",
-                    active ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground",
+                    active ? "bg-primary text-primary-foreground" : "bg-white text-muted-foreground",
                   )}
                 >
                   {active ? "Ligado" : "Desligado"}

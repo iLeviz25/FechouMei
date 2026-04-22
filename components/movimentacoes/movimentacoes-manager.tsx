@@ -6,7 +6,6 @@ import {
   ArrowUpRight,
   CalendarDays,
   CheckSquare,
-  Download,
   Filter,
   Loader2,
   Pencil,
@@ -590,7 +589,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
   }
 
   return (
-    <div className="space-y-5 pb-6">
+    <div className="mobile-section-gap">
       <header className="space-y-2">
         <Badge variant="success">Movimentacoes</Badge>
         <div className="space-y-1">
@@ -601,7 +600,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
         </div>
       </header>
 
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <SummaryCard
           icon={<ArrowDownLeft className="h-4 w-4" />}
           label="Entradas"
@@ -674,7 +673,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
           <Card>
             <CardContent className="space-y-4 p-5 sm:p-6">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex flex-1 items-center gap-2 rounded-[22px] border border-border/70 bg-muted/30 px-3">
+                <div className="surface-panel-muted flex flex-1 items-center gap-2 rounded-[22px] px-3">
                   <Search className="h-4 w-4 text-muted-foreground" />
                   <Input
                     className="border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
@@ -742,7 +741,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
               </div>
 
               {hasActiveFilters ? (
-                <div className="flex flex-col gap-2 rounded-[24px] border border-border/70 bg-muted/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="surface-panel-muted flex flex-col gap-2 rounded-[24px] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm text-muted-foreground">Mostrando apenas os registros que combinam com seus filtros.</p>
                   <Button onClick={clearFilters} size="sm" type="button" variant="ghost">
                     <Filter className="h-4 w-4" />
@@ -754,7 +753,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
           </Card>
 
           {selectionMode ? (
-            <div className="rounded-[24px] border border-primary/20 bg-primary-soft/50 p-4 shadow-card">
+            <div className="surface-panel-muted rounded-[24px] border-primary/20 bg-primary-soft/30 p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-bold text-foreground">
@@ -872,7 +871,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                             </div>
 
                             {editing ? (
-                              <form className="space-y-4 rounded-[24px] border border-border/70 bg-muted/30 p-4" noValidate onSubmit={(event) => handleUpdate(movement.id, event)}>
+                              <form className="surface-panel-muted space-y-4 rounded-[24px] p-4" noValidate onSubmit={(event) => handleUpdate(movement.id, event)}>
                                 <div className="flex items-center justify-between gap-3">
                                   <Badge variant="success">Editando este registro</Badge>
                                   <Button onClick={cancelEdit} size="sm" type="button" variant="ghost">
@@ -931,7 +930,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
       </div>
 
       <Button
-        className="fixed bottom-24 right-4 z-30 xl:hidden"
+        className="fixed bottom-28 right-4 z-30 shadow-elevated xl:hidden"
         onClick={() => setMobileCreateOpen((current) => !current)}
         size="lg"
         type="button"
@@ -1036,7 +1035,7 @@ function SummaryCard({
           </div>
           <div
             className={cn(
-              "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
+              "icon-tile flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
               tone === "success" && "bg-success/10 text-success",
               tone === "danger" && "bg-destructive/10 text-destructive",
               tone === "primary" && "bg-primary-soft text-primary",
@@ -1062,7 +1061,7 @@ function EmptyState({
   title: string;
 }) {
   return (
-    <Card className="border-dashed">
+    <Card className="surface-panel-ghost border-dashed">
       <CardContent className="p-6 text-center">
         <p className="text-base font-extrabold text-foreground">{title}</p>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>

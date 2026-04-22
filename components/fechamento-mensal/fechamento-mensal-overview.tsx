@@ -130,13 +130,13 @@ export function FechamentoMensalOverview({
   ];
 
   return (
-    <div className="space-y-5 pb-6">
+    <div className="mobile-section-gap">
       <section className="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
         <Card className="overflow-hidden bg-gradient-hero text-primary-foreground">
-          <CardContent className="space-y-5 p-5 sm:p-6">
+          <CardContent className="space-y-6 p-5 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-2">
-                <Badge className="w-fit border-white/10 bg-white/10 text-primary-foreground" variant="secondary">
+                <Badge className="hero-pill w-fit" variant="secondary">
                   <Sparkles className="mr-1 h-3 w-3" />
                   Fechamento mensal
                 </Badge>
@@ -148,14 +148,14 @@ export function FechamentoMensalOverview({
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur">
-                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground/70">
+              <div className="hero-panel rounded-[24px] px-4 py-3 sm:px-5">
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
                   Resultado do mes
                 </p>
                 <p
                   className={cn(
                     "font-mono mt-1 text-2xl font-extrabold tabular",
-                    monthBalance >= 0 ? "text-primary-foreground" : "text-secondary",
+                    monthBalance >= 0 ? "text-foreground" : "text-destructive",
                   )}
                 >
                   {toCurrency(monthBalance)}
@@ -163,7 +163,7 @@ export function FechamentoMensalOverview({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <MetricCard detail="total do mes" icon={ArrowDownLeft} label="Entradas" tone="success" value={toCurrency(monthlyIncome)} />
               <MetricCard detail="total do mes" icon={ArrowUpRight} label="Despesas" tone="danger" value={toCurrency(monthlyExpense)} />
               <MetricCard
@@ -257,7 +257,7 @@ export function FechamentoMensalOverview({
               <div className="divide-y divide-border/60">
                 {movements.map((movement) => (
                   <div
-                    className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-primary-soft/30 sm:px-5"
+                    className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-primary-soft/20 sm:px-5"
                     key={movement.id}
                   >
                     <div
@@ -316,19 +316,19 @@ function MetricCard({
   value: string;
 }) {
   return (
-    <div className={cn("rounded-3xl border border-white/10 bg-white/10 p-4 backdrop-blur", className)}>
+    <div className={cn("hero-panel rounded-[24px] p-4", className)}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-primary-foreground/70">{label}</p>
-          <p className="font-mono mt-2 text-xl font-extrabold tabular text-primary-foreground">{value}</p>
-          <p className="mt-1 text-xs text-primary-foreground/70">{detail}</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
+          <p className="font-mono mt-2 text-xl font-extrabold tabular text-foreground">{value}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
         </div>
         <div
           className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
-            tone === "success" && "bg-success/15 text-white",
-            tone === "danger" && "bg-destructive/15 text-white",
-            tone === "primary" && "bg-white/15 text-white",
+            "icon-tile flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
+            tone === "success" && "bg-success/12 text-success",
+            tone === "danger" && "bg-destructive/12 text-destructive",
+            tone === "primary" && "bg-primary-soft text-primary",
           )}
         >
           <Icon className="h-4 w-4" />
@@ -376,10 +376,10 @@ function HighlightCard({
   value: string;
 }) {
   return (
-    <div className="rounded-[24px] border border-border/70 bg-muted/30 p-4">
+    <div className="surface-panel-muted rounded-[24px] p-4">
       <div
         className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-2xl",
+          "icon-tile flex h-10 w-10 items-center justify-center rounded-2xl",
           tone === "success" && "bg-success/10 text-success",
           tone === "danger" && "bg-destructive/10 text-destructive",
           tone === "warning" && "bg-secondary-soft text-secondary-foreground",

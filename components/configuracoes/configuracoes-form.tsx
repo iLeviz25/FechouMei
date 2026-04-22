@@ -234,7 +234,7 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
   }
 
   return (
-    <div className="space-y-5 pb-6">
+    <div className="mobile-section-gap">
       <section className="relative overflow-hidden rounded-[28px] bg-gradient-hero p-5 text-primary-foreground shadow-elevated sm:p-6">
         <div className="absolute inset-0 grain opacity-40" />
         <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-secondary/25 blur-3xl" />
@@ -242,7 +242,7 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
 
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="flex min-w-0 items-start gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[24px] bg-white/10 text-lg font-extrabold backdrop-blur">
+            <div className="hero-panel-soft flex h-16 w-16 shrink-0 items-center justify-center rounded-[24px] text-lg font-extrabold">
               {values.fullName
                 .split(" ")
                 .filter(Boolean)
@@ -251,7 +251,7 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
                 .join("") || "ME"}
             </div>
             <div className="min-w-0 space-y-2">
-              <Badge className="w-fit border-white/10 bg-white/10 text-primary-foreground" variant="secondary">
+              <Badge className="hero-pill w-fit" variant="secondary">
                 <ShieldCheck className="mr-1 h-3 w-3" />
                 Conta e preferencias
               </Badge>
@@ -265,11 +265,11 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
               </div>
             </div>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur">
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground/70">
+          <div className="hero-panel rounded-[24px] px-4 py-3 sm:px-5">
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
               Saldo inicial
             </p>
-            <p className="font-mono mt-1 text-lg font-extrabold tabular">
+            <p className="font-mono mt-1 text-lg font-extrabold tabular text-foreground">
               {formatInitialBalanceLabel(values.initialBalance)}
             </p>
           </div>
@@ -290,7 +290,7 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
               </Button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {profileSnapshotItems.map((item) => (
                 <ProfileSnapshotItem key={item.label} label={item.label} value={item.value} />
               ))}
@@ -439,7 +439,7 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
               </div>
             </div>
           ) : (
-            <div className="rounded-[24px] border border-border/70 bg-muted/30 p-5 text-sm leading-6 text-muted-foreground">
+            <div className="surface-panel-muted rounded-[24px] p-5 text-sm leading-6 text-muted-foreground">
               Toque em editar para atualizar seu perfil, categoria, objetivo e saldo inicial.
             </div>
           )}
@@ -633,7 +633,7 @@ function ActionCard({
         "flex w-full items-start gap-3 rounded-[24px] border p-4 text-left transition-all",
         tone === "danger"
           ? "border-destructive/20 bg-destructive/5 hover:border-destructive/30"
-          : "border-border/70 bg-muted/30 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-primary-soft/20",
+          : "surface-panel-muted hover:-translate-y-0.5 hover:border-primary/20 hover:bg-primary-soft/20",
       )}
       onClick={onClick}
       type="button"
@@ -656,7 +656,7 @@ function ActionCard({
 
 function ProfileSnapshotItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 rounded-[24px] border border-border/70 bg-muted/30 px-4 py-3">
+    <div className="surface-panel-muted min-w-0 rounded-[24px] px-4 py-3">
       <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
       <p className="mt-1 break-words text-sm font-bold leading-6 text-foreground">{value}</p>
     </div>

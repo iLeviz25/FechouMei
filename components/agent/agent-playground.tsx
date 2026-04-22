@@ -138,7 +138,7 @@ export function AgentPlayground({
   return (
     <Card className="flex min-h-[620px] flex-col overflow-hidden">
       <CardContent className="flex flex-1 flex-col p-0">
-        <div className="flex items-center gap-3 border-b border-border/70 bg-muted/30 px-5 py-4">
+        <div className="surface-panel-muted flex items-center gap-3 border-b border-border/70 px-4 py-4 sm:px-5">
           <div className="relative flex h-11 w-11 items-center justify-center rounded-full bg-gradient-brand text-primary-foreground shadow-glow">
             <Bot className="h-5 w-5" />
             <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-success ring-2 ring-card" />
@@ -165,7 +165,7 @@ export function AgentPlayground({
         <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5">
           {empty ? (
             <div className="flex h-full flex-col items-center justify-center px-2 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+              <div className="icon-tile flex h-14 w-14 items-center justify-center rounded-[22px] bg-primary-soft text-primary">
                 <Bot className="h-6 w-6" />
               </div>
               <h2 className="mt-4 text-xl font-extrabold tracking-tight text-foreground">Como posso ajudar?</h2>
@@ -201,7 +201,7 @@ export function AgentPlayground({
                         "rounded-[22px] px-4 py-3 text-sm leading-6 shadow-sm",
                         message.role === "user"
                           ? "rounded-br-md bg-gradient-brand text-primary-foreground"
-                          : "rounded-bl-md border border-border/70 bg-muted/30 text-foreground",
+                          : "surface-panel-muted rounded-bl-md text-foreground",
                       )}
                     >
                       {message.content}
@@ -212,7 +212,7 @@ export function AgentPlayground({
 
               {isPending ? (
                 <div className="flex justify-start">
-                  <div className="flex items-center gap-2 rounded-[22px] rounded-bl-md border border-border/70 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+                  <div className="surface-panel-muted flex items-center gap-2 rounded-[22px] rounded-bl-md px-4 py-3 text-sm text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Pensando...
                   </div>
@@ -229,7 +229,7 @@ export function AgentPlayground({
             <div className="flex gap-2 overflow-x-auto pb-1">
               {examples.map((example) => (
                 <button
-                  className="shrink-0 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/30 hover:bg-primary-soft/30"
+                  className="surface-panel-ghost shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/30 hover:bg-primary-soft/25"
                   disabled={isPending}
                   key={example}
                   onClick={() => submitMessage(example)}

@@ -18,7 +18,7 @@ type MonthSelectorProps = {
 const monthOptions = [
   { label: "Janeiro", value: "01" },
   { label: "Fevereiro", value: "02" },
-  { label: "Março", value: "03" },
+  { label: "Marco", value: "03" },
   { label: "Abril", value: "04" },
   { label: "Maio", value: "05" },
   { label: "Junho", value: "06" },
@@ -71,7 +71,7 @@ export function MonthSelector({ monthValue, yearValue, nextHref, previousHref }:
           </div>
         </div>
 
-        <form className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_110px]" onSubmit={handleSubmit}>
+        <form className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_116px]" onSubmit={handleSubmit}>
           <label className="space-y-2 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
             Mes
             <Select onChange={(event) => setSelectedMonth(event.target.value)} value={selectedMonth}>
