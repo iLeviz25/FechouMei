@@ -235,14 +235,13 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
 
   return (
     <div className="mobile-section-gap">
-      <section className="relative overflow-hidden rounded-[28px] bg-gradient-hero p-5 text-primary-foreground shadow-elevated sm:p-6">
-        <div className="absolute inset-0 grain opacity-40" />
-        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-secondary/25 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-16 -left-10 h-40 w-40 rounded-full bg-[hsl(var(--primary-glow)/0.28)] blur-3xl" />
+      <section className="summary-shell relative overflow-hidden rounded-[32px] p-5 sm:p-6">
+        <div className="pointer-events-none absolute -right-10 top-0 h-36 w-36 rounded-full bg-secondary/12 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-12 left-0 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
 
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="flex min-w-0 items-start gap-4">
-            <div className="hero-panel-soft flex h-16 w-16 shrink-0 items-center justify-center rounded-[24px] text-lg font-extrabold">
+            <div className="hero-panel flex h-16 w-16 shrink-0 items-center justify-center rounded-[24px] text-lg font-extrabold">
               {values.fullName
                 .split(" ")
                 .filter(Boolean)
@@ -259,14 +258,14 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
                 <h1 className="truncate text-2xl font-extrabold tracking-tight sm:text-3xl">
                   {values.fullName || "Sua conta"}
                 </h1>
-                <p className="mt-1 text-sm leading-6 text-primary-foreground/80">
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
                   Ajuste seus dados, sua senha e as acoes da conta sem mexer na estrutura do app.
                 </p>
               </div>
             </div>
           </div>
           <div className="hero-panel rounded-[24px] px-4 py-3 sm:px-5">
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary/70">
               Saldo inicial
             </p>
             <p className="font-mono mt-1 text-lg font-extrabold tabular text-foreground">
@@ -633,7 +632,7 @@ function ActionCard({
         "flex w-full items-start gap-3 rounded-[24px] border p-4 text-left transition-all",
         tone === "danger"
           ? "border-destructive/20 bg-destructive/5 hover:border-destructive/30"
-          : "surface-panel-muted hover:-translate-y-0.5 hover:border-primary/20 hover:bg-primary-soft/20",
+          : "surface-panel hover:-translate-y-0.5 hover:border-primary/20 hover:bg-primary-soft/20",
       )}
       onClick={onClick}
       type="button"
@@ -656,7 +655,7 @@ function ActionCard({
 
 function ProfileSnapshotItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="surface-panel-muted min-w-0 rounded-[24px] px-4 py-3">
+    <div className="hero-panel-soft min-w-0 rounded-[24px] px-4 py-3">
       <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
       <p className="mt-1 break-words text-sm font-bold leading-6 text-foreground">{value}</p>
     </div>
@@ -754,7 +753,7 @@ function OptionGroup({
               "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-bold transition-all",
               selected
                 ? "border-primary bg-primary text-primary-foreground shadow-glow"
-                : "border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground",
+                : "surface-panel-ghost text-muted-foreground hover:border-primary/30 hover:text-foreground",
             )}
             key={option.value}
             onClick={() => onChange(option.value)}

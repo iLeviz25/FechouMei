@@ -191,10 +191,9 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
 
   return (
     <div className="mobile-section-gap">
-      <section className="relative overflow-hidden rounded-[28px] bg-gradient-hero p-5 text-primary-foreground shadow-elevated sm:p-6">
-        <div className="absolute inset-0 grain opacity-40" />
-        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-secondary/25 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-16 -left-10 h-40 w-40 rounded-full bg-[hsl(var(--primary-glow)/0.28)] blur-3xl" />
+      <section className="summary-shell relative overflow-hidden rounded-[32px] p-5 sm:p-6">
+        <div className="pointer-events-none absolute -right-10 top-0 h-36 w-36 rounded-full bg-secondary/12 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-12 left-0 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
 
         <div className="relative space-y-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -205,13 +204,13 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
               </Badge>
               <div className="space-y-1">
                 <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Obrigacoes do mes</h1>
-                <p className="max-w-2xl text-sm leading-6 text-primary-foreground/80">
+                <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
                   Veja o que ja foi feito, o que falta marcar e o que merece sua atencao agora.
                 </p>
               </div>
             </div>
             <div className="hero-panel rounded-[24px] px-4 py-3 sm:px-5">
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary/70">
                 Mes acompanhado
               </p>
               <p className="mt-1 text-base font-extrabold text-foreground">{monthLabel}</p>
@@ -222,7 +221,7 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
             <div className="hero-panel rounded-[24px] p-4 sm:p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary/70">
                     Progresso do mes
                   </p>
                   <p className="mt-1 text-3xl font-extrabold text-foreground">{progressPercent}%</p>
@@ -276,7 +275,7 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
                   <AttentionRow detail={item.detail} key={`${item.title}-${item.detail}`} title={item.title} tone={item.tone} />
                 ))
               ) : (
-                <div className="hero-panel-soft rounded-[24px] p-4 text-sm leading-6 text-primary-foreground/85">
+                <div className="hero-panel-soft rounded-[24px] p-4 text-sm leading-6 text-muted-foreground">
                   Nada critico no momento. Continue marcando o checklist conforme concluir.
                 </div>
               )}
@@ -373,8 +372,8 @@ function AttentionRow({ detail, title, tone }: AttentionItem) {
         <AlertTriangle className="h-4 w-4" />
       </div>
       <div className="min-w-0">
-        <p className="text-sm font-bold text-primary-foreground">{title}</p>
-        <p className="mt-1 text-sm leading-6 text-primary-foreground/80">{detail}</p>
+        <p className="text-sm font-bold text-foreground">{title}</p>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">{detail}</p>
       </div>
     </div>
   );
@@ -382,16 +381,16 @@ function AttentionRow({ detail, title, tone }: AttentionItem) {
 
 function getSummaryToneClass(tone: StatusTone) {
   if (tone === "success") {
-    return "bg-success/20 text-white";
+    return "bg-success/12 text-success";
   }
 
   if (tone === "warning") {
-    return "bg-secondary/20 text-secondary";
+    return "bg-secondary-soft text-secondary-foreground";
   }
 
   if (tone === "danger") {
-    return "bg-destructive/20 text-white";
+    return "bg-destructive/12 text-destructive";
   }
 
-  return "bg-white/12 text-primary-foreground";
+  return "bg-primary-soft text-primary";
 }

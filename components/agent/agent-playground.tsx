@@ -138,7 +138,7 @@ export function AgentPlayground({
   return (
     <Card className="flex min-h-[620px] flex-col overflow-hidden">
       <CardContent className="flex flex-1 flex-col p-0">
-        <div className="surface-panel-muted flex items-center gap-3 border-b border-border/70 px-4 py-4 sm:px-5">
+        <div className="surface-panel flex items-center gap-3 border-b border-border/70 px-4 py-4 sm:px-5">
           <div className="relative flex h-11 w-11 items-center justify-center rounded-full bg-gradient-brand text-primary-foreground shadow-glow">
             <Bot className="h-5 w-5" />
             <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-success ring-2 ring-card" />
@@ -175,7 +175,7 @@ export function AgentPlayground({
               <div className="mt-5 flex flex-wrap justify-center gap-2">
                 {examples.map((example) => (
                   <button
-                    className="rounded-full border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:border-primary/30 hover:bg-primary-soft/30"
+                    className="surface-panel-ghost rounded-full px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:border-primary/30 hover:bg-primary-soft/30"
                     disabled={isPending}
                     key={example}
                     onClick={() => submitMessage(example)}
@@ -225,7 +225,7 @@ export function AgentPlayground({
         </div>
 
         {!empty ? (
-          <div className="border-t border-border/70 bg-muted/20 px-4 py-3 sm:px-5">
+          <div className="border-t border-border/70 bg-muted/10 px-4 py-3 sm:px-5">
             <div className="flex gap-2 overflow-x-auto pb-1">
               {examples.map((example) => (
                 <button
@@ -242,9 +242,9 @@ export function AgentPlayground({
           </div>
         ) : null}
 
-        <form className="flex items-end gap-2 border-t border-border/70 bg-card px-4 py-4 sm:px-5" onSubmit={handleSubmit}>
+        <form className="flex items-end gap-2 border-t border-border/70 bg-muted/10 px-4 py-4 sm:px-5" onSubmit={handleSubmit}>
           <textarea
-            className="min-h-[52px] max-h-32 flex-1 resize-none rounded-[20px] border border-input bg-background px-4 py-3 text-sm leading-6 shadow-sm outline-none transition-all placeholder:text-muted-foreground focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
+            className="surface-panel-ghost min-h-[52px] max-h-32 flex-1 resize-none rounded-[20px] px-4 py-3 text-sm leading-6 shadow-sm outline-none transition-all placeholder:text-muted-foreground focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isPending}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={(event) => {

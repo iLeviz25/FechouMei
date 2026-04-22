@@ -106,10 +106,9 @@ export function DashboardOverview({
 
   return (
     <div className="mobile-section-gap">
-      <section className="relative overflow-hidden rounded-[28px] bg-gradient-hero p-5 text-primary-foreground shadow-elevated sm:p-6">
-        <div className="absolute inset-0 grain opacity-40" />
-        <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-secondary/25 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-16 -left-10 h-40 w-40 rounded-full bg-[hsl(var(--primary-glow)/0.28)] blur-3xl" />
+      <section className="summary-shell relative overflow-hidden rounded-[32px] p-5 sm:p-6">
+        <div className="pointer-events-none absolute -right-10 top-0 h-36 w-36 rounded-full bg-secondary/12 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-12 left-0 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
 
         <div className="relative space-y-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -120,13 +119,13 @@ export function DashboardOverview({
               </Badge>
               <div className="space-y-1">
                 <DashboardGreeting />
-                <p className="max-w-2xl text-sm leading-6 text-primary-foreground/80">
+                <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
                   Entradas, despesas, fechamento e limite do MEI em uma leitura so.
                 </p>
               </div>
             </div>
             <div className="hero-panel rounded-[24px] px-4 py-3 sm:px-5">
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary/70">
                 Saldo atual
               </p>
               <p
@@ -174,7 +173,7 @@ export function DashboardOverview({
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <Card className="overflow-hidden bg-gradient-hero text-primary-foreground">
+        <Card className="summary-shell overflow-hidden">
           <CardContent className="space-y-5 p-5 sm:p-6">
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">
@@ -182,7 +181,7 @@ export function DashboardOverview({
                   Limite anual MEI
                 </p>
                 <p className="font-mono text-3xl font-extrabold tabular">{toCurrency(annualIncome)}</p>
-                <p className="text-sm text-primary-foreground/75">de {toCurrency(MEI_LIMIT)} utilizados no ano</p>
+                <p className="text-sm text-muted-foreground">de {toCurrency(MEI_LIMIT)} utilizados no ano</p>
               </div>
               <Badge className="hero-pill w-fit" variant="secondary">
                 {limitUsage >= 1 ? "Excedido" : limitUsage >= 0.75 ? "Atencao" : "Tranquilo"}
@@ -340,9 +339,9 @@ function SummaryCard({
     <div className="hero-panel rounded-[24px] p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-primary/70">{label}</p>
           <p className="font-mono mt-2 text-xl font-extrabold tabular text-foreground">{value}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
+          <p className="mt-1 text-xs text-primary/70">{detail}</p>
         </div>
         <div
           className={cn(
@@ -362,7 +361,7 @@ function SummaryCard({
 
 function LimitStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="surface-panel-muted rounded-[22px] p-3">
+    <div className="hero-panel-soft rounded-[22px] p-3">
       <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
       <p className="mt-1 text-sm font-bold text-foreground">{value}</p>
     </div>

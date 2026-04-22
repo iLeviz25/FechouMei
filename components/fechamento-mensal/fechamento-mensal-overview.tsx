@@ -132,7 +132,7 @@ export function FechamentoMensalOverview({
   return (
     <div className="mobile-section-gap">
       <section className="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
-        <Card className="overflow-hidden bg-gradient-hero text-primary-foreground">
+        <Card className="summary-shell overflow-hidden">
           <CardContent className="space-y-6 p-5 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-2">
@@ -142,14 +142,14 @@ export function FechamentoMensalOverview({
                 </Badge>
                 <div className="space-y-1">
                   <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Fechamento de {monthLabel}</h1>
-                  <p className="max-w-2xl text-sm leading-6 text-primary-foreground/80">
+                  <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
                     Revise o mes, compare com o anterior e confira os registros usados no fechamento.
                   </p>
                 </div>
               </div>
 
               <div className="hero-panel rounded-[24px] px-4 py-3 sm:px-5">
-                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary/70">
                   Resultado do mes
                 </p>
                 <p
@@ -319,9 +319,9 @@ function MetricCard({
     <div className={cn("hero-panel rounded-[24px] p-4", className)}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-primary/70">{label}</p>
           <p className="font-mono mt-2 text-xl font-extrabold tabular text-foreground">{value}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
+          <p className="mt-1 text-xs text-primary/70">{detail}</p>
         </div>
         <div
           className={cn(
@@ -343,7 +343,7 @@ function ComparisonRow({ delta, label, value }: { delta: number; label: string; 
   const TrendIcon = positive ? TrendingUp : TrendingDown;
 
   return (
-    <div className="flex items-start justify-between gap-3 rounded-2xl border border-border/70 bg-muted/30 px-4 py-3">
+    <div className="surface-panel-muted flex items-start justify-between gap-3 rounded-2xl px-4 py-3">
       <div className="min-w-0">
         <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
         <p className="font-mono mt-1 text-base font-extrabold tabular text-foreground">{value}</p>
@@ -376,7 +376,7 @@ function HighlightCard({
   value: string;
 }) {
   return (
-    <div className="surface-panel-muted rounded-[24px] p-4">
+    <div className="hero-panel-soft rounded-[24px] p-4">
       <div
         className={cn(
           "icon-tile flex h-10 w-10 items-center justify-center rounded-2xl",

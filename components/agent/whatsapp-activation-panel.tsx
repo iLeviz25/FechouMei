@@ -82,8 +82,8 @@ export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivatio
 
   return (
     <div className="space-y-5">
-      <Card className="overflow-hidden bg-gradient-hero text-primary-foreground">
-        <CardContent className="space-y-5 p-5 sm:p-6">
+      <Card className="summary-shell overflow-hidden">
+          <CardContent className="space-y-5 p-5 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
@@ -92,20 +92,20 @@ export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivatio
                   Helena
                 </Badge>
                 {linked ? (
-                  <Badge className="border-success/20 bg-success/15 text-primary-foreground" variant="secondary">
+                  <Badge className="border-success/20 bg-success/10 text-success" variant="secondary">
                     WhatsApp vinculado
                   </Badge>
                 ) : null}
               </div>
               <div className="space-y-1">
                 <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Helena no WhatsApp</h1>
-                <p className="max-w-2xl text-sm leading-6 text-primary-foreground/80">
+                <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
                   Use o WhatsApp como canal principal para registrar movimentacoes e consultar seu mes em segundos.
                 </p>
               </div>
             </div>
             <div className="hero-panel rounded-[24px] px-4 py-3 sm:px-5">
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary/70">
                 Status
               </p>
               <p className="mt-1 text-base font-extrabold text-foreground">{status.label}</p>
@@ -114,7 +114,7 @@ export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivatio
 
           <div className="hero-panel rounded-[24px] p-4 sm:p-5">
             <div className="space-y-1">
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary/70">
                 {linked ? "Canal ativo" : "Ativacao"}
               </p>
               <p className="text-lg font-extrabold text-foreground">{status.label}</p>

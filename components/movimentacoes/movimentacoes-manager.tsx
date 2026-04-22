@@ -753,7 +753,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
           </Card>
 
           {selectionMode ? (
-            <div className="surface-panel-muted rounded-[24px] border-primary/20 bg-primary-soft/30 p-4">
+            <div className="surface-panel rounded-[24px] border-primary/16 p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-bold text-foreground">
@@ -1024,12 +1024,19 @@ function SummaryCard({
   value: string;
 }) {
   return (
-    <Card className={cn("overflow-hidden", className)}>
+    <Card className={cn("hero-panel overflow-hidden border-primary/16", className)}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
-            <p className={cn("font-mono mt-2 text-xl font-extrabold tabular", tone === "success" && "text-success", tone === "danger" && "text-destructive", tone === "primary" && "text-foreground")}>
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-primary/70">{label}</p>
+            <p
+              className={cn(
+                "font-mono mt-2 text-xl font-extrabold tabular",
+                tone === "success" && "text-success",
+                tone === "danger" && "text-foreground",
+                tone === "primary" && "text-foreground",
+              )}
+            >
               {value}
             </p>
           </div>
@@ -1063,7 +1070,10 @@ function EmptyState({
   return (
     <Card className="surface-panel-ghost border-dashed">
       <CardContent className="p-6 text-center">
-        <p className="text-base font-extrabold text-foreground">{title}</p>
+        <div className="icon-tile mx-auto flex h-12 w-12 items-center justify-center rounded-[20px] bg-primary-soft text-primary">
+          <Plus className="h-5 w-5" />
+        </div>
+        <p className="mt-4 text-base font-extrabold text-foreground">{title}</p>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
         <Button className="mt-4" onClick={onAction} size="sm" type="button">
           <Plus className="h-4 w-4" />
@@ -1102,7 +1112,7 @@ function OptionGroup({
               "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-bold transition-all",
               selected
                 ? "border-primary bg-primary text-primary-foreground shadow-glow"
-                : "border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground",
+                : "surface-panel-ghost text-muted-foreground hover:border-primary/30 hover:text-foreground",
             )}
             key={option.value}
             name={name}
