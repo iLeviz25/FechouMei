@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BellRing, Check } from "lucide-react";
+import {
+  BellRing,
+  CalendarCheck2,
+  Check,
+  ClipboardList,
+  FileText,
+  ReceiptText,
+  type LucideIcon,
+} from "lucide-react";
 import { updateReminderPreferences } from "@/app/app/obrigacoes/actions";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,28 +31,33 @@ type ReminderStatus =
 
 const reminderOptions: Array<{
   description: string;
+  icon: LucideIcon;
   key: ReminderKey;
   label: string;
 }> = [
   {
-    description: "Pagamento mensal do DAS.",
+    description: "Preferencia para avisar antes do vencimento mensal do DAS.",
+    icon: FileText,
     key: "das_monthly_enabled",
     label: "DAS mensal",
   },
   {
-    description: "Entrega anual da declaracao do MEI.",
+    description: "Preferencia para lembrar da declaracao anual do MEI.",
+    icon: BellRing,
     key: "dasn_annual_enabled",
-    label: "DASN-SIMEI anual",
+    label: "DASN-SIMEI",
   },
   {
-    description: "Conferir entradas, despesas e fechamento.",
+    description: "Preferencia para revisar entradas, despesas e fechamento.",
+    icon: ClipboardList,
     key: "monthly_review_enabled",
-    label: "Revisao do mes",
+    label: "Revisao mensal",
   },
   {
-    description: "Separar recibos, notas e comprovantes.",
+    description: "Preferencia para nao esquecer notas, recibos e comprovantes.",
+    icon: ReceiptText,
     key: "receipts_enabled",
-    label: "Guardar comprovantes",
+    label: "Comprovantes",
   },
 ];
 
@@ -143,29 +156,28 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
   }
 
   return (
-    <Card>
+    <Card className="overflow-hidden rounded-[32px]">
       <CardContent className="space-y-4 p-5 sm:p-6">
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-              Lembretes no app
-            </p>
-            <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">Ative o que faz sentido</h2>
+          <div className="space-y-1">
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-foreground">Lembretes no app</p>
+            <h2 className="text-lg font-extrabold tracking-tight text-foreground">Receba avisos antes das obrigacoes</h2>
           </div>
           <Badge variant={activeCount > 0 ? "success" : "secondary"}>{activeCount} ativos</Badge>
         </div>
 
         <div className="space-y-3">
           {reminderOptions.map((option) => {
+            const Icon = option.icon;
             const active = reminders[option.key];
 
             return (
               <button
                 aria-pressed={active}
                 className={cn(
-                  "flex w-full items-start gap-3 rounded-[24px] border px-4 py-4 text-left transition-all",
+                  "flex w-full items-center gap-3 rounded-[24px] border px-4 py-4 text-left transition-all",
                   active
-                    ? "surface-panel border-primary/20 bg-primary-soft/25"
+                    ? "border-primary/18 bg-[linear-gradient(180deg,hsl(152_56%_96%),hsl(152_30%_93%))]"
                     : "surface-panel-muted hover:border-primary/20 hover:bg-primary-soft/20",
                 )}
                 key={option.key}
@@ -174,23 +186,33 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
               >
                 <span
                   className={cn(
-                    "icon-tile mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
+                    "icon-tile flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
                     active ? "bg-primary text-primary-foreground" : "bg-white text-muted-foreground",
                   )}
                 >
-                  {active ? <Check className="h-4 w-4" /> : <BellRing className="h-4 w-4" />}
+                  <Icon className="h-5 w-5" />
                 </span>
+
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-bold text-foreground">{option.label}</span>
+                  <span className="block text-base font-extrabold tracking-tight text-foreground">{option.label}</span>
                   <span className="mt-1 block text-sm leading-6 text-muted-foreground">{option.description}</span>
                 </span>
+
                 <span
+                  aria-hidden="true"
                   className={cn(
-                    "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em]",
-                    active ? "bg-primary text-primary-foreground" : "bg-white text-muted-foreground",
+                    "relative flex h-8 w-14 shrink-0 items-center rounded-full p-1 transition-colors",
+                    active ? "bg-primary" : "bg-muted",
                   )}
                 >
-                  {active ? "Ligado" : "Desligado"}
+                  <span
+                    className={cn(
+                      "flex h-6 w-6 items-center justify-center rounded-full bg-white text-primary shadow-card transition-transform",
+                      active ? "translate-x-6" : "translate-x-0 text-muted-foreground",
+                    )}
+                  >
+                    {active ? <Check className="h-3.5 w-3.5" /> : <CalendarCheck2 className="h-3.5 w-3.5" />}
+                  </span>
                 </span>
               </button>
             );

@@ -1,7 +1,7 @@
 "use client";
 
-import { type FormEvent, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { Bot, Loader2, Send, Trash2 } from "lucide-react";
+import { type FormEvent, useEffect, useRef, useState, useTransition } from "react";
+import { Bot, Loader2, Send, Sparkles, Trash2 } from "lucide-react";
 import { clearAgentConversation, sendAgentMessage } from "@/app/app/agente/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,16 +10,16 @@ import { cn } from "@/lib/utils";
 import type { AgentConversationSnapshot, AgentConversationState, AgentMessage } from "@/lib/agent/types";
 
 const examples = [
-  "Paguei 120 de internet",
-  "Como esta meu mes?",
-  "Qual meu limite do MEI?",
-  "Quais obrigacoes estao pendentes?",
+  "Resumo do mes",
+  "Quanto falta pro limite MEI",
+  "DAS de Abril",
+  "Maior despesa da semana",
 ];
 
 const welcomeMessage: AgentMessage = {
   id: "welcome",
   role: "agent",
-  content: "Oi, eu sou a Helena. Posso te ajudar com resumo do mes, limite do MEI e registros rapidos.",
+  content: "Oi, eu sou a Helena. Posso te ajudar com resumo do mes, limite do MEI, DAS e registros rapidos.",
 };
 
 export function AgentPlayground({
@@ -35,18 +35,6 @@ export function AgentPlayground({
   );
   const [isPending, startTransition] = useTransition();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const stateLabel = useMemo(() => {
-    if (state.status === "awaiting_confirmation") {
-      return "Aguardando confirmacao";
-    }
-
-    if (state.status === "collecting") {
-      return "Coletando dados";
-    }
-
-    return "Pronta";
-  }, [state.status]);
-
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, isPending]);
@@ -136,23 +124,25 @@ export function AgentPlayground({
   const empty = messages.length === 1 && messages[0]?.id === "welcome";
 
   return (
-    <Card className="flex min-h-[620px] flex-col overflow-hidden">
-      <CardContent className="flex flex-1 flex-col p-0">
+    <Card className="overflow-hidden rounded-[30px]">
+      <CardContent className="p-0">
         <div className="surface-panel flex items-center gap-3 border-b border-border/70 px-4 py-4 sm:px-5">
           <div className="relative flex h-11 w-11 items-center justify-center rounded-full bg-gradient-brand text-primary-foreground shadow-glow">
             <Bot className="h-5 w-5" />
             <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-success ring-2 ring-card" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-foreground">Helena no app</p>
-            <p className="text-xs text-muted-foreground">Chat de apoio rapido com os dados da sua conta.</p>
+            <p className="text-base font-extrabold tracking-tight text-foreground">Helena</p>
+            <p className="text-sm text-muted-foreground">Chat de apoio - respostas rapidas</p>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant={state.status === "idle" ? "success" : "warning"}>{stateLabel}</Badge>
-            <Button onClick={handleClearConversation} size="sm" type="button" variant="outline">
-              <Trash2 className="h-4 w-4" />
-              Limpar
-            </Button>
+            <Badge variant="secondary">Aqui no app</Badge>
+            {!empty ? (
+              <Button onClick={handleClearConversation} size="sm" type="button" variant="outline">
+                <Trash2 className="h-4 w-4" />
+                Limpar
+              </Button>
+            ) : null}
           </div>
         </div>
 
@@ -162,15 +152,15 @@ export function AgentPlayground({
           </div>
         ) : null}
 
-        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+        <div className="min-h-[420px] px-4 py-5 sm:px-5">
           {empty ? (
-            <div className="flex h-full flex-col items-center justify-center px-2 text-center">
+            <div className="flex min-h-[320px] flex-col items-center justify-center px-2 text-center">
               <div className="icon-tile flex h-14 w-14 items-center justify-center rounded-[22px] bg-primary-soft text-primary">
-                <Bot className="h-6 w-6" />
+                <Sparkles className="h-6 w-6" />
               </div>
               <h2 className="mt-4 text-xl font-extrabold tracking-tight text-foreground">Como posso ajudar?</h2>
               <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
-                Pergunte sobre seu mes, limite do MEI, obrigacoes ou mande um registro em linguagem natural.
+                Pergunte sobre seu mes, limite do MEI, DAS ou qualquer movimentacao.
               </p>
               <div className="mt-5 flex flex-wrap justify-center gap-2">
                 {examples.map((example) => (
@@ -253,11 +243,11 @@ export function AgentPlayground({
                 submitMessage(input);
               }
             }}
-            placeholder="Mensagem para a Helena"
+            placeholder="Pergunte algo pra Helena..."
             rows={1}
             value={input}
           />
-          <Button className="shrink-0" disabled={isPending || !input.trim()} size="icon" type="submit">
+          <Button className="h-11 w-11 shrink-0 rounded-2xl bg-primary/35 text-primary hover:bg-primary/45" disabled={isPending || !input.trim()} size="icon" type="submit" variant="secondary">
             <Send className="h-4 w-4" />
           </Button>
         </form>

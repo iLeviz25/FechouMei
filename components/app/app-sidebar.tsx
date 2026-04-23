@@ -188,7 +188,7 @@ export function AppSidebar({ profile }: AppSidebarProps) {
         </div>
       </header>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-border/70 bg-background/94 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_28px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-border/80 bg-background/98 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-16px_36px_rgba(15,23,42,0.14)] backdrop-blur-xl lg:hidden">
         {navItems.map((item) => {
           const isActive = visiblePathname === item.href;
           const Icon = item.icon;
@@ -200,7 +200,7 @@ export function AppSidebar({ profile }: AppSidebarProps) {
                 "relative flex min-h-[64px] min-w-0 flex-col items-center justify-center gap-1 rounded-[20px] px-1 text-[10px] font-bold transition-all",
                 isActive
                   ? "surface-panel-muted text-primary shadow-card"
-                  : "text-muted-foreground hover:bg-white/70 hover:text-foreground",
+                  : "text-foreground/72 hover:bg-muted/70 hover:text-foreground",
               )}
               href={item.href}
               key={item.href}
@@ -214,7 +214,7 @@ export function AppSidebar({ profile }: AppSidebarProps) {
               <span
                 className={cn(
                   "icon-tile flex h-8 w-8 items-center justify-center rounded-2xl transition-colors",
-                  isActive ? "bg-primary text-primary-foreground" : "bg-transparent text-current",
+                  isActive ? "bg-primary text-primary-foreground" : "bg-muted/45 text-current",
                 )}
               >
                 <Icon className="h-4 w-4" />

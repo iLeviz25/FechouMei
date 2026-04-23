@@ -4,15 +4,21 @@ import { type FormEvent, type ReactNode, useEffect, useMemo, useState, useTransi
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
+  ArrowRight,
+  BriefcaseBusiness,
+  Building2,
   Check,
   Eye,
   EyeOff,
   KeyRound,
   Loader2,
   LogOut,
+  Mail,
   Pencil,
   Save,
   ShieldCheck,
+  Sparkles,
+  Target,
   Trash2,
   UserRound,
   Wallet,
@@ -83,6 +89,7 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
   const initialValues = useMemo(() => getInitialProfileValues(profile), [profile]);
   const [values, setValues] = useState(initialValues);
   const [draft, setDraft] = useState(initialValues);
+  const [contactEmail, setContactEmail] = useState("");
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -96,16 +103,50 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
   const [isUpdatingPassword, startPasswordTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
 
+  useEffect(() => {
+    let active = true;
+    const supabase = createClient();
+
+    void supabase.auth.getUser().then(({ data, error }) => {
+      if (!active || error) {
+        return;
+      }
+
+      setContactEmail(data.user?.email ?? "");
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const resolvedWorkType = resolveOtherValue(values.workType, values.customWorkType) || "Nao informado";
+  const resolvedCategory = resolveOtherValue(values.mainCategory, values.customMainCategory) || "Nao informado";
+  const resolvedGoal = values.mainGoal || "Nao informado";
+  const businessModeLabel = getBusinessModeLabel(values.businessMode);
+  const profileTag = `${businessModeLabel} - ${resolvedCategory}`;
+
   const profileSnapshotItems = [
-    { label: "Nome", value: values.fullName || "Nao informado" },
-    { label: "Atua com", value: getBusinessModeLabel(values.businessMode) },
-    { label: "Tipo", value: resolveOtherValue(values.workType, values.customWorkType) || "Nao informado" },
     {
-      label: "Categoria",
-      value: resolveOtherValue(values.mainCategory, values.customMainCategory) || "Nao informado",
+      icon: <BriefcaseBusiness className="h-4 w-4" />,
+      label: "Atuacao",
+      value: resolvedCategory,
     },
-    { label: "Objetivo", value: values.mainGoal || "Nao informado" },
-    { label: "Saldo inicial", value: formatInitialBalanceLabel(values.initialBalance) },
+    {
+      icon: <Building2 className="h-4 w-4" />,
+      label: "Tipo de trabalho",
+      value: resolvedWorkType,
+    },
+    {
+      icon: <Target className="h-4 w-4" />,
+      label: "Objetivo no app",
+      value: resolvedGoal,
+    },
+    {
+      icon: <Wallet className="h-4 w-4" />,
+      label: "Saldo inicial",
+      value: formatInitialBalanceLabel(values.initialBalance),
+    },
   ];
 
   function openProfileEditor() {
@@ -255,13 +296,23 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
 
   return (
     <div className="mobile-section-gap">
-      <section className="summary-shell relative overflow-hidden rounded-[32px] p-5 sm:p-6">
-        <div className="pointer-events-none absolute -right-10 top-0 h-36 w-36 rounded-full bg-secondary/12 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-12 left-0 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
+      <header className="space-y-3">
+        <Badge className="w-fit" variant="success">
+          <ShieldCheck className="mr-1 h-3 w-3" />
+          Conta
+        </Badge>
+        <div className="max-w-2xl space-y-1.5">
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Configuracoes</h1>
+          <p className="text-sm leading-6 text-muted-foreground">
+            Gerencie seu perfil, preferencias e acoes da conta. Tudo num lugar so.
+          </p>
+        </div>
+      </header>
 
-        <div className="relative flex flex-wrap items-start justify-between gap-4">
-          <div className="flex min-w-0 items-start gap-4">
-            <div className="hero-panel flex h-16 w-16 shrink-0 items-center justify-center rounded-[24px] text-lg font-extrabold">
+      <section className="space-y-4">
+        <div className="overflow-hidden rounded-[30px] bg-[linear-gradient(180deg,hsl(155_62%_35%)_0%,hsl(160_70%_28%)_100%)] px-5 py-5 text-white shadow-elevated sm:px-6 sm:py-6">
+          <div className="flex items-start gap-4">
+            <div className="icon-tile flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] bg-white/14 text-xl font-extrabold text-white">
               {values.fullName
                 .split(" ")
                 .filter(Boolean)
@@ -270,50 +321,55 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
                 .join("") || "ME"}
             </div>
             <div className="min-w-0 space-y-2">
-              <Badge className="hero-pill w-fit" variant="secondary">
-                <ShieldCheck className="mr-1 h-3 w-3" />
-                Conta e preferencias
-              </Badge>
-              <div>
-                <h1 className="truncate text-2xl font-extrabold tracking-tight sm:text-3xl">
+              <div className="space-y-1">
+                <h2 className="truncate text-[1.75rem] font-extrabold tracking-tight text-white">
                   {values.fullName || "Sua conta"}
-                </h1>
-                <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                  Ajuste seus dados, sua senha e as acoes da conta sem mexer na estrutura do app.
+                </h2>
+                <p className="inline-flex items-center gap-2 text-sm font-medium text-white/82">
+                  <Mail className="h-4 w-4" />
+                  {contactEmail || "Conta conectada ao FechouMEI"}
                 </p>
               </div>
+              <Badge className="border-white/10 bg-white/14 text-white shadow-none" variant="outline">
+                {profileTag}
+              </Badge>
             </div>
           </div>
-          <div className="hero-panel rounded-[24px] px-4 py-3 sm:px-5">
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary/70">
-              Saldo inicial
-            </p>
-            <p className="font-mono mt-1 text-lg font-extrabold tabular text-foreground">
-              {formatInitialBalanceLabel(values.initialBalance)}
-            </p>
-          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          {profileSnapshotItems.map((item) => (
+            <SettingsSummaryCard icon={item.icon} key={item.label} label={item.label} value={item.value} />
+          ))}
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-[1.02fr_0.98fr]">
-        <Card>
-          <CardContent className="space-y-4 p-5 sm:p-6">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Resumo do perfil</p>
-                <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">Seus dados principais</h2>
-              </div>
-              <Button onClick={openProfileEditor} size="sm" type="button" variant="outline">
-                <Pencil className="h-4 w-4" />
-                Editar
-              </Button>
-            </div>
+      <section className="space-y-3">
+        <Badge className="w-fit" variant="secondary">
+          <UserRound className="mr-1 h-3 w-3" />
+          Perfil
+        </Badge>
+        <div className="flex flex-col gap-3 min-[430px]:flex-row min-[430px]:items-start min-[430px]:justify-between">
+          <div className="space-y-1">
+            <h2 className="text-lg font-extrabold tracking-tight text-foreground">Editar informacoes</h2>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Atualize seus dados de cadastro a qualquer momento.
+            </p>
+          </div>
+          <Button onClick={openProfileEditor} size="sm" type="button" variant="outline">
+            <Pencil className="h-4 w-4" />
+            Editar
+          </Button>
+        </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {profileSnapshotItems.map((item) => (
-                <ProfileSnapshotItem key={item.label} label={item.label} value={item.value} />
-              ))}
-            </div>
+        <Card className="overflow-hidden rounded-[30px]">
+          <CardContent className="space-y-3 p-5 sm:p-6">
+            <InfoRow icon={<UserRound className="h-4 w-4" />} label="Nome completo" value={values.fullName || "Nao informado"} />
+            <InfoRow icon={<BriefcaseBusiness className="h-4 w-4" />} label="Atuacao" value={resolvedCategory} />
+            <InfoRow icon={<Building2 className="h-4 w-4" />} label="Tipo de trabalho" value={resolvedWorkType} />
+            <InfoRow icon={<Sparkles className="h-4 w-4" />} label="Categoria principal" value={resolvedCategory} />
+            <InfoRow icon={<Target className="h-4 w-4" />} label="Objetivo no app" value={resolvedGoal} />
+            <InfoRow icon={<Wallet className="h-4 w-4" />} label="Saldo inicial" value={formatInitialBalanceLabel(values.initialBalance)} />
 
             {profileMessage === "Perfil atualizado." ? (
               <p className="rounded-2xl border border-success/20 bg-success/10 px-4 py-3 text-sm leading-6 text-success">
@@ -322,78 +378,125 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
             ) : null}
           </CardContent>
         </Card>
+      </section>
 
-        <Card>
-          <CardContent className="space-y-4 p-5 sm:p-6">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Conta</p>
-              <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">Acoes rapidas</h2>
+      <section className="space-y-3">
+        <Badge className="w-fit" variant="secondary">
+          <ShieldCheck className="mr-1 h-3 w-3" />
+          Seguranca
+        </Badge>
+        <div className="space-y-1">
+          <h2 className="text-lg font-extrabold tracking-tight text-foreground">Acesso a conta</h2>
+          <p className="text-sm leading-6 text-muted-foreground">Mantenha sua senha forte e atualizada.</p>
+        </div>
+
+        <Card className="overflow-hidden rounded-[30px]">
+          <CardContent className="p-0">
+            <div className="flex items-start gap-3 px-5 py-5 sm:px-6">
+              <div className="icon-tile flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+                <KeyRound className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-base font-extrabold tracking-tight text-foreground">Alterar senha</p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Recomendamos trocar a cada 90 dias.
+                </p>
+              </div>
+              <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
             </div>
 
-            <ActionCard
-              description="Volta voce para a tela de login e mantem seus dados salvos."
-              icon={<LogOut className="h-4 w-4" />}
-              label="Sair da conta"
-              onClick={handleSignOut}
-            />
-            <ActionCard
-              description="Area sensivel para excluir definitivamente o acesso e os dados."
-              icon={<Trash2 className="h-4 w-4" />}
-              label="Excluir conta"
-              onClick={openDeleteDialog}
-              tone="danger"
-            />
+            <div className="border-t border-border/60 px-5 py-5 sm:px-6">
+              <form className="space-y-4" onSubmit={handleUpdatePassword}>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <PasswordField
+                    label="Nova senha"
+                    onChange={setPassword}
+                    showPassword={showPassword}
+                    togglePassword={() => setShowPassword((current) => !current)}
+                    value={password}
+                  />
+                  <PasswordField
+                    label="Confirmar nova senha"
+                    onChange={setConfirmPassword}
+                    showPassword={showPassword}
+                    togglePassword={() => setShowPassword((current) => !current)}
+                    value={confirmPassword}
+                  />
+                </div>
+
+                {passwordMessage ? (
+                  <p
+                    className={cn(
+                      "rounded-2xl border px-4 py-3 text-sm leading-6",
+                      passwordMessage === "Senha atualizada com sucesso."
+                        ? "border-success/20 bg-success/10 text-success"
+                        : "border-destructive/20 bg-destructive/10 text-destructive",
+                    )}
+                  >
+                    {passwordMessage}
+                  </p>
+                ) : null}
+
+                <div className="flex justify-end">
+                  <Button disabled={isUpdatingPassword} type="submit">
+                    {isUpdatingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+                    Salvar nova senha
+                  </Button>
+                </div>
+              </form>
+            </div>
           </CardContent>
         </Card>
       </section>
 
-      <Card>
-        <CardContent className="space-y-5 p-5 sm:p-6">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Seguranca</p>
-            <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">Senha de acesso</h2>
-          </div>
+      <section className="space-y-3">
+        <Badge className="w-fit" variant="secondary">
+          <ShieldCheck className="mr-1 h-3 w-3" />
+          Conta
+        </Badge>
+        <div className="space-y-1">
+          <h2 className="text-lg font-extrabold tracking-tight text-foreground">Acoes da conta</h2>
+          <p className="text-sm leading-6 text-muted-foreground">
+            Sair do app ou encerrar sua conta no FechouMEI.
+          </p>
+        </div>
 
-          <form className="space-y-4" onSubmit={handleUpdatePassword}>
-            <div className="grid gap-4 md:grid-cols-2">
-              <PasswordField
-                label="Nova senha"
-                onChange={setPassword}
-                showPassword={showPassword}
-                togglePassword={() => setShowPassword((current) => !current)}
-                value={password}
-              />
-              <PasswordField
-                label="Confirmar nova senha"
-                onChange={setConfirmPassword}
-                showPassword={showPassword}
-                togglePassword={() => setShowPassword((current) => !current)}
-                value={confirmPassword}
-              />
+        <ActionCard
+          description="Voce precisara fazer login novamente."
+          icon={<LogOut className="h-4 w-4" />}
+          label="Sair da conta"
+          onClick={handleSignOut}
+        />
+
+        <Card className="overflow-hidden rounded-[30px] border-destructive/20 bg-destructive/5">
+          <CardContent className="space-y-4 p-5 sm:p-6">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-base font-extrabold tracking-tight text-destructive">
+                  Excluir conta permanentemente
+                </p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Todos os seus dados, movimentacoes, fechamentos e historico serao removidos. Esta acao nao pode ser desfeita.
+                </p>
+              </div>
             </div>
 
-            {passwordMessage ? (
-              <p
-                className={cn(
-                  "rounded-2xl border px-4 py-3 text-sm leading-6",
-                  passwordMessage === "Senha atualizada com sucesso."
-                    ? "border-success/20 bg-success/10 text-success"
-                    : "border-destructive/20 bg-destructive/10 text-destructive",
-                )}
-              >
-                {passwordMessage}
-              </p>
-            ) : null}
-
-            <div className="flex justify-end">
-              <Button disabled={isUpdatingPassword} type="submit">
-                {isUpdatingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
-                Salvar nova senha
+            <div className="flex justify-start">
+              <Button onClick={openDeleteDialog} type="button" variant="destructive">
+                <Trash2 className="h-4 w-4" />
+                Excluir conta
               </Button>
             </div>
-          </form>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        <p className="pt-1 text-center text-xs leading-6 text-muted-foreground">
+          FechouMEI. v1.0. Feito com cuidado para o MEI brasileiro.
+        </p>
+      </section>
 
       {isEditingProfile ? (
         <ResponsiveOverlay
@@ -608,6 +711,52 @@ function validateProfileDraft(values: ProfileValues) {
   return null;
 }
 
+function SettingsSummaryCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <Card className="overflow-hidden rounded-[26px]">
+      <CardContent className="flex items-start gap-3 p-4 sm:p-5">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+          {icon}
+        </div>
+        <div className="min-w-0 space-y-1">
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
+          <p className="text-sm font-bold leading-6 text-foreground sm:text-[0.95rem]">{value}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function InfoRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-bold tracking-tight text-foreground">{label}</p>
+      <div className="flex min-h-14 items-center gap-3 rounded-[22px] border border-border/70 bg-muted/30 px-4 py-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-background text-muted-foreground shadow-sm">
+          {icon}
+        </div>
+        <p className="min-w-0 break-words text-sm font-medium leading-6 text-foreground">{value}</p>
+      </div>
+    </div>
+  );
+}
+
 function ActionCard({
   description,
   icon,
@@ -624,7 +773,7 @@ function ActionCard({
   return (
     <button
       className={cn(
-        "flex w-full items-start gap-3 rounded-[24px] border p-4 text-left transition-all",
+        "flex w-full items-start gap-3 rounded-[28px] border p-4 text-left transition-all sm:p-5",
         tone === "danger"
           ? "border-destructive/20 bg-destructive/5 hover:border-destructive/30"
           : "surface-panel hover:-translate-y-0.5 hover:border-primary/20 hover:bg-primary-soft/20",
@@ -637,23 +786,15 @@ function ActionCard({
           "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
           tone === "danger" ? "bg-destructive/10 text-destructive" : "bg-primary-soft text-primary",
         )}
-      >
+        >
         {icon}
       </div>
-      <div className="min-w-0">
-        <p className="text-sm font-bold text-foreground">{label}</p>
+      <div className="min-w-0 flex-1">
+        <p className="text-base font-extrabold tracking-tight text-foreground">{label}</p>
         <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
       </div>
+      <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
     </button>
-  );
-}
-
-function ProfileSnapshotItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="hero-panel-soft min-w-0 rounded-[24px] px-4 py-3">
-      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
-      <p className="mt-1 break-words text-sm font-bold leading-6 text-foreground">{value}</p>
-    </div>
   );
 }
 

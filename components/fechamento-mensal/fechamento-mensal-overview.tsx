@@ -4,15 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDownLeft,
   ArrowUpRight,
-  CalendarRange,
   Flame,
-  Receipt,
   Sparkles,
   Tag,
   TrendingDown,
   TrendingUp,
   Trophy,
   Wallet,
+  type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { MovementsCsvExportButton } from "@/components/app/movements-csv-export-button";
@@ -45,6 +44,16 @@ type FechamentoMensalOverviewProps = {
   yearValue: string;
 };
 
+type HighlightTone = "success" | "danger" | "warning";
+type SummaryTone = "success" | "danger" | "neutral";
+type TrendItem = {
+  current: boolean;
+  height: number;
+  key: string;
+  label: string;
+  value: number;
+};
+
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
@@ -64,6 +73,105 @@ function toDateTime(value: string) {
     timeStyle: "short",
     timeZone: "America/Sao_Paulo",
   }).format(new Date(value));
+}
+
+function toShortDate(value: string) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    timeZone: "UTC",
+  })
+    .format(new Date(`${value}T00:00:00Z`))
+    .replace(".", "");
+}
+
+function toCompactCurrency(value: number) {
+  const absolute = Math.abs(value);
+
+  if (absolute >= 1000) {
+    return `${value < 0 ? "-" : ""}R$ ${(absolute / 1000).toFixed(1).replace(".", ",")}k`;
+  }
+
+  return `${value < 0 ? "-" : ""}${toCurrency(absolute)}`;
+}
+
+function formatCount(count: number, singular: string, plural: string) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function formatSignedCurrency(value: number) {
+  const prefix = value >= 0 ? "+ " : "- ";
+  return `${prefix}${toCurrency(Math.abs(value))}`;
+}
+
+function formatDeltaPercent(current: number, previous: number) {
+  if (current === 0 && previous === 0) {
+    return "0%";
+  }
+
+  if (previous === 0) {
+    return current >= 0 ? "+100%" : "-100%";
+  }
+
+  const delta = ((current - previous) / Math.abs(previous)) * 100;
+  const rounded = Math.abs(delta) >= 100 ? delta.toFixed(0) : delta.toFixed(1);
+  return `${delta >= 0 ? "+" : ""}${rounded.replace(".", ",")}%`;
+}
+
+function toCategoryDisplay(value: string) {
+  return value
+    .toLowerCase()
+    .split(/[\s_-]+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function formatMonthHeaderLabel(yearValue: string, monthValue: string) {
+  return new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" })
+    .format(new Date(Number(yearValue), Number(monthValue) - 1, 1))
+    .replace(" de ", "/");
+}
+
+function buildTrendItems(rows: BalanceMovement[], currentMonthValue: string) {
+  const [year, month] = currentMonthValue.split("-").map(Number);
+  const monthKeys = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(year, month - 1 - (5 - index), 1);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  });
+
+  const totalsByMonth = monthKeys.reduce<Record<string, number>>((acc, key) => {
+    acc[key] = 0;
+    return acc;
+  }, {});
+
+  rows.forEach((movement) => {
+    const key = movement.occurred_on.slice(0, 7);
+
+    if (!(key in totalsByMonth)) {
+      return;
+    }
+
+    totalsByMonth[key] += movement.type === "entrada" ? movement.amount : movement.amount * -1;
+  });
+
+  const maxMagnitude = Math.max(...Object.values(totalsByMonth).map((value) => Math.abs(value)), 1);
+
+  return monthKeys.map((key) => {
+    const [itemYear, itemMonth] = key.split("-").map(Number);
+    const label = new Intl.DateTimeFormat("pt-BR", { month: "short" })
+      .format(new Date(itemYear, itemMonth - 1, 1))
+      .replace(".", "")
+      .slice(0, 3)
+      .toUpperCase();
+
+    return {
+      current: key === currentMonthValue,
+      height: Math.max(18, Math.round((Math.abs(totalsByMonth[key]) / maxMagnitude) * 100)),
+      key,
+      label,
+      value: totalsByMonth[key],
+    } satisfies TrendItem;
+  });
 }
 
 export function FechamentoMensalOverview({
@@ -91,7 +199,7 @@ export function FechamentoMensalOverview({
   const effectiveStart = rangeStart || monthStartValue;
   const effectiveEnd = rangeEnd || monthEndValue;
   const effectivePeriodLabel = hasCustomRange ? `${toDate(effectiveStart)} a ${toDate(effectiveEnd)}` : monthLabel;
-  const comparisonLabel = hasCustomRange ? "Mesmo trecho no mes anterior" : "Versus mes anterior";
+  const comparisonLabel = hasCustomRange ? "Mesmo trecho no mes anterior" : "Vs. mes anterior";
 
   const filteredMovements = useMemo(
     () =>
@@ -105,13 +213,15 @@ export function FechamentoMensalOverview({
         (acc, movement) => {
           if (movement.type === "entrada") {
             acc.monthlyIncome += movement.amount;
+            acc.incomeCount += 1;
           } else {
             acc.monthlyExpense += movement.amount;
+            acc.expenseCount += 1;
           }
 
           return acc;
         },
-        { monthlyExpense: 0, monthlyIncome: 0 },
+        { expenseCount: 0, incomeCount: 0, monthlyExpense: 0, monthlyIncome: 0 },
       ),
     [filteredMovements],
   );
@@ -200,53 +310,51 @@ export function FechamentoMensalOverview({
     { byCategory: {} as Record<string, number>, top: null as null | { amount: number; category: string } },
   );
 
-  const comparisonItems = [
-    {
-      delta: incomeDelta,
-      kind: "income" as const,
-      label: "Entradas",
-      value: monthlyTotals.monthlyIncome,
-    },
-    {
-      delta: expenseDelta,
-      kind: "expense" as const,
-      label: "Despesas",
-      value: monthlyTotals.monthlyExpense,
-    },
-    {
-      delta: balanceDelta,
-      kind: "result" as const,
-      label: "Resultado",
-      value: monthBalance,
-    },
-  ];
+  const topCategoryShare =
+    monthlyTotals.monthlyExpense > 0 && topExpenseCategory.top
+      ? (topExpenseCategory.top.amount / monthlyTotals.monthlyExpense) * 100
+      : 0;
+  const trendItems = useMemo(
+    () => buildTrendItems(balanceRows, `${yearValue}-${monthValue}`),
+    [balanceRows, monthValue, yearValue],
+  );
 
+  const heroTrendPositive = balanceDelta >= 0;
+  const heroTrendText = `${formatDeltaPercent(monthBalance, previousBalance)} ${comparisonLabel.toLowerCase()}`;
   const highlightItems = [
     {
       icon: Trophy,
       label: "Maior entrada",
-      tone: "success" as const,
+      meta: biggestIncome
+        ? `${toCategoryDisplay(biggestIncome.category)} · ${toShortDate(biggestIncome.occurred_on)}`
+        : "Nenhuma entrada registrada",
       title: biggestIncome ? biggestIncome.description : "Sem entradas no periodo",
+      tone: "success" as const,
       value: biggestIncome ? toCurrency(biggestIncome.amount) : "R$ 0,00",
     },
     {
       icon: Flame,
       label: "Maior despesa",
-      tone: "danger" as const,
+      meta: biggestExpense
+        ? `${toCategoryDisplay(biggestExpense.category)} · ${toShortDate(biggestExpense.occurred_on)}`
+        : "Nenhuma despesa registrada",
       title: biggestExpense ? biggestExpense.description : "Sem despesas no periodo",
+      tone: "danger" as const,
       value: biggestExpense ? toCurrency(biggestExpense.amount) : "R$ 0,00",
     },
     {
       icon: Tag,
-      label: "Categoria com mais gasto",
+      label: "Categoria top em gastos",
+      meta: topExpenseCategory.top ? `${topCategoryShare.toFixed(0)}% das despesas` : "Nenhuma despesa registrada",
+      title: topExpenseCategory.top ? toCategoryDisplay(topExpenseCategory.top.category) : "Sem despesas no periodo",
       tone: "warning" as const,
-      title: topExpenseCategory.top ? topExpenseCategory.top.category : "Sem despesas no periodo",
       value: topExpenseCategory.top ? toCurrency(topExpenseCategory.top.amount) : "R$ 0,00",
     },
   ];
 
   const mobileListShouldScroll = filteredMovements.length > 4;
   const currentMonthValue = `${yearValue}-${monthValue}`;
+  const currentMonthHeaderLabel = formatMonthHeaderLabel(yearValue, monthValue);
 
   function handleRangeStartChange(value: string) {
     if (!value) {
@@ -277,62 +385,18 @@ export function FechamentoMensalOverview({
 
   return (
     <div className="mobile-section-gap">
-      <section className="summary-shell overflow-hidden rounded-[32px] p-5 sm:p-6">
-        <div className="space-y-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-2">
-              <Badge className="hero-pill w-fit" variant="secondary">
-                <Sparkles className="mr-1 h-3 w-3" />
-                Fechamento mensal
-              </Badge>
-              <div className="space-y-1">
-                <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Fechamento de {monthLabel}</h1>
-                <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                  Revise o periodo, compare com o anterior e confira os registros usados no fechamento.
-                </p>
-              </div>
-            </div>
-
-            <div className="surface-panel-muted rounded-[24px] px-4 py-3 sm:max-w-[260px]">
-              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">Periodo em leitura</p>
-              <p className="mt-1 text-sm font-bold text-foreground">{effectivePeriodLabel}</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard
-              detail="total do periodo"
-              icon={ArrowDownLeft}
-              label="Entradas"
-              tone="success"
-              value={toCurrency(monthlyTotals.monthlyIncome)}
-            />
-            <MetricCard
-              detail="total do periodo"
-              icon={ArrowUpRight}
-              label="Despesas"
-              tone="danger"
-              value={toCurrency(monthlyTotals.monthlyExpense)}
-            />
-            <MetricCard
-              detail={monthBalance >= 0 ? "resultado positivo" : "resultado negativo"}
-              icon={CalendarRange}
-              label="Resultado"
-              tone="warning"
-              valueTone={monthBalance >= 0 ? "warning" : "danger"}
-              value={toCurrency(monthBalance)}
-            />
-            <MetricCard
-              detail={hasCustomRange ? "ate o fim do trecho" : "acumulado ate o fim do mes"}
-              icon={Wallet}
-              label="Saldo acumulado"
-              tone="info"
-              valueTone={balanceUntilPeriod >= 0 ? "neutral" : "danger"}
-              value={toCurrency(balanceUntilPeriod)}
-            />
-          </div>
+      <header className="space-y-3">
+        <Badge className="w-fit" variant="success">
+          <Sparkles className="mr-1 h-3 w-3" />
+          Visao consolidada
+        </Badge>
+        <div className="max-w-2xl space-y-1.5">
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Fechamento mensal</h1>
+          <p className="text-sm leading-6 text-muted-foreground">
+            Veja como foi o seu mes, compare com o anterior e acompanhe o saldo do seu MEI.
+          </p>
         </div>
-      </section>
+      </header>
 
       <MonthSelector
         currentMonthValue={currentMonthValue}
@@ -345,144 +409,237 @@ export function FechamentoMensalOverview({
         rangeStart={rangeStart}
       />
 
-      <section className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-        <Card>
-          <CardContent className="space-y-3 p-5 sm:p-6">
-            <div className="space-y-1">
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-                Comparacao rapida
-              </p>
-              <h2 className="text-lg font-extrabold tracking-tight text-foreground">{comparisonLabel}</h2>
-              <p className="text-sm leading-6 text-muted-foreground">
+      <section className="space-y-4">
+        <div className="overflow-hidden rounded-[32px] bg-[linear-gradient(180deg,hsl(155_62%_35%)_0%,hsl(160_70%_28%)_100%)] px-5 py-5 text-white shadow-elevated sm:px-6 sm:py-6">
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className="border-white/10 bg-white/14 text-white shadow-none" variant="outline">
+                {hasCustomRange ? "Resultado do trecho" : "Resultado do mes"}
+              </Badge>
+              <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/78">
                 {hasCustomRange
-                  ? "Compara exatamente o mesmo trecho de datas no mes anterior."
-                  : "Mostra se o fechamento melhorou ou piorou em relacao ao mes anterior."}
+                  ? `${formatCount(filteredMovements.length, "lancamento", "lancamentos")} no trecho`
+                  : `${formatCount(filteredMovements.length, "lancamento", "lancamentos")} em ${monthLabel}`}
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-white/68">
+                {hasCustomRange ? effectivePeriodLabel : "Resultado do mes"}
+              </p>
+              <p className="font-mono text-[clamp(2.45rem,11vw,4.15rem)] font-extrabold leading-none tracking-tight text-white">
+                {formatSignedCurrency(monthBalance)}
+              </p>
+              <p className="text-sm leading-6 text-white/76">
+                {hasCustomRange ? effectivePeriodLabel : `${currentMonthHeaderLabel} • fechamento consolidado do periodo`}
               </p>
             </div>
 
-            {comparisonItems.map((item) => (
-              <ComparisonRow
-                delta={item.delta}
-                key={item.label}
-                kind={item.kind}
-                label={item.label}
-                value={toCurrency(item.value)}
-              />
-            ))}
-          </CardContent>
-        </Card>
+            <div className="space-y-3">
+              <div
+                className={cn(
+                  "inline-flex w-fit items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold",
+                  heroTrendPositive ? "bg-white/12 text-white" : "bg-white/10 text-white",
+                )}
+              >
+                {heroTrendPositive ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                {heroTrendText}
+              </div>
 
-        <Card>
-          <CardContent className="space-y-3 p-5 sm:p-6">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Destaques</p>
-              <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">O que mais pesou no periodo</h2>
+              <div className="grid grid-cols-6 items-end gap-2 rounded-[26px] bg-white/6 p-3">
+                {trendItems.map((item) => (
+                  <div className="flex flex-col items-center gap-2" key={item.key}>
+                    <div className="flex h-16 w-full items-end rounded-[18px] bg-white/8 p-1">
+                      <div
+                        className={cn(
+                          "w-full rounded-[14px]",
+                          item.current
+                            ? "bg-[linear-gradient(180deg,hsl(40_100%_62%)_0%,hsl(36_100%_56%)_100%)]"
+                            : item.value >= 0
+                              ? "bg-white/34"
+                              : "bg-white/18",
+                        )}
+                        style={{ height: `${item.height}%` }}
+                      />
+                    </div>
+                    <span
+                      className={cn(
+                        "text-[10px] font-bold uppercase tracking-[0.08em]",
+                        item.current ? "text-[hsl(40_100%_72%)]" : "text-white/70",
+                      )}
+                    >
+                      {item.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
+          </div>
+        </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
-              {highlightItems.map((item) => (
-                <HighlightCard
-                  icon={item.icon}
-                  key={item.label}
-                  label={item.label}
-                  title={item.title}
-                  tone={item.tone}
-                  value={item.value}
-                />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+          <SummaryStatCard
+            detail={formatCount(monthlyTotals.incomeCount, "lancamento", "lancamentos")}
+            icon={ArrowDownLeft}
+            label="Entradas"
+            tone="success"
+            trendGood={incomeDelta >= 0}
+            trendText={formatDeltaPercent(monthlyTotals.monthlyIncome, previousTotals.monthlyIncome)}
+            value={toCurrency(monthlyTotals.monthlyIncome)}
+          />
+          <SummaryStatCard
+            detail={formatCount(monthlyTotals.expenseCount, "lancamento", "lancamentos")}
+            icon={ArrowUpRight}
+            label="Despesas"
+            tone="danger"
+            trendGood={expenseDelta <= 0}
+            trendText={formatDeltaPercent(monthlyTotals.monthlyExpense, previousTotals.monthlyExpense)}
+            value={toCurrency(monthlyTotals.monthlyExpense)}
+          />
+          <SummaryStatCard
+            className="col-span-2 lg:col-span-1"
+            detail={hasCustomRange ? `ate ${toDate(effectiveEnd)}` : `ate ${monthLabel}`}
+            icon={Wallet}
+            label="Saldo acumulado"
+            tone="neutral"
+            value={toCurrency(balanceUntilPeriod)}
+          />
+        </div>
       </section>
 
-      <Card>
-        <CardContent className="space-y-4 p-5 sm:p-6">
-          <div className="surface-panel rounded-[28px] p-4 sm:p-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <section className="space-y-3">
+        <div className="flex items-end justify-between gap-3 px-1">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Destaques do mes</p>
+            <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">O que mais puxou o fechamento</h2>
+          </div>
+          <p className="text-xs font-semibold text-muted-foreground">{currentMonthHeaderLabel}</p>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-3">
+          {highlightItems.map((item) => (
+            <HighlightCard
+              icon={item.icon}
+              key={item.label}
+              label={item.label}
+              meta={item.meta}
+              title={item.title}
+              tone={item.tone}
+              value={item.value}
+            />
+          ))}
+        </div>
+      </section>
+
+      <Card className="overflow-hidden rounded-[32px]">
+        <CardContent className="p-0">
+          <div className="border-b border-border/60 px-4 py-4 sm:px-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="space-y-1">
                 <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
                   Registros do fechamento
                 </p>
                 <h2 className="text-lg font-extrabold tracking-tight text-foreground">
-                  {filteredMovements.length} registro(s) no periodo
+                  {formatCount(filteredMovements.length, "registro", "registros")} no periodo
                 </h2>
-                {mobileListShouldScroll ? (
-                  <p className="text-sm leading-6 text-muted-foreground">
-                    As movimentacoes mais recentes aparecem primeiro. Role dentro da lista para ver o restante.
-                  </p>
-                ) : null}
+                <p className="text-sm leading-6 text-muted-foreground">
+                  {mobileListShouldScroll
+                    ? "A lista fica contida aqui e mostra as mais recentes primeiro. Role dentro da caixa para ver o restante."
+                    : "Todos os registros usados neste fechamento aparecem aqui."}
+                </p>
               </div>
 
               <MovementsCsvExportButton
-                buttonClassName="h-10 w-full px-4 text-sm sm:w-auto"
+                buttonClassName="h-9 w-full rounded-full px-4 text-xs sm:w-auto"
                 className="w-full sm:w-auto"
                 filename={buildCsvFilename(currentMonthValue, effectiveStart, effectiveEnd, hasCustomRange)}
-                label="Exportar CSV"
+                label="CSV"
                 movements={filteredMovements}
               />
             </div>
           </div>
 
           {movements.length === 0 ? (
-            <div className="rounded-[24px] border border-dashed border-border bg-muted/40 p-5 text-sm leading-6 text-muted-foreground">
-              <p className="font-bold text-foreground">Nenhum registro encontrado neste mes.</p>
-              <p className="mt-1">Se o periodo estiver certo, adicione entradas e despesas com datas deste mes.</p>
-              <Button asChild className="mt-4" size="sm">
-                <Link href="/app/movimentacoes">Lancar movimentacao</Link>
-              </Button>
-            </div>
-          ) : filteredMovements.length === 0 ? (
-            <div className="rounded-[24px] border border-dashed border-border bg-muted/40 p-5 text-sm leading-6 text-muted-foreground">
-              <p className="font-bold text-foreground">Nenhum registro encontrado neste intervalo.</p>
-              <p className="mt-1">Ajuste as datas ou limpe o intervalo para voltar ao fechamento completo do mes.</p>
-              <Button className="mt-4" onClick={clearRange} size="sm" type="button" variant="outline">
-                Limpar intervalo
-              </Button>
-            </div>
-          ) : (
-            <div
-              className={cn(
-                "overflow-hidden rounded-[24px] border border-border/70 bg-card",
-                mobileListShouldScroll && "max-h-[23rem] overflow-y-auto overscroll-contain md:max-h-none md:overflow-visible",
-              )}
-            >
-              <div className="divide-y divide-border/60">
-                {filteredMovements.map((movement) => {
-                  const tone = getMovementVisualTone(movement.type);
-
-                  return (
-                    <div className="flex gap-3 px-4 py-3.5 transition-colors hover:bg-primary-soft/20 sm:px-5" key={movement.id}>
-                      <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl", tone.iconClass)}>
-                        {movement.type === "entrada" ? (
-                          <ArrowDownLeft className="h-5 w-5" />
-                        ) : (
-                          <ArrowUpRight className="h-5 w-5" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div className="flex min-w-0 flex-wrap items-center gap-2">
-                            <Badge className={tone.badgeClass} variant="outline">
-                              {tone.label}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {movement.occurred_at ? toDateTime(movement.occurred_at) : toDate(movement.occurred_on)}
-                            </span>
-                          </div>
-                          <p className={cn("font-mono text-sm font-extrabold tabular", tone.amountClass)}>
-                            {movement.type === "entrada" ? "+" : "-"} {toCurrency(movement.amount)}
-                          </p>
-                        </div>
-                        <p className="mt-2 truncate text-sm font-bold text-foreground">{movement.description}</p>
-                        <p className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                          {movement.category}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
+            <div className="px-4 py-5 sm:px-6">
+              <div className="rounded-[24px] border border-dashed border-border bg-muted/40 p-5 text-sm leading-6 text-muted-foreground">
+                <p className="font-bold text-foreground">Nenhum registro encontrado neste mes.</p>
+                <p className="mt-1">Se o periodo estiver certo, adicione entradas e despesas com datas deste mes.</p>
+                <Button asChild className="mt-4" size="sm">
+                  <Link href="/app/movimentacoes">Lancar movimentacao</Link>
+                </Button>
               </div>
             </div>
+          ) : filteredMovements.length === 0 ? (
+            <div className="px-4 py-5 sm:px-6">
+              <div className="rounded-[24px] border border-dashed border-border bg-muted/40 p-5 text-sm leading-6 text-muted-foreground">
+                <p className="font-bold text-foreground">Nenhum registro encontrado neste intervalo.</p>
+                <p className="mt-1">Ajuste as datas ou limpe o intervalo para voltar ao fechamento completo do mes.</p>
+                <Button className="mt-4" onClick={clearRange} size="sm" type="button" variant="outline">
+                  Limpar intervalo
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="px-4 py-4 sm:px-6">
+                <div
+                  className={cn(
+                    "overflow-hidden rounded-[24px] border border-border/70 bg-card",
+                    mobileListShouldScroll && "max-h-[27rem] overflow-y-auto overscroll-contain md:max-h-none md:overflow-visible",
+                  )}
+                >
+                  <div className="divide-y divide-border/60">
+                    {filteredMovements.map((movement) => {
+                      const tone = getMovementVisualTone(movement.type);
+
+                      return (
+                        <div className="flex gap-3 px-4 py-3 transition-colors hover:bg-primary-soft/20 sm:px-5 sm:py-3.5" key={movement.id}>
+                          <div
+                            className={cn(
+                              "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
+                              tone.iconClass,
+                            )}
+                          >
+                            {movement.type === "entrada" ? (
+                              <ArrowDownLeft className="h-5 w-5" />
+                            ) : (
+                              <ArrowUpRight className="h-5 w-5" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-bold text-foreground">{movement.description}</p>
+                                <div className="mt-1 flex flex-wrap items-center gap-2">
+                                  <Badge className={tone.badgeClass} variant="outline">
+                                    {tone.label}
+                                  </Badge>
+                                  <span className="rounded-full bg-muted/65 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+                                    {toCategoryDisplay(movement.category)}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {movement.occurred_at ? toDateTime(movement.occurred_at) : toShortDate(movement.occurred_on)}
+                                  </span>
+                                </div>
+                              </div>
+                              <p className={cn("shrink-0 pl-2 font-mono text-sm font-extrabold tabular", tone.amountClass)}>
+                                {movement.type === "entrada" ? "+" : "-"} {toCurrency(movement.amount)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 border-t border-border/60 bg-muted/15">
+                <FooterSummaryCell label="Entradas" tone="success" value={toCompactCurrency(monthlyTotals.monthlyIncome)} />
+                <FooterSummaryCell label="Despesas" tone="danger" value={toCompactCurrency(monthlyTotals.monthlyExpense)} />
+                <FooterSummaryCell label="Resultado" tone={monthBalance >= 0 ? "success" : "neutral"} value={toCompactCurrency(monthBalance)} />
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -490,171 +647,166 @@ export function FechamentoMensalOverview({
   );
 }
 
-function MetricCard({
+function SummaryStatCard({
+  className,
   detail,
   icon: Icon,
   label,
   tone,
-  valueTone,
+  trendGood,
+  trendText,
   value,
 }: {
+  className?: string;
   detail: string;
-  icon: typeof Receipt;
+  icon: LucideIcon;
   label: string;
-  tone: "success" | "danger" | "warning" | "info";
-  valueTone?: "success" | "danger" | "warning" | "neutral";
+  tone: SummaryTone;
+  trendGood?: boolean;
+  trendText?: string;
   value: string;
 }) {
-  const resolvedValueTone = valueTone ?? tone;
-
   return (
-    <div
+    <Card
       className={cn(
-        "rounded-[24px] border p-4",
+        "overflow-hidden rounded-[26px] border shadow-none",
         tone === "success" &&
-          "border-success/16 bg-[linear-gradient(180deg,hsl(152_60%_96%)_0%,hsl(152_34%_92%)_100%)]",
+          "border-primary/14 bg-[linear-gradient(180deg,hsl(152_60%_97%)_0%,hsl(152_36%_93%)_100%)]",
         tone === "danger" &&
-          "border-destructive/16 bg-[linear-gradient(180deg,hsl(0_100%_99%)_0%,hsl(0_82%_95%)_100%)]",
-        tone === "warning" &&
-          "border-secondary/20 bg-[linear-gradient(180deg,hsl(46_100%_98%)_0%,hsl(40_95%_92%)_100%)]",
-        tone === "info" &&
-          "border-[hsl(var(--info)/0.18)] bg-[linear-gradient(180deg,hsl(205_100%_98%)_0%,hsl(205_90%_94%)_100%)]",
+          "border-destructive/16 bg-[linear-gradient(180deg,hsl(0_100%_99%)_0%,hsl(0_82%_96%)_100%)]",
+        tone === "neutral" &&
+          "border-border/80 bg-[linear-gradient(180deg,hsl(0_0%_100%)_0%,hsl(150_20%_96%)_100%)]",
+        className,
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p
+      <CardContent className="p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p
+              className={cn(
+                "text-[11px] font-bold uppercase tracking-[0.08em]",
+                tone === "success" && "text-primary/82",
+                tone === "danger" && "text-destructive/82",
+                tone === "neutral" && "text-foreground/58",
+              )}
+            >
+              {label}
+            </p>
+            <p
+              className={cn(
+                "mt-2 font-mono text-[clamp(1.4rem,5vw,2rem)] font-extrabold leading-none tracking-tight",
+                tone === "success" && "text-primary",
+                tone === "danger" && "text-destructive",
+                tone === "neutral" && "text-foreground",
+              )}
+            >
+              {value}
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <p className="text-sm text-muted-foreground">{detail}</p>
+              {trendText ? (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em]",
+                    trendGood ? "bg-primary/12 text-primary" : "bg-destructive/12 text-destructive",
+                  )}
+                >
+                  {trendGood ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                  {trendText}
+                </span>
+              ) : null}
+            </div>
+          </div>
+
+          <div
             className={cn(
-              "text-[11px] font-bold uppercase tracking-[0.08em]",
-              tone === "success" && "text-success/80",
-              tone === "danger" && "text-destructive/80",
-              tone === "warning" && "text-secondary-foreground/80",
-              tone === "info" && "text-[hsl(var(--info))]",
+              "icon-tile flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
+              tone === "success" && "bg-white/72 text-primary",
+              tone === "danger" && "bg-white/78 text-destructive",
+              tone === "neutral" && "bg-white/80 text-foreground",
             )}
           >
-            {label}
-          </p>
-          <p
-            className={cn(
-              "font-mono mt-2 text-xl font-extrabold tabular",
-              resolvedValueTone === "success" && "text-success",
-              resolvedValueTone === "danger" && "text-destructive",
-              resolvedValueTone === "warning" && "text-secondary-foreground",
-              resolvedValueTone === "neutral" && "text-foreground",
-            )}
-          >
-            {value}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
+            <Icon className="h-4 w-4" />
+          </div>
         </div>
-        <div
-          className={cn(
-            "icon-tile flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
-            tone === "success" && "bg-white/72 text-success",
-            tone === "danger" && "bg-white/75 text-destructive",
-            tone === "warning" && "bg-white/75 text-secondary-foreground",
-            tone === "info" && "bg-white/75 text-[hsl(var(--info))]",
-          )}
-        >
-          <Icon className="h-4 w-4" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ComparisonRow({
-  delta,
-  kind,
-  label,
-  value,
-}: {
-  delta: number;
-  kind: "income" | "expense" | "result";
-  label: string;
-  value: string;
-}) {
-  const positive = delta >= 0;
-  const better =
-    kind === "expense"
-      ? delta <= 0
-      : delta >= 0;
-  const TrendIcon = better ? TrendingUp : TrendingDown;
-  const helperText = `${toCurrency(Math.abs(delta))} ${positive ? "a mais" : "a menos"} que no mes anterior`;
-
-  return (
-    <div
-      className={cn(
-        "rounded-[24px] border p-4",
-        better ? "border-success/20 bg-success/10" : "border-destructive/20 bg-destructive/10",
-      )}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p
-            className={cn(
-              "text-[11px] font-bold uppercase tracking-[0.08em]",
-              better ? "text-success/85" : "text-destructive/85",
-            )}
-          >
-            {label}
-          </p>
-          <p
-            className={cn(
-              "font-mono mt-2 text-xl font-extrabold tabular",
-              better ? "text-success" : "text-destructive",
-            )}
-          >
-            {value}
-          </p>
-        </div>
-
-        <div
-          className={cn(
-            "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em]",
-            better ? "bg-success/12 text-success" : "bg-destructive/12 text-destructive",
-          )}
-        >
-          <TrendIcon className="h-3 w-3" />
-          {better ? "Melhor" : "Pior"}
-        </div>
-      </div>
-
-      <p className={cn("mt-3 text-sm font-semibold", better ? "text-success" : "text-destructive")}>
-        {helperText}
-      </p>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
 function HighlightCard({
   icon: Icon,
   label,
+  meta,
   title,
   tone,
   value,
 }: {
-  icon: typeof Trophy;
+  icon: LucideIcon;
   label: string;
+  meta: string;
   title: string;
-  tone: "success" | "danger" | "warning";
+  tone: HighlightTone;
   value: string;
 }) {
   return (
-    <div className="hero-panel-soft rounded-[24px] p-4">
-      <div
+    <Card className="overflow-hidden rounded-[28px]">
+      <CardContent className="p-4 sm:p-5">
+        <div className="flex items-start gap-3">
+          <div
+            className={cn(
+              "icon-tile flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
+              tone === "success" && "bg-primary/10 text-primary",
+              tone === "danger" && "bg-destructive/10 text-destructive",
+              tone === "warning" && "bg-secondary-soft text-secondary-foreground",
+            )}
+          >
+            <Icon className="h-4 w-4" />
+          </div>
+
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
+            <p className="mt-1 truncate text-base font-bold text-foreground">{title}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{meta}</p>
+            <p
+              className={cn(
+                "mt-4 font-mono text-[1.65rem] font-extrabold leading-none tracking-tight",
+                tone === "success" && "text-primary",
+                tone === "danger" && "text-foreground",
+                tone === "warning" && "text-foreground",
+              )}
+            >
+              {value}
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function FooterSummaryCell({
+  label,
+  tone,
+  value,
+}: {
+  label: string;
+  tone: SummaryTone;
+  value: string;
+}) {
+  return (
+    <div className="border-r border-border/60 px-3 py-3 text-center last:border-r-0">
+      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{label}</p>
+      <p
         className={cn(
-          "icon-tile flex h-10 w-10 items-center justify-center rounded-2xl",
-          tone === "success" && "bg-success/10 text-success",
-          tone === "danger" && "bg-destructive/10 text-destructive",
-          tone === "warning" && "bg-secondary-soft text-secondary-foreground",
+          "mt-1 font-mono text-sm font-extrabold tabular",
+          tone === "success" && "text-primary",
+          tone === "danger" && "text-destructive",
+          tone === "neutral" && "text-foreground",
         )}
       >
-        <Icon className="h-4 w-4" />
-      </div>
-      <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
-      <p className="mt-1 truncate text-sm font-bold text-foreground">{title}</p>
-      <p className="font-mono mt-2 text-sm font-extrabold tabular text-foreground">{value}</p>
+        {value}
+      </p>
     </div>
   );
 }

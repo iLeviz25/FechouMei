@@ -1,11 +1,12 @@
-import type { ReactNode } from "react";
+"use client";
 import {
-  AlertTriangle,
   BellRing,
   CheckCircle2,
+  ChevronRight,
   ClipboardCheck,
   FileText,
   Receipt,
+  ShieldCheck,
   Sparkles,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -35,9 +36,13 @@ const DAY_IN_MS = 1000 * 60 * 60 * 24;
 
 type DueStatus = "Concluido" | "Em dia" | "Em breve" | "Hoje" | "Atrasado";
 type StatusTone = "success" | "warning" | "danger" | "neutral";
+type AlertIcon = typeof Receipt | typeof ClipboardCheck | typeof FileText;
 
-type AttentionItem = {
+type AlertItem = {
+  dateLabel: string;
   detail: string;
+  eyebrow: string;
+  icon: AlertIcon;
   title: string;
   tone: StatusTone;
 };
@@ -54,8 +59,22 @@ function getDaysUntil(dueDate: Date, today: Date) {
   return Math.round((startOfDay(dueDate).getTime() - startOfDay(today).getTime()) / DAY_IN_MS);
 }
 
-function formatShortDate(date: Date) {
+function formatNumericDate(date: Date) {
   return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" }).format(date);
+}
+
+function formatShortDate(date: Date) {
+  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" })
+    .format(date)
+    .replace(".", "");
+}
+
+function formatHeroMonth(monthKey: string) {
+  const [year, month] = monthKey.split("-").map(Number);
+  return new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" })
+    .format(new Date(year, month - 1, 1))
+    .replace(" de ", " - ")
+    .toUpperCase();
 }
 
 function getDueHelper(status: DueStatus, dueDate: Date, daysUntil: number) {
@@ -64,7 +83,7 @@ function getDueHelper(status: DueStatus, dueDate: Date, daysUntil: number) {
   }
 
   if (status === "Atrasado") {
-    return `Venceu em ${formatShortDate(dueDate)}.`;
+    return `Venceu em ${formatNumericDate(dueDate)}.`;
   }
 
   if (status === "Hoje") {
@@ -75,7 +94,7 @@ function getDueHelper(status: DueStatus, dueDate: Date, daysUntil: number) {
     return daysUntil === 1 ? "Vence amanha." : `Vence em ${daysUntil} dias.`;
   }
 
-  return `Vence em ${formatShortDate(dueDate)}.`;
+  return `Vence em ${formatNumericDate(dueDate)}.`;
 }
 
 function getDueInfo({
@@ -108,6 +127,7 @@ function getDueInfo({
         : "warning";
 
   return {
+    daysUntil,
     helper: getDueHelper(status, dueDate, daysUntil),
     status,
     tone,
@@ -120,15 +140,24 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
   const pendingCount = total - doneCount;
   const progressPercent = total > 0 ? Math.round((doneCount / total) * 100) : 0;
   const today = new Date();
-  const currentYear = today.getFullYear();
+  const [currentYear, currentMonth] = monthKey.split("-").map(Number);
+  const monthIndex = currentMonth - 1;
+  const monthEndDate = new Date(currentYear, currentMonth, 0);
+  const reviewWindowDate = new Date(currentYear, currentMonth, 0);
+  const closingReviewDate = new Date(currentYear, currentMonth, 3);
+  const currentMonthTitle = new Intl.DateTimeFormat("pt-BR", {
+    month: "long",
+    year: "numeric",
+  }).format(new Date(currentYear, monthIndex, 1));
 
   const dasDone = getChecklistItem(checklist, "pagar-das")?.done ?? false;
   const dasInfo = getDueInfo({
     done: dasDone,
-    dueDate: new Date(currentYear, today.getMonth(), DAS_DUE_DAY),
+    dueDate: new Date(currentYear, monthIndex, DAS_DUE_DAY),
     soonWindowDays: 5,
     today,
   });
+
   const dasnDone = getChecklistItem(checklist, "entregar-dasn")?.done ?? false;
   const dasnInfo = getDueInfo({
     done: dasnDone,
@@ -137,251 +166,311 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
     today,
   });
 
-  const attentionItems: AttentionItem[] = [];
+  const reviewEntriesDone = getChecklistItem(checklist, "conferir-entradas")?.done ?? false;
+  const reviewExpensesDone = getChecklistItem(checklist, "conferir-despesas")?.done ?? false;
+  const receiptsDone = getChecklistItem(checklist, "guardar-comprovantes")?.done ?? false;
+  const closingDone = getChecklistItem(checklist, "revisar-fechamento")?.done ?? false;
 
-  if (dasInfo.status === "Atrasado" || dasInfo.status === "Hoje" || dasInfo.status === "Em breve") {
-    attentionItems.push({
-      detail: dasInfo.helper,
-      title: "DAS mensal",
-      tone: dasInfo.tone,
+  const reviewWindowInfo = getDueInfo({
+    done: reviewEntriesDone && reviewExpensesDone,
+    dueDate: reviewWindowDate,
+    soonWindowDays: 10,
+    today,
+  });
+
+  const receiptsInfo = getDueInfo({
+    done: receiptsDone,
+    dueDate: monthEndDate,
+    soonWindowDays: 10,
+    today,
+  });
+
+  const closingInfo = getDueInfo({
+    done: closingDone,
+    dueDate: closingReviewDate,
+    soonWindowDays: 7,
+    today,
+  });
+
+  const alertItems: AlertItem[] = [];
+
+  if (!dasDone && (dasInfo.status === "Atrasado" || dasInfo.status === "Hoje" || dasInfo.status === "Em breve")) {
+    alertItems.push({
+      dateLabel: formatShortDate(new Date(currentYear, monthIndex, DAS_DUE_DAY)),
+      detail: "Documento de Arrecadacao do Simples Nacional",
+      eyebrow: formatDeadlineLabel(dasInfo.status, dasInfo.daysUntil),
+      icon: Receipt,
+      title: `Pagar DAS - ${capitalizeMonthYear(currentMonthTitle)}`,
+      tone: getAlertTone(dasInfo.status, dasInfo.daysUntil),
     });
   }
 
-  if (dasnInfo.status === "Atrasado" || dasnInfo.status === "Hoje" || dasnInfo.status === "Em breve") {
-    attentionItems.push({
-      detail: dasnInfo.helper,
-      title: "DASN-SIMEI",
-      tone: dasnInfo.tone,
+  if (!reviewEntriesDone || !reviewExpensesDone) {
+    alertItems.push({
+      dateLabel: formatShortDate(reviewWindowDate),
+      detail: "Confira entradas e despesas registradas antes do fechamento.",
+      eyebrow: formatDeadlineLabel(reviewWindowInfo.status, reviewWindowInfo.daysUntil),
+      icon: ClipboardCheck,
+      title: "Revisar movimentacoes do mes",
+      tone: getAlertTone(reviewWindowInfo.status, reviewWindowInfo.daysUntil),
     });
   }
 
-  if (pendingCount > 0 && today.getDate() >= 25) {
-    attentionItems.push({
-      detail: "Revise o fechamento e guarde os comprovantes antes da virada do mes.",
-      title: "Fechamento do mes",
-      tone: "warning",
+  if (!receiptsDone) {
+    alertItems.push({
+      dateLabel: formatShortDate(monthEndDate),
+      detail: "Organize notas, recibos e comprovantes do periodo.",
+      eyebrow: formatDeadlineLabel(receiptsInfo.status, receiptsInfo.daysUntil),
+      icon: FileText,
+      title: "Separar comprovantes",
+      tone: getAlertTone(receiptsInfo.status, receiptsInfo.daysUntil),
+    });
+  }
+
+  if (!closingDone && alertItems.length < 3) {
+    alertItems.push({
+      dateLabel: formatShortDate(closingReviewDate),
+      detail: "Valide o resultado consolidado antes da virada do proximo mes.",
+      eyebrow: formatDeadlineLabel(closingInfo.status, closingInfo.daysUntil),
+      icon: ClipboardCheck,
+      title: "Conferir fechamento do mes",
+      tone: getAlertTone(closingInfo.status, closingInfo.daysUntil),
+    });
+  }
+
+  if (!dasnDone && alertItems.length < 3 && dasnInfo.status !== "Em dia") {
+    alertItems.push({
+      dateLabel: formatShortDate(new Date(currentYear, DASN_DUE_MONTH, DASN_DUE_DAY)),
+      detail: `Declaracao anual do MEI referente a ${currentYear - 1}.`,
+      eyebrow: formatDeadlineLabel(dasnInfo.status, dasnInfo.daysUntil),
+      icon: FileText,
+      title: `DASN-SIMEI ${currentYear - 1}`,
+      tone: getAlertTone(dasnInfo.status, dasnInfo.daysUntil),
     });
   }
 
   const summaryTone: StatusTone =
     pendingCount === 0
       ? "success"
-      : attentionItems.some((item) => item.tone === "danger")
+      : alertItems.some((item) => item.tone === "danger")
         ? "danger"
-        : attentionItems.length > 0
+        : alertItems.length > 0
           ? "warning"
           : "neutral";
 
-  const obligations = [
-    {
-      description: "Imposto mensal do MEI. Marque no checklist quando pagar.",
-      helper: dasInfo.helper,
-      icon: Receipt,
-      status: dasInfo.status,
-      title: "DAS mensal",
-    },
-    {
-      description: "Declaracao anual do MEI. Use o checklist para nao perder o prazo.",
-      helper: dasnInfo.helper,
-      icon: FileText,
-      status: dasnInfo.status,
-      title: "DASN-SIMEI",
-    },
-  ];
+  const supportCopy =
+    pendingCount === 0
+      ? "Checklist concluido neste mes. Continue acompanhando para manter o MEI em dia."
+      : alertItems.length > 0
+        ? `${alertItems[0].title} esta no radar agora. Marcar cada etapa concluida ajuda a evitar multa e correria.`
+        : "Mantenha o checklist atualizado para chegar no fechamento com tudo organizado.";
 
   return (
     <div className="mobile-section-gap">
-      <section className="summary-shell relative overflow-hidden rounded-[32px] p-5 sm:p-6">
-        <div className="pointer-events-none absolute -right-10 top-0 h-36 w-36 rounded-full bg-secondary/12 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-12 left-0 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
+      <header className="space-y-3">
+        <Badge className="w-fit" variant="success">
+          <Sparkles className="mr-1 h-3 w-3" />
+          Sua rotina MEI
+        </Badge>
+        <div className="max-w-2xl space-y-1.5">
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Obrigacoes do mes</h1>
+          <p className="text-sm leading-6 text-muted-foreground">
+            Acompanhe o que precisa ser feito em{" "}
+            <span className="font-semibold text-foreground">{monthLabel}</span> e mantenha seu MEI em dia.
+          </p>
+        </div>
+      </header>
 
-        <div className="relative space-y-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="space-y-2">
-              <Badge className="hero-pill w-fit" variant="secondary">
-                <Sparkles className="mr-1 h-3 w-3" />
-                Checklist MEI
+      <section className="overflow-hidden rounded-[32px] bg-[linear-gradient(180deg,hsl(155_62%_35%)_0%,hsl(160_70%_28%)_100%)] px-5 py-5 text-white shadow-elevated sm:px-6 sm:py-6">
+        <div className="space-y-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 space-y-2">
+              <Badge className="border-white/10 bg-white/14 text-white shadow-none" variant="outline">
+                {formatHeroMonth(monthKey)}
               </Badge>
-              <div className="space-y-1">
-                <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Obrigacoes do mes</h1>
-                <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                  Veja o que ja foi feito, o que falta marcar e o que merece sua atencao agora.
-                </p>
-              </div>
-            </div>
-            <div className="hero-panel rounded-[24px] px-4 py-3 sm:px-5">
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary/70">
-                Mes acompanhado
+              <p className="font-mono text-[clamp(2.6rem,14vw,4rem)] font-extrabold leading-none tracking-tight text-white">
+                {progressPercent}%
               </p>
-              <p className="mt-1 text-base font-extrabold text-foreground">{monthLabel}</p>
+              <p className="text-sm font-semibold text-white/82">
+                {doneCount} de {total} concluidas - {pendingCount} pendentes
+              </p>
+            </div>
+
+            <div className="icon-tile flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] bg-white/14 text-secondary shadow-[0_0_10px_rgba(16,185,129,0.18)]">
+              <ClipboardCheck className="h-7 w-7" />
             </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="hero-panel rounded-[24px] p-4 sm:p-5">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary/70">
-                    Progresso do mes
-                  </p>
-                  <p className="mt-1 text-3xl font-extrabold text-foreground">{progressPercent}%</p>
-                </div>
-                <Badge
-                  className={cn(
-                    "w-fit",
-                    summaryTone === "success" && "border-success/15 bg-success/10 text-success",
-                    summaryTone === "warning" && "border-secondary/15 bg-secondary-soft text-secondary-foreground",
-                    summaryTone === "danger" && "border-destructive/15 bg-destructive/10 text-destructive",
-                    summaryTone === "neutral" && "border-border/70 bg-muted/70 text-foreground",
-                  )}
-                  variant="secondary"
-                >
-                  {pendingCount === 0 ? "Em dia" : attentionItems.length > 0 ? "No radar" : "Pendencias"}
-                </Badge>
-              </div>
-
-              <div className="mt-4 h-3 overflow-hidden rounded-full bg-muted/80">
-                <div className="h-full rounded-full bg-gradient-glow" style={{ width: `${progressPercent}%` }} />
-              </div>
-
-              <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
-                <StatusStat
-                  icon={<CheckCircle2 className="h-4 w-4" />}
-                  label="Concluidas"
-                  tone="success"
-                  value={`${doneCount}/${total}`}
-                />
-                <StatusStat
-                  icon={<ClipboardCheck className="h-4 w-4" />}
-                  label="Pendentes"
-                  tone={pendingCount === 0 ? "success" : "neutral"}
-                  value={String(pendingCount)}
-                />
-                <StatusStat
-                  icon={<BellRing className="h-4 w-4" />}
-                  label="Alertas"
-                  tone={attentionItems.length === 0 ? "success" : summaryTone}
-                  value={String(attentionItems.length)}
-                />
-              </div>
+          <div className="space-y-2.5">
+            <div className="h-3 overflow-hidden rounded-full bg-white/12">
+              <div
+                className="h-full rounded-full bg-[linear-gradient(90deg,hsl(40_100%_60%)_0%,hsl(36_100%_56%)_100%)]"
+                style={{ width: `${progressPercent}%` }}
+              />
             </div>
-
-            <div className="space-y-3">
-              <p className="hero-kicker text-[11px] font-bold uppercase tracking-[0.1em]">
-                Atencao do mes
-              </p>
-              {attentionItems.length > 0 ? (
-                attentionItems.map((item) => (
-                  <AttentionRow detail={item.detail} key={`${item.title}-${item.detail}`} title={item.title} tone={item.tone} />
-                ))
-              ) : (
-                <div className="hero-panel-soft rounded-[24px] p-4 text-sm leading-6 text-muted-foreground">
-                  Nada critico no momento. Continue marcando o checklist conforme concluir.
-                </div>
-              )}
+            <div className="flex items-center justify-between gap-3 text-sm font-semibold text-white/88">
+              <span className="inline-flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-secondary" />
+                {doneCount} concluidas
+              </span>
+              <span className="inline-flex items-center gap-2">
+                {pendingCount} pendentes
+                <BellRing className="h-4 w-4" />
+              </span>
             </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 rounded-[24px] bg-white/6 p-3">
+            <HeroSummaryCell label="Concluidas" value={`${doneCount}/${total}`} />
+            <HeroSummaryCell label="Pendentes" value={String(pendingCount)} />
+            <HeroSummaryCell label="Alertas" value={String(alertItems.length)} />
           </div>
         </div>
       </section>
 
-      <Card>
-        <CardContent className="space-y-4 p-5 sm:p-6">
+      <section className="space-y-3">
+        <div className="flex items-center justify-between px-1">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Checklist</p>
-            <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">O que fazer neste mes</h2>
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-foreground">Alertas de prazo</p>
           </div>
-          <ObrigacoesChecklist items={checklist} monthKey={monthKey} />
+          <p className="text-xs font-semibold text-muted-foreground">
+            {alertItems.length} {alertItems.length === 1 ? "item" : "itens"}
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          {alertItems.length > 0 ? (
+            alertItems.slice(0, 3).map((item) => (
+              <DeadlineAlertCard
+                dateLabel={item.dateLabel}
+                detail={item.detail}
+                eyebrow={item.eyebrow}
+                icon={item.icon}
+                key={`${item.title}-${item.dateLabel}`}
+                title={item.title}
+                tone={item.tone}
+              />
+            ))
+          ) : (
+            <Card className="overflow-hidden rounded-[28px]">
+              <CardContent className="p-5">
+                <div className="flex items-start gap-3">
+                  <div className="icon-tile flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-success/12 text-success">
+                    <CheckCircle2 className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-foreground">Nenhum prazo critico agora</p>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                      Alertas e progresso seguem ligados aos estados reais do checklist e das obrigacoes do app.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </section>
+
+      <Card className="overflow-hidden rounded-[32px]">
+        <CardContent className="p-0">
+          <div className="border-b border-border/60 px-5 py-5 sm:px-6">
+            <div className="flex flex-col gap-3 min-[430px]:flex-row min-[430px]:items-start min-[430px]:justify-between">
+              <div className="space-y-1">
+                <h2 className="text-lg font-extrabold tracking-tight text-foreground">Checklist do mes</h2>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  Toque para marcar como concluida e acompanhe o que ainda falta neste ciclo.
+                </p>
+              </div>
+
+              <Badge
+                className={cn(
+                  "w-fit",
+                  summaryTone === "success" && "border-success/15 bg-success/10 text-success",
+                  summaryTone === "warning" && "border-secondary/15 bg-secondary-soft text-secondary-foreground",
+                  summaryTone === "danger" && "border-destructive/15 bg-destructive/10 text-destructive",
+                  summaryTone === "neutral" && "border-border/70 bg-muted/70 text-foreground",
+                )}
+                variant="secondary"
+              >
+                {pendingCount === 0 ? "Tudo em dia" : `${pendingCount} pendente${pendingCount === 1 ? "" : "s"}`}
+              </Badge>
+            </div>
+          </div>
+
+          <div className="px-5 py-5 sm:px-6">
+            <ObrigacoesChecklist items={checklist} monthKey={monthKey} />
+          </div>
         </CardContent>
       </Card>
 
-      <section className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-        <Card>
-          <CardContent className="space-y-3 p-5 sm:p-6">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-                Obrigacoes principais
+      <ObrigacoesReminders preferences={reminderPreferences} />
+
+      <Card className="overflow-hidden rounded-[30px] border-primary/12 bg-[linear-gradient(180deg,hsl(152_65%_97%)_0%,hsl(150_30%_93%)_100%)]">
+        <CardContent className="p-5 sm:p-6">
+          <div className="flex items-start gap-3">
+            <div className="icon-tile flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-lg font-extrabold tracking-tight text-foreground">
+                Manter o checklist em dia evita correria e multa
               </p>
-              <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">O que fica no radar</h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{supportCopy}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function HeroSummaryCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[18px] bg-white/8 px-3 py-3 text-center">
+      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/72">{label}</p>
+      <p className="mt-1 text-base font-extrabold text-white">{value}</p>
+    </div>
+  );
+}
+
+function DeadlineAlertCard({
+  dateLabel,
+  detail,
+  eyebrow,
+  icon: Icon,
+  title,
+  tone,
+}: AlertItem) {
+  return (
+    <Card className="overflow-hidden rounded-[28px]">
+      <CardContent className="p-0">
+        <div className="flex gap-0">
+          <div className={cn("w-1.5 shrink-0", getAlertAccentClass(tone))} />
+          <div className="flex flex-1 items-start gap-3 px-4 py-4 sm:px-5">
+            <div className={cn("icon-tile mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl", getAlertToneClass(tone))}>
+              <Icon className="h-5 w-5" />
             </div>
 
-            {obligations.map((item) => {
-              const Icon = item.icon;
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className={cn("text-[11px] font-bold uppercase tracking-[0.08em]", getAlertTextClass(tone))}>{eyebrow}</p>
+                <span className="text-xs font-semibold text-muted-foreground">{dateLabel}</span>
+              </div>
+              <p className="mt-1 text-lg font-extrabold tracking-tight text-foreground">{title}</p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">{detail}</p>
+            </div>
 
-              return (
-                <div className="surface-panel-muted rounded-[24px] p-4" key={item.title}>
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={cn(
-                        "icon-tile flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
-                        item.status === "Concluido" && "bg-success/10 text-success",
-                        item.status === "Em dia" && "bg-primary-soft text-primary",
-                        (item.status === "Em breve" || item.status === "Hoje") &&
-                          "bg-secondary-soft text-secondary-foreground",
-                        item.status === "Atrasado" && "bg-destructive/10 text-destructive",
-                      )}
-                    >
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-bold text-foreground">{item.title}</p>
-                        <Badge variant={item.status === "Atrasado" ? "danger" : item.status === "Concluido" ? "success" : "warning"}>
-                          {item.status}
-                        </Badge>
-                      </div>
-                      <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.description}</p>
-                      <p className="mt-2 text-xs font-semibold text-muted-foreground">{item.helper}</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-
-        <ObrigacoesReminders preferences={reminderPreferences} />
-      </section>
-    </div>
+            <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
-function StatusStat({
-  icon,
-  label,
-  tone,
-  value,
-}: {
-  icon: ReactNode;
-  label: string;
-  tone: StatusTone;
-  value: string;
-}) {
-  return (
-    <div className="surface-panel-muted rounded-[22px] p-3">
-      <div className={cn("flex h-8 w-8 items-center justify-center rounded-2xl", getSummaryToneClass(tone))}>{icon}</div>
-      <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
-      <p className="mt-1 text-base font-extrabold text-foreground">{value}</p>
-    </div>
-  );
-}
-
-function AttentionRow({ detail, title, tone }: AttentionItem) {
-  return (
-    <div className="hero-panel-soft flex gap-3 rounded-[24px] p-4">
-      <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl", getSummaryToneClass(tone))}>
-        <AlertTriangle className="h-4 w-4" />
-      </div>
-      <div className="min-w-0">
-        <p className="text-sm font-bold text-foreground">{title}</p>
-        <p className="mt-1 text-sm leading-6 text-muted-foreground">{detail}</p>
-      </div>
-    </div>
-  );
-}
-
-function getSummaryToneClass(tone: StatusTone) {
+function getAlertToneClass(tone: StatusTone) {
   if (tone === "success") {
-    return "bg-success/12 text-success";
+    return "bg-primary/10 text-primary";
   }
 
   if (tone === "warning") {
@@ -389,8 +478,79 @@ function getSummaryToneClass(tone: StatusTone) {
   }
 
   if (tone === "danger") {
-    return "bg-destructive/12 text-destructive";
+    return "bg-destructive/10 text-destructive";
   }
 
   return "bg-primary-soft text-primary";
+}
+
+function getAlertAccentClass(tone: StatusTone) {
+  if (tone === "success") {
+    return "bg-primary";
+  }
+
+  if (tone === "warning") {
+    return "bg-secondary";
+  }
+
+  if (tone === "danger") {
+    return "bg-destructive";
+  }
+
+  return "bg-border";
+}
+
+function getAlertTextClass(tone: StatusTone) {
+  if (tone === "success") {
+    return "text-primary";
+  }
+
+  if (tone === "warning") {
+    return "text-secondary-foreground";
+  }
+
+  if (tone === "danger") {
+    return "text-destructive";
+  }
+
+  return "text-foreground";
+}
+
+function getAlertTone(status: DueStatus, daysUntil: number) {
+  if (status === "Atrasado" || status === "Hoje") {
+    return "danger";
+  }
+
+  if (status === "Em breve" && daysUntil <= 3) {
+    return "warning";
+  }
+
+  return "success";
+}
+
+function formatDeadlineLabel(status: DueStatus, daysUntil: number) {
+  if (status === "Atrasado") {
+    return "Atrasado";
+  }
+
+  if (status === "Hoje") {
+    return "Vence hoje";
+  }
+
+  if (status === "Em breve") {
+    return daysUntil === 1 ? "Em 1 dia" : `Em ${daysUntil} dias`;
+  }
+
+  if (status === "Concluido") {
+    return "Concluido";
+  }
+
+  return "No radar";
+}
+
+function capitalizeMonthYear(value: string) {
+  return value
+    .split(" ")
+    .map((part, index) => (index === 0 ? part.charAt(0).toUpperCase() + part.slice(1) : part))
+    .join(" ");
 }
