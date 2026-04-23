@@ -20,6 +20,7 @@ import { MonthSelector } from "@/components/fechamento-mensal/month-selector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { getMovementVisualTone } from "@/lib/movement-visuals";
 import { cn } from "@/lib/utils";
 import type { Movimentacao } from "@/types/database";
 
@@ -317,14 +318,16 @@ export function FechamentoMensalOverview({
               detail={monthBalance >= 0 ? "resultado positivo" : "resultado negativo"}
               icon={CalendarRange}
               label="Resultado"
-              tone={monthBalance >= 0 ? "success" : "danger"}
+              tone="warning"
+              valueTone={monthBalance >= 0 ? "warning" : "danger"}
               value={toCurrency(monthBalance)}
             />
             <MetricCard
               detail={hasCustomRange ? "ate o fim do trecho" : "acumulado ate o fim do mes"}
               icon={Wallet}
               label="Saldo acumulado"
-              tone={balanceUntilPeriod >= 0 ? "primary" : "danger"}
+              tone="info"
+              valueTone={balanceUntilPeriod >= 0 ? "neutral" : "danger"}
               value={toCurrency(balanceUntilPeriod)}
             />
           </div>
@@ -444,51 +447,40 @@ export function FechamentoMensalOverview({
               )}
             >
               <div className="divide-y divide-border/60">
-                {filteredMovements.map((movement) => (
-                  <div
-                    className="flex gap-3 px-4 py-3.5 transition-colors hover:bg-primary-soft/20 sm:px-5"
-                    key={movement.id}
-                  >
-                    <div
-                      className={cn(
-                        "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
-                        movement.type === "entrada"
-                          ? "bg-success/12 text-success"
-                          : "bg-destructive/12 text-destructive",
-                      )}
-                    >
-                      {movement.type === "entrada" ? (
-                        <ArrowDownLeft className="h-5 w-5" />
-                      ) : (
-                        <ArrowUpRight className="h-5 w-5" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="flex min-w-0 flex-wrap items-center gap-2">
-                          <Badge variant={movement.type === "entrada" ? "success" : "danger"}>
-                            {movement.type === "entrada" ? "Entrada" : "Despesa"}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {movement.occurred_at ? toDateTime(movement.occurred_at) : toDate(movement.occurred_on)}
-                          </span>
+                {filteredMovements.map((movement) => {
+                  const tone = getMovementVisualTone(movement.type);
+
+                  return (
+                    <div className="flex gap-3 px-4 py-3.5 transition-colors hover:bg-primary-soft/20 sm:px-5" key={movement.id}>
+                      <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl", tone.iconClass)}>
+                        {movement.type === "entrada" ? (
+                          <ArrowDownLeft className="h-5 w-5" />
+                        ) : (
+                          <ArrowUpRight className="h-5 w-5" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            <Badge className={tone.badgeClass} variant="outline">
+                              {tone.label}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {movement.occurred_at ? toDateTime(movement.occurred_at) : toDate(movement.occurred_on)}
+                            </span>
+                          </div>
+                          <p className={cn("font-mono text-sm font-extrabold tabular", tone.amountClass)}>
+                            {movement.type === "entrada" ? "+" : "-"} {toCurrency(movement.amount)}
+                          </p>
                         </div>
-                        <p
-                          className={cn(
-                            "font-mono text-sm font-extrabold tabular",
-                            movement.type === "entrada" ? "text-success" : "text-destructive",
-                          )}
-                        >
-                          {movement.type === "entrada" ? "+" : "-"} {toCurrency(movement.amount)}
+                        <p className="mt-2 truncate text-sm font-bold text-foreground">{movement.description}</p>
+                        <p className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                          {movement.category}
                         </p>
                       </div>
-                      <p className="mt-2 truncate text-sm font-bold text-foreground">{movement.description}</p>
-                      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                        {movement.category}
-                      </p>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -503,14 +495,18 @@ function MetricCard({
   icon: Icon,
   label,
   tone,
+  valueTone,
   value,
 }: {
   detail: string;
   icon: typeof Receipt;
   label: string;
-  tone: "success" | "danger" | "primary";
+  tone: "success" | "danger" | "warning" | "info";
+  valueTone?: "success" | "danger" | "warning" | "neutral";
   value: string;
 }) {
+  const resolvedValueTone = valueTone ?? tone;
+
   return (
     <div
       className={cn(
@@ -519,8 +515,10 @@ function MetricCard({
           "border-success/16 bg-[linear-gradient(180deg,hsl(152_60%_96%)_0%,hsl(152_34%_92%)_100%)]",
         tone === "danger" &&
           "border-destructive/16 bg-[linear-gradient(180deg,hsl(0_100%_99%)_0%,hsl(0_82%_95%)_100%)]",
-        tone === "primary" &&
-          "border-primary/14 bg-[linear-gradient(180deg,hsl(0_0%_100%)_0%,hsl(152_42%_94%)_100%)]",
+        tone === "warning" &&
+          "border-secondary/20 bg-[linear-gradient(180deg,hsl(46_100%_98%)_0%,hsl(40_95%_92%)_100%)]",
+        tone === "info" &&
+          "border-[hsl(var(--info)/0.18)] bg-[linear-gradient(180deg,hsl(205_100%_98%)_0%,hsl(205_90%_94%)_100%)]",
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -530,7 +528,8 @@ function MetricCard({
               "text-[11px] font-bold uppercase tracking-[0.08em]",
               tone === "success" && "text-success/80",
               tone === "danger" && "text-destructive/80",
-              tone === "primary" && "text-primary/70",
+              tone === "warning" && "text-secondary-foreground/80",
+              tone === "info" && "text-[hsl(var(--info))]",
             )}
           >
             {label}
@@ -538,9 +537,10 @@ function MetricCard({
           <p
             className={cn(
               "font-mono mt-2 text-xl font-extrabold tabular",
-              tone === "success" && "text-success",
-              tone === "danger" && "text-destructive",
-              tone === "primary" && "text-foreground",
+              resolvedValueTone === "success" && "text-success",
+              resolvedValueTone === "danger" && "text-destructive",
+              resolvedValueTone === "warning" && "text-secondary-foreground",
+              resolvedValueTone === "neutral" && "text-foreground",
             )}
           >
             {value}
@@ -552,7 +552,8 @@ function MetricCard({
             "icon-tile flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
             tone === "success" && "bg-white/72 text-success",
             tone === "danger" && "bg-white/75 text-destructive",
-            tone === "primary" && "bg-white/70 text-primary",
+            tone === "warning" && "bg-white/75 text-secondary-foreground",
+            tone === "info" && "bg-white/75 text-[hsl(var(--info))]",
           )}
         >
           <Icon className="h-4 w-4" />
@@ -590,13 +591,18 @@ function ComparisonRow({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
+          <p
+            className={cn(
+              "text-[11px] font-bold uppercase tracking-[0.08em]",
+              better ? "text-success/85" : "text-destructive/85",
+            )}
+          >
+            {label}
+          </p>
           <p
             className={cn(
               "font-mono mt-2 text-xl font-extrabold tabular",
-              kind === "income" && "text-success",
-              kind === "expense" && "text-destructive",
-              kind === "result" && (better ? "text-success" : "text-destructive"),
+              better ? "text-success" : "text-destructive",
             )}
           >
             {value}

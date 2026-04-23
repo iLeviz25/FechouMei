@@ -13,6 +13,7 @@ import {
   buildWhatsAppActivationUrl,
   type WhatsAppAssistantActivationSnapshot,
 } from "@/lib/channels/whatsapp/activation";
+import { cn } from "@/lib/utils";
 
 type WhatsAppActivationPanelProps = {
   initialActivation: WhatsAppAssistantActivationSnapshot;
@@ -40,7 +41,7 @@ export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivatio
   const usageGuide = getUsageGuide(activation);
   const linked = activation.status === "linked";
   const pendingActivation = activation.status === "pending" && Boolean(activation.activationCode);
-  const statusBadgeVariant = linked ? "success" : pendingActivation ? "warning" : "secondary";
+  const statusBadgeVariant = linked ? "success" : "danger";
 
   function handleStartActivation() {
     setErrorMessage(null);
@@ -81,7 +82,7 @@ export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivatio
     <div className="mx-auto max-w-5xl space-y-4">
       <Card className="summary-shell overflow-hidden">
         <CardContent className="space-y-5 p-5 sm:p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-3">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="hero-pill w-fit" variant="secondary">
@@ -97,26 +98,31 @@ export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivatio
                 </p>
               </div>
             </div>
-
-            <div className="surface-panel-muted rounded-[24px] px-4 py-3 sm:max-w-[290px]">
-              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-                Status da conexao
-              </p>
-              <p className="mt-1 text-sm font-bold text-foreground">{status.label}</p>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                {linked
-                  ? `Numero vinculado: ${displayUserNumber ?? "pronto para uso"}`
-                  : "Conecte seu numero para usar a Helena no dia a dia."}
-              </p>
-            </div>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
-            <div className="hero-panel rounded-[28px] p-4 sm:p-5">
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary/70">
+            <div
+              className={cn(
+                "rounded-[28px] border p-4 sm:p-5",
+                linked
+                  ? "border-success/18 bg-[linear-gradient(180deg,hsl(152_60%_96%)_0%,hsl(152_36%_92%)_100%)]"
+                  : "border-destructive/18 bg-[linear-gradient(180deg,hsl(0_100%_99%)_0%,hsl(0_82%_95%)_100%)]",
+              )}
+            >
+              <p
+                className={cn(
+                  "text-[11px] font-bold uppercase tracking-[0.1em]",
+                  linked ? "text-success/80" : "text-destructive/80",
+                )}
+              >
                 {linked ? "WhatsApp ativo" : pendingActivation ? "Falta um passo" : "Vinculacao"}
               </p>
-              <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">
+              <h2
+                className={cn(
+                  "mt-1 text-lg font-extrabold tracking-tight",
+                  linked ? "text-success" : "text-foreground",
+                )}
+              >
                 {linked
                   ? "Conversa pronta para usar"
                   : pendingActivation
@@ -167,7 +173,7 @@ export function WhatsAppActivationPanel({ initialActivation }: WhatsAppActivatio
               </div>
 
               {pendingActivation ? (
-                <div className="surface-panel-muted mt-4 rounded-[24px] p-4">
+                <div className="mt-4 rounded-[24px] border border-white/70 bg-white/55 p-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
                       <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">

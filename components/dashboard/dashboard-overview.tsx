@@ -13,6 +13,7 @@ import { DashboardGreeting } from "@/components/dashboard/dashboard-greeting";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { getMovementVisualTone } from "@/lib/movement-visuals";
 import { cn } from "@/lib/utils";
 import type { Movimentacao } from "@/types/database";
 
@@ -155,14 +156,16 @@ export function DashboardOverview({
               detail={monthBalance >= 0 ? "mes no azul" : "mes no vermelho"}
               icon={Wallet}
               label="Saldo do mes"
-              tone={monthBalance >= 0 ? "primary" : "danger"}
+              tone="neutral"
+              valueTone={monthBalance >= 0 ? "neutral" : "danger"}
               value={toCurrency(monthBalance)}
             />
             <SummaryCard
               detail="acumulado em 2025"
               icon={Landmark}
               label="Faturamento"
-              tone="neutral"
+              tone="warning"
+              valueTone="warning"
               value={toCurrency(annualIncome)}
             />
           </div>
@@ -233,25 +236,30 @@ export function DashboardOverview({
               <div className="space-y-2">
                 {recentMovements.map((movement) => {
                   const income = movement.type === "entrada";
+                  const tone = getMovementVisualTone(movement.type);
 
                   return (
                     <div className="surface-panel-muted flex items-center gap-3 rounded-[24px] px-4 py-3.5 transition-colors hover:border-primary/20 hover:bg-primary-soft/20" key={movement.id}>
                       <div
                         className={cn(
                           "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
-                          income ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive",
+                          tone.iconClass,
                         )}
                       >
                         {income ? <ArrowDownLeft className="h-5 w-5" /> : <ArrowUpRight className="h-5 w-5" />}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-foreground">{movement.description}</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {income ? "Entrada" : "Despesa"} -{" "}
-                          {movement.occurred_at ? toDateTime(movement.occurred_at) : toDate(movement.occurred_on)}
-                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge className={tone.badgeClass} variant="outline">
+                            {tone.label}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {movement.occurred_at ? toDateTime(movement.occurred_at) : toDate(movement.occurred_on)}
+                          </span>
+                        </div>
+                        <p className="mt-2 truncate text-sm font-bold text-foreground">{movement.description}</p>
                       </div>
-                      <p className={cn("font-mono text-sm font-extrabold tabular", income ? "text-success" : "text-foreground")}>
+                      <p className={cn("font-mono text-sm font-extrabold tabular", tone.amountClass)}>
                         {income ? "+" : "-"} {toCurrency(movement.amount)}
                       </p>
                     </div>
@@ -304,29 +312,65 @@ function SummaryCard({
   icon: Icon,
   label,
   tone,
+  valueTone,
   value,
 }: {
   detail: string;
   icon: typeof ArrowDownLeft;
   label: string;
-  tone: "success" | "danger" | "primary" | "neutral";
+  tone: "success" | "danger" | "neutral" | "warning";
+  valueTone?: "success" | "danger" | "neutral" | "warning";
   value: string;
 }) {
+  const resolvedValueTone = valueTone ?? tone;
+
   return (
-    <div className="hero-panel rounded-[24px] p-4 sm:p-5">
+    <div
+      className={cn(
+        "rounded-[24px] border p-4 sm:p-5",
+        tone === "success" &&
+          "border-success/16 bg-[linear-gradient(180deg,hsl(152_60%_96%)_0%,hsl(152_36%_92%)_100%)]",
+        tone === "danger" &&
+          "border-destructive/16 bg-[linear-gradient(180deg,hsl(0_100%_99%)_0%,hsl(0_82%_95%)_100%)]",
+        tone === "neutral" &&
+          "border-border/90 bg-[linear-gradient(180deg,hsl(0_0%_100%)_0%,hsl(150_16%_95%)_100%)]",
+        tone === "warning" &&
+          "border-secondary/20 bg-[linear-gradient(180deg,hsl(46_100%_98%)_0%,hsl(40_95%_92%)_100%)]",
+      )}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-primary/70">{label}</p>
-          <p className="font-mono mt-2 text-xl font-extrabold tabular text-foreground">{value}</p>
-          <p className="mt-1 text-xs text-primary/70">{detail}</p>
+          <p
+            className={cn(
+              "text-[11px] font-bold uppercase tracking-[0.08em]",
+              tone === "success" && "text-success/80",
+              tone === "danger" && "text-destructive/80",
+              tone === "neutral" && "text-foreground/60",
+              tone === "warning" && "text-secondary-foreground/80",
+            )}
+          >
+            {label}
+          </p>
+          <p
+            className={cn(
+              "font-mono mt-2 text-xl font-extrabold tabular",
+              resolvedValueTone === "success" && "text-success",
+              resolvedValueTone === "danger" && "text-destructive",
+              resolvedValueTone === "neutral" && "text-foreground",
+              resolvedValueTone === "warning" && "text-secondary-foreground",
+            )}
+          >
+            {value}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
         </div>
         <div
           className={cn(
             "icon-tile flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
-            tone === "success" && "bg-success/12 text-success",
-            tone === "danger" && "bg-destructive/12 text-destructive",
-            tone === "primary" && "bg-primary-soft text-primary",
-            tone === "neutral" && "bg-secondary-soft text-secondary-foreground",
+            tone === "success" && "bg-white/72 text-success",
+            tone === "danger" && "bg-white/75 text-destructive",
+            tone === "neutral" && "bg-white/80 text-foreground",
+            tone === "warning" && "bg-white/75 text-secondary-foreground",
           )}
         >
           <Icon className="h-4 w-4" />
