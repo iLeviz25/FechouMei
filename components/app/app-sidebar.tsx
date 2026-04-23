@@ -166,7 +166,7 @@ export function AppSidebar({ profile }: AppSidebarProps) {
         </div>
       </aside>
 
-      <header className="fixed inset-x-0 top-0 z-20 border-b border-border/70 bg-background/92 px-4 py-3 shadow-sm backdrop-blur lg:hidden">
+      <header className="fixed inset-x-0 top-0 z-20 border-b border-border/70 bg-background/92 px-4 py-3.5 shadow-sm backdrop-blur lg:hidden">
         <div className="flex items-center justify-between gap-3">
           <Link
             className="flex items-center gap-2"
@@ -188,7 +188,7 @@ export function AppSidebar({ profile }: AppSidebarProps) {
         </div>
       </header>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-border/70 bg-background/94 px-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2.5 shadow-[0_-12px_28px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-border/70 bg-background/94 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-12px_28px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden">
         {navItems.map((item) => {
           const isActive = visiblePathname === item.href;
           const Icon = item.icon;
@@ -197,7 +197,7 @@ export function AppSidebar({ profile }: AppSidebarProps) {
             <Link
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "relative flex min-h-[62px] flex-col items-center justify-center gap-1.5 rounded-[20px] px-1.5 text-[10px] font-bold transition-all",
+                "relative flex min-h-[64px] min-w-0 flex-col items-center justify-center gap-1 rounded-[20px] px-1 text-[10px] font-bold transition-all",
                 isActive
                   ? "surface-panel-muted text-primary shadow-card"
                   : "text-muted-foreground hover:bg-white/70 hover:text-foreground",
@@ -219,7 +219,7 @@ export function AppSidebar({ profile }: AppSidebarProps) {
               >
                 <Icon className="h-4 w-4" />
               </span>
-              <span className="max-w-full truncate">{item.shortLabel}</span>
+              <span className="max-w-full truncate text-center leading-3">{item.shortLabel}</span>
             </Link>
           );
         })}

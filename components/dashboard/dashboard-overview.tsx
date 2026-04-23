@@ -1,11 +1,8 @@
 import {
   ArrowDownLeft,
   ArrowUpRight,
-  BellRing,
   CheckCircle2,
-  ClipboardCheck,
   Landmark,
-  MessageCircle,
   Receipt,
   Sparkles,
   TrendingUp,
@@ -111,7 +108,7 @@ export function DashboardOverview({
         <div className="pointer-events-none absolute -bottom-12 left-0 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
 
         <div className="relative space-y-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-2">
               <Badge className="hero-pill w-fit" variant="secondary">
                 <Sparkles className="mr-1 h-3 w-3" />
@@ -124,7 +121,7 @@ export function DashboardOverview({
                 </p>
               </div>
             </div>
-            <div className="hero-panel rounded-[24px] px-4 py-3 sm:px-5">
+            <div className="hero-panel w-full rounded-[24px] px-4 py-3 sm:w-auto sm:px-5">
               <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary/70">
                 Saldo atual
               </p>
@@ -172,10 +169,10 @@ export function DashboardOverview({
         </div>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+      <section>
         <Card className="summary-shell overflow-hidden">
           <CardContent className="space-y-5 p-5 sm:p-6">
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="space-y-1">
                 <p className="hero-kicker text-[11px] font-bold uppercase tracking-[0.1em]">
                   Limite anual MEI
@@ -183,7 +180,7 @@ export function DashboardOverview({
                 <p className="font-mono text-3xl font-extrabold tabular">{toCurrency(annualIncome)}</p>
                 <p className="text-sm text-muted-foreground">de {toCurrency(MEI_LIMIT)} utilizados no ano</p>
               </div>
-              <Badge className="hero-pill w-fit" variant="secondary">
+              <Badge className="hero-pill w-fit self-start" variant="secondary">
                 {limitUsage >= 1 ? "Excedido" : limitUsage >= 0.75 ? "Atencao" : "Tranquilo"}
               </Badge>
             </div>
@@ -193,7 +190,7 @@ export function DashboardOverview({
                 <div className="h-3 overflow-hidden rounded-full bg-muted/80">
                   <div className="h-full rounded-full bg-gradient-glow" style={{ width: `${limitUsagePercent}%` }} />
                 </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                   <span>{limitUsagePercent.toFixed(1).replace(".", ",")}% do teto</span>
                   <span>{toCurrency(remainingLimit)} disponiveis</span>
                 </div>
@@ -207,32 +204,12 @@ export function DashboardOverview({
             </div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardContent className="space-y-4 p-5 sm:p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-                  Acoes rapidas
-                </p>
-                <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">Onde seguir agora</h2>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <QuickAction href="/app/movimentacoes" icon={Receipt} label="Lancar movimentacoes" />
-              <QuickAction href="/app/fechamento-mensal" icon={ClipboardCheck} label="Revisar fechamento" />
-              <QuickAction href="/app/obrigacoes" icon={BellRing} label="Atualizar obrigacoes" />
-              <QuickAction href="/app/agente" icon={MessageCircle} label="Falar com Helena" />
-            </div>
-          </CardContent>
-        </Card>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
         <Card>
           <CardContent className="p-5 sm:p-6">
-            <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
                   Ultimas movimentacoes
@@ -361,31 +338,9 @@ function SummaryCard({
 
 function LimitStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="hero-panel-soft rounded-[22px] p-3">
+    <div className="hero-panel-soft min-w-0 rounded-[22px] p-3">
       <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
       <p className="mt-1 text-sm font-bold text-foreground">{value}</p>
     </div>
-  );
-}
-
-function QuickAction({
-  href,
-  icon: Icon,
-  label,
-}: {
-  href: string;
-  icon: typeof Receipt;
-  label: string;
-}) {
-  return (
-    <Link
-      className="surface-panel-muted group flex min-h-[116px] flex-col justify-between rounded-[24px] p-4 transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:bg-primary-soft/25"
-      href={href}
-    >
-      <div className="icon-tile flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-soft text-primary">
-        <Icon className="h-5 w-5" />
-      </div>
-      <p className="text-sm font-bold leading-5 text-foreground">{label}</p>
-    </Link>
   );
 }

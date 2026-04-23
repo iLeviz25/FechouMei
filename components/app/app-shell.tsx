@@ -14,7 +14,7 @@ export function AppShell({ profile, children }: AppShellProps) {
       <div className="min-h-screen overflow-x-hidden bg-gradient-surface">
         <RealtimeAppRefresh userId={profile?.id ?? null} />
         <AppSidebar profile={profile} />
-        <main className="min-h-screen px-3.5 pb-32 pt-[4.75rem] sm:px-6 md:pb-10 md:pl-[296px] md:pt-7 lg:px-8 lg:pl-[304px]">
+        <main className="min-h-screen px-4 pb-32 pt-[5rem] sm:px-6 md:pb-10 md:pl-[296px] md:pt-7 lg:px-8 lg:pl-[304px]">
           <div className="mx-auto w-full max-w-[1240px]">{children}</div>
         </main>
       </div>
