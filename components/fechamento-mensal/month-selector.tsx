@@ -1,103 +1,127 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
-import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
+import { CalendarDays } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Select } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 type MonthSelectorProps = {
-  monthValue: string;
-  yearValue: string;
-  nextHref: string;
-  previousHref: string;
+  currentMonthValue: string;
+  monthEndValue: string;
+  monthStartValue: string;
+  rangeEnd: string;
+  rangeStart: string;
+  onClearRange: () => void;
+  onRangeEndChange: (value: string) => void;
+  onRangeStartChange: (value: string) => void;
 };
 
-const monthOptions = [
-  { label: "Janeiro", value: "01" },
-  { label: "Fevereiro", value: "02" },
-  { label: "Marco", value: "03" },
-  { label: "Abril", value: "04" },
-  { label: "Maio", value: "05" },
-  { label: "Junho", value: "06" },
-  { label: "Julho", value: "07" },
-  { label: "Agosto", value: "08" },
-  { label: "Setembro", value: "09" },
-  { label: "Outubro", value: "10" },
-  { label: "Novembro", value: "11" },
-  { label: "Dezembro", value: "12" },
-];
-
-export function MonthSelector({ monthValue, yearValue, nextHref, previousHref }: MonthSelectorProps) {
+export function MonthSelector({
+  currentMonthValue,
+  monthEndValue,
+  monthStartValue,
+  onClearRange,
+  onRangeEndChange,
+  onRangeStartChange,
+  rangeEnd,
+  rangeStart,
+}: MonthSelectorProps) {
   const router = useRouter();
-  const [selectedMonth, setSelectedMonth] = useState(monthValue);
-  const [selectedYear, setSelectedYear] = useState(yearValue);
-  const yearOptions = useMemo(
-    () => Array.from({ length: 7 }, (_, index) => String(Number(yearValue) - 3 + index)),
-    [yearValue],
-  );
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthValue);
+  const [isPending, startTransition] = useTransition();
+  const hasCustomRange = rangeStart !== "" || rangeEnd !== "";
 
   useEffect(() => {
-    setSelectedMonth(monthValue);
-    setSelectedYear(yearValue);
-  }, [monthValue, yearValue]);
+    setSelectedMonth(currentMonthValue);
+  }, [currentMonthValue]);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    router.push(`/app/fechamento-mensal?month=${selectedYear}-${selectedMonth}`);
+  function handleMonthChange(value: string) {
+    setSelectedMonth(value);
+
+    if (!/^\d{4}-\d{2}$/.test(value)) {
+      return;
+    }
+
+    startTransition(() => {
+      router.push(`/app/fechamento-mensal?month=${value}`);
+    });
   }
 
   return (
     <Card>
       <CardContent className="space-y-4 p-5 sm:p-6">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Periodo</p>
-            <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">Escolha o mes do fechamento</h2>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button asChild size="icon" variant="outline">
-              <Link aria-label="Mes anterior" href={previousHref}>
-                <ChevronLeft className="h-4 w-4" />
-              </Link>
-            </Button>
-            <Button asChild size="icon" variant="outline">
-              <Link aria-label="Proximo mes" href={nextHref}>
-                <ChevronRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
+        <div className="space-y-1">
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Periodo</p>
+          <h2 className="text-lg font-extrabold tracking-tight text-foreground">Escolha o fechamento</h2>
+          <p className="text-sm leading-6 text-muted-foreground">
+            Selecione o mes e, se quiser, refine por um trecho especifico dentro dele.
+          </p>
         </div>
 
-        <form className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_116px]" onSubmit={handleSubmit}>
-          <label className="space-y-2 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
-            Mes
-            <Select onChange={(event) => setSelectedMonth(event.target.value)} value={selectedMonth}>
-              {monthOptions.map((month) => (
-                <option key={month.value} value={month.value}>
-                  {month.label}
-                </option>
-              ))}
-            </Select>
-          </label>
+        <label className="block space-y-2">
+          <span className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Mes do fechamento</span>
+          <Input
+            disabled={isPending}
+            onChange={(event) => handleMonthChange(event.target.value)}
+            type="month"
+            value={selectedMonth}
+          />
+        </label>
 
-          <label className="space-y-2 text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
-            Ano
-            <Select onChange={(event) => setSelectedYear(event.target.value)} value={selectedYear}>
-              {yearOptions.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </Select>
-          </label>
+        <div className="surface-panel-muted rounded-[24px] p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="icon-tile flex h-9 w-9 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+                  <CalendarDays className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-foreground">Intervalo no mes</p>
+                  <p className="text-sm leading-6 text-muted-foreground">Opcional para ver so um trecho do fechamento.</p>
+                </div>
+              </div>
+            </div>
 
-          <Button className="sm:col-span-2" type="submit" variant="outline">
-            Ver fechamento
-          </Button>
-        </form>
+            {hasCustomRange ? (
+              <Button onClick={onClearRange} size="sm" type="button" variant="ghost">
+                Limpar intervalo
+              </Button>
+            ) : (
+              <Badge variant="secondary">Opcional</Badge>
+            )}
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <label className="space-y-2">
+              <span className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">De</span>
+              <Input
+                max={rangeEnd || monthEndValue}
+                min={monthStartValue}
+                onChange={(event) => onRangeStartChange(event.target.value)}
+                type="date"
+                value={rangeStart}
+              />
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Ate</span>
+              <Input
+                max={monthEndValue}
+                min={rangeStart || monthStartValue}
+                onChange={(event) => onRangeEndChange(event.target.value)}
+                type="date"
+                value={rangeEnd}
+              />
+            </label>
+          </div>
+
+          <p className="mt-3 text-xs leading-5 text-muted-foreground">
+            Exemplo: veja apenas do dia 17 ao dia 23 dentro do mes escolhido.
+          </p>
+        </div>
       </CardContent>
     </Card>
   );

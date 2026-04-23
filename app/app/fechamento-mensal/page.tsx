@@ -6,8 +6,6 @@ import { createClient } from "@/lib/supabase/server";
 type FechamentoMensalPageProps = {
   searchParams?: Promise<{
     month?: string;
-    monthValue?: string;
-    year?: string;
   }>;
 };
 
@@ -24,8 +22,6 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
   const resolvedSearchParams = await searchParams;
   const selectedMonth = resolveMonth({
     monthParam: resolvedSearchParams?.month,
-    monthValue: resolvedSearchParams?.monthValue,
-    yearValue: resolvedSearchParams?.year,
   });
   const monthStart = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1);
   const monthEnd = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0);
@@ -48,12 +44,12 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
       .order("created_at", { ascending: false }),
     supabase
       .from("movimentacoes")
-      .select("type, amount")
+      .select("type, amount, occurred_on")
       .gte("occurred_on", previousMonthStartValue)
       .lte("occurred_on", previousMonthEndValue),
     supabase
       .from("movimentacoes")
-      .select("type, amount")
+      .select("type, amount, occurred_on")
       .lte("occurred_on", monthEndValue),
     supabase
       .from("profiles")
@@ -66,7 +62,7 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
   }
 
   if (previousMonthResult.error) {
-    throw new Error(`Erro ao carregar comparação do mês anterior: ${previousMonthResult.error.message}`);
+    throw new Error(`Erro ao carregar comparacao do mes anterior: ${previousMonthResult.error.message}`);
   }
 
   if (balanceUntilMonthResult.error) {
@@ -77,59 +73,21 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
     throw new Error(`Erro ao carregar ajuste de saldo: ${profileResult.error.message}`);
   }
 
-  const movements = movementsResult.data ?? [];
-  const totals = movements.reduce(
-    (acc, movement) => {
-      if (movement.type === "entrada") {
-        acc.monthlyIncome += movement.amount;
-      } else {
-        acc.monthlyExpense += movement.amount;
-      }
-      return acc;
-    },
-    { monthlyExpense: 0, monthlyIncome: 0 },
-  );
-
-  const previousTotals = (previousMonthResult.data ?? []).reduce(
-    (acc, movement) => {
-      if (movement.type === "entrada") {
-        acc.monthlyIncome += movement.amount;
-      } else {
-        acc.monthlyExpense += movement.amount;
-      }
-      return acc;
-    },
-    { monthlyExpense: 0, monthlyIncome: 0 },
-  );
-  const initialBalance = Number(profileResult.data?.initial_balance ?? 0);
-  const balanceUntilMonth = (balanceUntilMonthResult.data ?? []).reduce((balance, movement) => {
-    if (movement.type === "entrada") {
-      return balance + movement.amount;
-    }
-
-    if (movement.type === "despesa") {
-      return balance - movement.amount;
-    }
-
-    return balance;
-  }, Number.isFinite(initialBalance) ? initialBalance : 0);
-
   const monthLabel = formatMonthLabel(selectedMonth);
-  const nextMonth = addMonths(selectedMonth, 1);
 
   return (
     <FechamentoMensalOverview
+      balanceRows={balanceUntilMonthResult.data ?? []}
+      initialBalance={Number(profileResult.data?.initial_balance ?? 0)}
+      monthEndValue={monthEndValue}
       monthLabel={monthLabel}
+      monthStartValue={monthStartValue}
       monthValue={String(selectedMonth.getMonth() + 1).padStart(2, "0")}
+      movements={movementsResult.data ?? []}
+      previousMonthEndValue={previousMonthEndValue}
+      previousMonthMovements={previousMonthResult.data ?? []}
+      previousMonthStartValue={previousMonthStartValue}
       yearValue={String(selectedMonth.getFullYear())}
-      balanceUntilMonth={balanceUntilMonth}
-      monthlyExpense={totals.monthlyExpense}
-      monthlyIncome={totals.monthlyIncome}
-      previousMonthlyExpense={previousTotals.monthlyExpense}
-      previousMonthlyIncome={previousTotals.monthlyIncome}
-      movements={movements}
-      nextHref={buildMonthHref(nextMonth)}
-      previousHref={buildMonthHref(previousMonth)}
     />
   );
 }
@@ -143,17 +101,9 @@ function toDateInputValue(date: Date) {
 
 function resolveMonth({
   monthParam,
-  monthValue,
-  yearValue,
 }: {
   monthParam?: string;
-  monthValue?: string;
-  yearValue?: string;
 }) {
-  if (monthValue && yearValue && /^\d{2}$/.test(monthValue) && /^\d{4}$/.test(yearValue)) {
-    return new Date(Number(yearValue), Number(monthValue) - 1, 1);
-  }
-
   if (!monthParam || !/^\d{4}-\d{2}$/.test(monthParam)) {
     return new Date();
   }
@@ -164,11 +114,6 @@ function resolveMonth({
 
 function addMonths(base: Date, delta: number) {
   return new Date(base.getFullYear(), base.getMonth() + delta, 1);
-}
-
-function buildMonthHref(date: Date) {
-  const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-  return `/app/fechamento-mensal?month=${value}`;
 }
 
 function formatMonthLabel(date: Date) {

@@ -1,7 +1,10 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDownLeft,
   ArrowUpRight,
-  CheckCircle2,
+  CalendarRange,
   Flame,
   Receipt,
   Sparkles,
@@ -25,18 +28,20 @@ type MonthlyMovement = Pick<
   "amount" | "category" | "description" | "id" | "occurred_at" | "occurred_on" | "type"
 >;
 
+type BalanceMovement = Pick<Movimentacao, "amount" | "occurred_on" | "type">;
+
 type FechamentoMensalOverviewProps = {
+  balanceRows: BalanceMovement[];
+  initialBalance: number;
+  monthEndValue: string;
   monthLabel: string;
+  monthStartValue: string;
   monthValue: string;
-  yearValue: string;
-  balanceUntilMonth: number;
-  monthlyExpense: number;
-  monthlyIncome: number;
-  previousMonthlyExpense: number;
-  previousMonthlyIncome: number;
   movements: MonthlyMovement[];
-  nextHref: string;
-  previousHref: string;
+  previousMonthEndValue: string;
+  previousMonthMovements: BalanceMovement[];
+  previousMonthStartValue: string;
+  yearValue: string;
 };
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -61,27 +66,122 @@ function toDateTime(value: string) {
 }
 
 export function FechamentoMensalOverview({
-  balanceUntilMonth,
+  balanceRows,
+  initialBalance,
+  monthEndValue,
   monthLabel,
+  monthStartValue,
   monthValue,
-  yearValue,
-  monthlyExpense,
-  monthlyIncome,
-  previousMonthlyExpense,
-  previousMonthlyIncome,
   movements,
-  nextHref,
-  previousHref,
+  previousMonthEndValue,
+  previousMonthMovements,
+  previousMonthStartValue,
+  yearValue,
 }: FechamentoMensalOverviewProps) {
-  const monthBalance = monthlyIncome - monthlyExpense;
-  const previousBalance = previousMonthlyIncome - previousMonthlyExpense;
-  const balanceDelta = monthBalance - previousBalance;
-  const incomeDelta = monthlyIncome - previousMonthlyIncome;
-  const expenseDelta = monthlyExpense - previousMonthlyExpense;
+  const [rangeStart, setRangeStart] = useState("");
+  const [rangeEnd, setRangeEnd] = useState("");
 
-  const biggestIncome = movements.filter((item) => item.type === "entrada").sort((a, b) => b.amount - a.amount)[0];
-  const biggestExpense = movements.filter((item) => item.type === "despesa").sort((a, b) => b.amount - a.amount)[0];
-  const topExpenseCategory = movements.reduce(
+  useEffect(() => {
+    setRangeStart("");
+    setRangeEnd("");
+  }, [monthEndValue, monthStartValue]);
+
+  const hasCustomRange = rangeStart !== "" || rangeEnd !== "";
+  const effectiveStart = rangeStart || monthStartValue;
+  const effectiveEnd = rangeEnd || monthEndValue;
+  const effectivePeriodLabel = hasCustomRange ? `${toDate(effectiveStart)} a ${toDate(effectiveEnd)}` : monthLabel;
+  const comparisonLabel = hasCustomRange ? "Mesmo trecho no mes anterior" : "Versus mes anterior";
+
+  const filteredMovements = useMemo(
+    () =>
+      movements.filter((movement) => movement.occurred_on >= effectiveStart && movement.occurred_on <= effectiveEnd),
+    [effectiveEnd, effectiveStart, movements],
+  );
+
+  const monthlyTotals = useMemo(
+    () =>
+      filteredMovements.reduce(
+        (acc, movement) => {
+          if (movement.type === "entrada") {
+            acc.monthlyIncome += movement.amount;
+          } else {
+            acc.monthlyExpense += movement.amount;
+          }
+
+          return acc;
+        },
+        { monthlyExpense: 0, monthlyIncome: 0 },
+      ),
+    [filteredMovements],
+  );
+
+  const previousRange = useMemo(() => {
+    if (!hasCustomRange) {
+      return {
+        end: previousMonthEndValue,
+        start: previousMonthStartValue,
+      };
+    }
+
+    return {
+      end: rangeEnd ? mapDateToMonth(rangeEnd, previousMonthStartValue) : previousMonthEndValue,
+      start: rangeStart ? mapDateToMonth(rangeStart, previousMonthStartValue) : previousMonthStartValue,
+    };
+  }, [hasCustomRange, previousMonthEndValue, previousMonthStartValue, rangeEnd, rangeStart]);
+
+  const previousTotals = useMemo(
+    () =>
+      previousMonthMovements.reduce(
+        (acc, movement) => {
+          if (movement.occurred_on < previousRange.start || movement.occurred_on > previousRange.end) {
+            return acc;
+          }
+
+          if (movement.type === "entrada") {
+            acc.monthlyIncome += movement.amount;
+          } else {
+            acc.monthlyExpense += movement.amount;
+          }
+
+          return acc;
+        },
+        { monthlyExpense: 0, monthlyIncome: 0 },
+      ),
+    [previousMonthMovements, previousRange.end, previousRange.start],
+  );
+
+  const monthBalance = monthlyTotals.monthlyIncome - monthlyTotals.monthlyExpense;
+  const previousBalance = previousTotals.monthlyIncome - previousTotals.monthlyExpense;
+  const balanceDelta = monthBalance - previousBalance;
+  const incomeDelta = monthlyTotals.monthlyIncome - previousTotals.monthlyIncome;
+  const expenseDelta = monthlyTotals.monthlyExpense - previousTotals.monthlyExpense;
+  const balanceUntilPeriod = useMemo(() => {
+    const safeInitialBalance = Number.isFinite(initialBalance) ? initialBalance : 0;
+
+    return balanceRows.reduce((balance, movement) => {
+      if (movement.occurred_on > effectiveEnd) {
+        return balance;
+      }
+
+      if (movement.type === "entrada") {
+        return balance + movement.amount;
+      }
+
+      if (movement.type === "despesa") {
+        return balance - movement.amount;
+      }
+
+      return balance;
+    }, safeInitialBalance);
+  }, [balanceRows, effectiveEnd, initialBalance]);
+
+  const biggestIncome = filteredMovements
+    .filter((item) => item.type === "entrada")
+    .sort((a, b) => b.amount - a.amount)[0];
+  const biggestExpense = filteredMovements
+    .filter((item) => item.type === "despesa")
+    .sort((a, b) => b.amount - a.amount)[0];
+  const topExpenseCategory = filteredMovements.reduce(
     (acc, movement) => {
       if (movement.type !== "despesa") {
         return acc;
@@ -100,9 +200,24 @@ export function FechamentoMensalOverview({
   );
 
   const comparisonItems = [
-    { delta: incomeDelta, label: "Entradas", value: monthlyIncome },
-    { delta: expenseDelta, label: "Despesas", value: monthlyExpense },
-    { delta: balanceDelta, label: "Resultado", value: monthBalance },
+    {
+      delta: incomeDelta,
+      kind: "income" as const,
+      label: "Entradas",
+      value: monthlyTotals.monthlyIncome,
+    },
+    {
+      delta: expenseDelta,
+      kind: "expense" as const,
+      label: "Despesas",
+      value: monthlyTotals.monthlyExpense,
+    },
+    {
+      delta: balanceDelta,
+      kind: "result" as const,
+      label: "Resultado",
+      value: monthBalance,
+    },
   ];
 
   const highlightItems = [
@@ -129,75 +244,127 @@ export function FechamentoMensalOverview({
     },
   ];
 
+  const mobileListShouldScroll = filteredMovements.length > 4;
+  const currentMonthValue = `${yearValue}-${monthValue}`;
+
+  function handleRangeStartChange(value: string) {
+    if (!value) {
+      setRangeStart("");
+      return;
+    }
+
+    const normalized = clampDateToMonth(value, monthStartValue, monthEndValue);
+    setRangeStart(normalized);
+    setRangeEnd((current) => (current && current < normalized ? normalized : current));
+  }
+
+  function handleRangeEndChange(value: string) {
+    if (!value) {
+      setRangeEnd("");
+      return;
+    }
+
+    const normalized = clampDateToMonth(value, monthStartValue, monthEndValue);
+    setRangeEnd(normalized);
+    setRangeStart((current) => (current && current > normalized ? normalized : current));
+  }
+
+  function clearRange() {
+    setRangeStart("");
+    setRangeEnd("");
+  }
+
   return (
     <div className="mobile-section-gap">
-      <section className="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
-        <Card className="summary-shell overflow-hidden">
-          <CardContent className="space-y-6 p-5 sm:p-6">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="space-y-2">
-                <Badge className="hero-pill w-fit" variant="secondary">
-                  <Sparkles className="mr-1 h-3 w-3" />
-                  Fechamento mensal
-                </Badge>
-                <div className="space-y-1">
-                  <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Fechamento de {monthLabel}</h1>
-                  <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                    Revise o mes, compare com o anterior e confira os registros usados no fechamento.
-                  </p>
-                </div>
-              </div>
-
-              <div className="hero-panel rounded-[24px] px-4 py-3 sm:px-5">
-                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary/70">
-                  Resultado do mes
-                </p>
-                <p
-                  className={cn(
-                    "font-mono mt-1 text-2xl font-extrabold tabular",
-                    monthBalance >= 0 ? "text-foreground" : "text-destructive",
-                  )}
-                >
-                  {toCurrency(monthBalance)}
+      <section className="summary-shell overflow-hidden rounded-[32px] p-5 sm:p-6">
+        <div className="space-y-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-2">
+              <Badge className="hero-pill w-fit" variant="secondary">
+                <Sparkles className="mr-1 h-3 w-3" />
+                Fechamento mensal
+              </Badge>
+              <div className="space-y-1">
+                <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Fechamento de {monthLabel}</h1>
+                <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+                  Revise o periodo, compare com o anterior e confira os registros usados no fechamento.
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <MetricCard detail="total do mes" icon={ArrowDownLeft} label="Entradas" tone="success" value={toCurrency(monthlyIncome)} />
-              <MetricCard detail="total do mes" icon={ArrowUpRight} label="Despesas" tone="danger" value={toCurrency(monthlyExpense)} />
-              <MetricCard
-                className="col-span-2 lg:col-span-1"
-                detail="acumulado ate este periodo"
-                icon={Wallet}
-                label="Saldo acumulado"
-                tone={balanceUntilMonth >= 0 ? "primary" : "danger"}
-                value={toCurrency(balanceUntilMonth)}
-              />
+            <div className="surface-panel-muted rounded-[24px] px-4 py-3 sm:max-w-[260px]">
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">Periodo em leitura</p>
+              <p className="mt-1 text-sm font-bold text-foreground">{effectivePeriodLabel}</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        <MonthSelector
-          monthValue={monthValue}
-          nextHref={nextHref}
-          previousHref={previousHref}
-          yearValue={yearValue}
-        />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <MetricCard
+              detail="total do periodo"
+              icon={ArrowDownLeft}
+              label="Entradas"
+              tone="success"
+              value={toCurrency(monthlyTotals.monthlyIncome)}
+            />
+            <MetricCard
+              detail="total do periodo"
+              icon={ArrowUpRight}
+              label="Despesas"
+              tone="danger"
+              value={toCurrency(monthlyTotals.monthlyExpense)}
+            />
+            <MetricCard
+              detail={monthBalance >= 0 ? "resultado positivo" : "resultado negativo"}
+              icon={CalendarRange}
+              label="Resultado"
+              tone={monthBalance >= 0 ? "success" : "danger"}
+              value={toCurrency(monthBalance)}
+            />
+            <MetricCard
+              detail={hasCustomRange ? "ate o fim do trecho" : "acumulado ate o fim do mes"}
+              icon={Wallet}
+              label="Saldo acumulado"
+              tone={balanceUntilPeriod >= 0 ? "primary" : "danger"}
+              value={toCurrency(balanceUntilPeriod)}
+            />
+          </div>
+        </div>
       </section>
+
+      <MonthSelector
+        currentMonthValue={currentMonthValue}
+        monthEndValue={monthEndValue}
+        monthStartValue={monthStartValue}
+        onClearRange={clearRange}
+        onRangeEndChange={handleRangeEndChange}
+        onRangeStartChange={handleRangeStartChange}
+        rangeEnd={rangeEnd}
+        rangeStart={rangeStart}
+      />
 
       <section className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
         <Card>
           <CardContent className="space-y-3 p-5 sm:p-6">
-            <div>
+            <div className="space-y-1">
               <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
                 Comparacao rapida
               </p>
-              <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">Versus mes anterior</h2>
+              <h2 className="text-lg font-extrabold tracking-tight text-foreground">{comparisonLabel}</h2>
+              <p className="text-sm leading-6 text-muted-foreground">
+                {hasCustomRange
+                  ? "Compara exatamente o mesmo trecho de datas no mes anterior."
+                  : "Mostra se o fechamento melhorou ou piorou em relacao ao mes anterior."}
+              </p>
             </div>
 
             {comparisonItems.map((item) => (
-              <ComparisonRow delta={item.delta} key={item.label} label={item.label} value={toCurrency(item.value)} />
+              <ComparisonRow
+                delta={item.delta}
+                key={item.label}
+                kind={item.kind}
+                label={item.label}
+                value={toCurrency(item.value)}
+              />
             ))}
           </CardContent>
         </Card>
@@ -206,7 +373,7 @@ export function FechamentoMensalOverview({
           <CardContent className="space-y-3 p-5 sm:p-6">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Destaques</p>
-              <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">O que mais pesou no mes</h2>
+              <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">O que mais pesou no periodo</h2>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
@@ -226,22 +393,31 @@ export function FechamentoMensalOverview({
       </section>
 
       <Card>
-        <CardContent className="p-5 sm:p-6">
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-                Registros do fechamento
-              </p>
-              <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">
-                {movements.length} registro(s) compoem este fechamento
-              </h2>
+        <CardContent className="space-y-4 p-5 sm:p-6">
+          <div className="surface-panel rounded-[28px] p-4 sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div className="space-y-1">
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                  Registros do fechamento
+                </p>
+                <h2 className="text-lg font-extrabold tracking-tight text-foreground">
+                  {filteredMovements.length} registro(s) no periodo
+                </h2>
+                {mobileListShouldScroll ? (
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    As movimentacoes mais recentes aparecem primeiro. Role dentro da lista para ver o restante.
+                  </p>
+                ) : null}
+              </div>
+
+              <MovementsCsvExportButton
+                buttonClassName="h-10 w-full px-4 text-sm sm:w-auto"
+                className="w-full sm:w-auto"
+                filename={buildCsvFilename(currentMonthValue, effectiveStart, effectiveEnd, hasCustomRange)}
+                label="Exportar CSV"
+                movements={filteredMovements}
+              />
             </div>
-            <MovementsCsvExportButton
-              buttonClassName="h-10 px-4 text-sm"
-              filename={`fechoumei-fechamento-${yearValue}-${monthValue}.csv`}
-              label="Exportar CSV"
-              movements={movements}
-            />
           </div>
 
           {movements.length === 0 ? (
@@ -252,20 +428,33 @@ export function FechamentoMensalOverview({
                 <Link href="/app/movimentacoes">Lancar movimentacao</Link>
               </Button>
             </div>
+          ) : filteredMovements.length === 0 ? (
+            <div className="rounded-[24px] border border-dashed border-border bg-muted/40 p-5 text-sm leading-6 text-muted-foreground">
+              <p className="font-bold text-foreground">Nenhum registro encontrado neste intervalo.</p>
+              <p className="mt-1">Ajuste as datas ou limpe o intervalo para voltar ao fechamento completo do mes.</p>
+              <Button className="mt-4" onClick={clearRange} size="sm" type="button" variant="outline">
+                Limpar intervalo
+              </Button>
+            </div>
           ) : (
-            <div className="overflow-hidden rounded-[24px] border border-border/70 bg-card">
+            <div
+              className={cn(
+                "overflow-hidden rounded-[24px] border border-border/70 bg-card",
+                mobileListShouldScroll && "max-h-[23rem] overflow-y-auto overscroll-contain md:max-h-none md:overflow-visible",
+              )}
+            >
               <div className="divide-y divide-border/60">
-                {movements.map((movement) => (
+                {filteredMovements.map((movement) => (
                   <div
-                    className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-primary-soft/20 sm:px-5"
+                    className="flex gap-3 px-4 py-3.5 transition-colors hover:bg-primary-soft/20 sm:px-5"
                     key={movement.id}
                   >
                     <div
                       className={cn(
                         "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
                         movement.type === "entrada"
-                          ? "bg-success/10 text-success"
-                          : "bg-destructive/10 text-destructive",
+                          ? "bg-success/12 text-success"
+                          : "bg-destructive/12 text-destructive",
                       )}
                     >
                       {movement.type === "entrada" ? (
@@ -275,20 +464,29 @@ export function FechamentoMensalOverview({
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-foreground">{movement.description}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {movement.category} -{" "}
-                        {movement.occurred_at ? toDateTime(movement.occurred_at) : toDate(movement.occurred_on)}
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <Badge variant={movement.type === "entrada" ? "success" : "danger"}>
+                            {movement.type === "entrada" ? "Entrada" : "Despesa"}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {movement.occurred_at ? toDateTime(movement.occurred_at) : toDate(movement.occurred_on)}
+                          </span>
+                        </div>
+                        <p
+                          className={cn(
+                            "font-mono text-sm font-extrabold tabular",
+                            movement.type === "entrada" ? "text-success" : "text-destructive",
+                          )}
+                        >
+                          {movement.type === "entrada" ? "+" : "-"} {toCurrency(movement.amount)}
+                        </p>
+                      </div>
+                      <p className="mt-2 truncate text-sm font-bold text-foreground">{movement.description}</p>
+                      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                        {movement.category}
                       </p>
                     </div>
-                    <p
-                      className={cn(
-                        "font-mono text-sm font-extrabold tabular",
-                        movement.type === "entrada" ? "text-success" : "text-foreground",
-                      )}
-                    >
-                      {movement.type === "entrada" ? "+" : "-"} {toCurrency(movement.amount)}
-                    </p>
                   </div>
                 ))}
               </div>
@@ -301,14 +499,12 @@ export function FechamentoMensalOverview({
 }
 
 function MetricCard({
-  className,
   detail,
   icon: Icon,
   label,
   tone,
   value,
 }: {
-  className?: string;
   detail: string;
   icon: typeof Receipt;
   label: string;
@@ -316,19 +512,47 @@ function MetricCard({
   value: string;
 }) {
   return (
-    <div className={cn("hero-panel rounded-[24px] p-4", className)}>
+    <div
+      className={cn(
+        "rounded-[24px] border p-4",
+        tone === "success" &&
+          "border-success/16 bg-[linear-gradient(180deg,hsl(152_60%_96%)_0%,hsl(152_34%_92%)_100%)]",
+        tone === "danger" &&
+          "border-destructive/16 bg-[linear-gradient(180deg,hsl(0_100%_99%)_0%,hsl(0_82%_95%)_100%)]",
+        tone === "primary" &&
+          "border-primary/14 bg-[linear-gradient(180deg,hsl(0_0%_100%)_0%,hsl(152_42%_94%)_100%)]",
+      )}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-primary/70">{label}</p>
-          <p className="font-mono mt-2 text-xl font-extrabold tabular text-foreground">{value}</p>
-          <p className="mt-1 text-xs text-primary/70">{detail}</p>
+          <p
+            className={cn(
+              "text-[11px] font-bold uppercase tracking-[0.08em]",
+              tone === "success" && "text-success/80",
+              tone === "danger" && "text-destructive/80",
+              tone === "primary" && "text-primary/70",
+            )}
+          >
+            {label}
+          </p>
+          <p
+            className={cn(
+              "font-mono mt-2 text-xl font-extrabold tabular",
+              tone === "success" && "text-success",
+              tone === "danger" && "text-destructive",
+              tone === "primary" && "text-foreground",
+            )}
+          >
+            {value}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
         </div>
         <div
           className={cn(
             "icon-tile flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
-            tone === "success" && "bg-success/12 text-success",
-            tone === "danger" && "bg-destructive/12 text-destructive",
-            tone === "primary" && "bg-primary-soft text-primary",
+            tone === "success" && "bg-white/72 text-success",
+            tone === "danger" && "bg-white/75 text-destructive",
+            tone === "primary" && "bg-white/70 text-primary",
           )}
         >
           <Icon className="h-4 w-4" />
@@ -338,26 +562,61 @@ function MetricCard({
   );
 }
 
-function ComparisonRow({ delta, label, value }: { delta: number; label: string; value: string }) {
+function ComparisonRow({
+  delta,
+  kind,
+  label,
+  value,
+}: {
+  delta: number;
+  kind: "income" | "expense" | "result";
+  label: string;
+  value: string;
+}) {
   const positive = delta >= 0;
-  const TrendIcon = positive ? TrendingUp : TrendingDown;
+  const better =
+    kind === "expense"
+      ? delta <= 0
+      : delta >= 0;
+  const TrendIcon = better ? TrendingUp : TrendingDown;
+  const helperText = `${toCurrency(Math.abs(delta))} ${positive ? "a mais" : "a menos"} que no mes anterior`;
 
   return (
-    <div className="surface-panel-muted flex items-start justify-between gap-3 rounded-2xl px-4 py-3">
-      <div className="min-w-0">
-        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
-        <p className="font-mono mt-1 text-base font-extrabold tabular text-foreground">{value}</p>
+    <div
+      className={cn(
+        "rounded-[24px] border p-4",
+        better ? "border-success/20 bg-success/10" : "border-destructive/20 bg-destructive/10",
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
+          <p
+            className={cn(
+              "font-mono mt-2 text-xl font-extrabold tabular",
+              kind === "income" && "text-success",
+              kind === "expense" && "text-destructive",
+              kind === "result" && (better ? "text-success" : "text-destructive"),
+            )}
+          >
+            {value}
+          </p>
+        </div>
+
+        <div
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em]",
+            better ? "bg-success/12 text-success" : "bg-destructive/12 text-destructive",
+          )}
+        >
+          <TrendIcon className="h-3 w-3" />
+          {better ? "Melhor" : "Pior"}
+        </div>
       </div>
-      <div
-        className={cn(
-          "inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-bold",
-          positive ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive",
-        )}
-      >
-        <TrendIcon className="h-3 w-3" />
-        {positive ? "+" : ""}
-        {toCurrency(Math.abs(delta))}
-      </div>
+
+      <p className={cn("mt-3 text-sm font-semibold", better ? "text-success" : "text-destructive")}>
+        {helperText}
+      </p>
     </div>
   );
 }
@@ -392,4 +651,36 @@ function HighlightCard({
       <p className="font-mono mt-2 text-sm font-extrabold tabular text-foreground">{value}</p>
     </div>
   );
+}
+
+function clampDateToMonth(value: string, monthStartValue: string, monthEndValue: string) {
+  if (value < monthStartValue) {
+    return monthStartValue;
+  }
+
+  if (value > monthEndValue) {
+    return monthEndValue;
+  }
+
+  return value;
+}
+
+function mapDateToMonth(value: string, targetMonthStartValue: string) {
+  const [year, month] = targetMonthStartValue.split("-").map(Number);
+  const targetDay = Number(value.slice(-2));
+  const lastDay = new Date(year, month, 0).getDate();
+  return `${year}-${String(month).padStart(2, "0")}-${String(Math.min(targetDay, lastDay)).padStart(2, "0")}`;
+}
+
+function buildCsvFilename(
+  currentMonthValue: string,
+  effectiveStart: string,
+  effectiveEnd: string,
+  hasCustomRange: boolean,
+) {
+  if (!hasCustomRange) {
+    return `fechoumei-fechamento-${currentMonthValue}.csv`;
+  }
+
+  return `fechoumei-fechamento-${currentMonthValue}-${effectiveStart.slice(-2)}-${effectiveEnd.slice(-2)}.csv`;
 }
