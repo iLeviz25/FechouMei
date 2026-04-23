@@ -311,6 +311,7 @@ function MovementFields({
 
 export function MovimentacoesManager({ initialBalance, movements }: MovimentacoesManagerProps) {
   const [createForm, setCreateForm] = useState<FormState>(emptyForm);
+  const [createFeedback, setCreateFeedback] = useState<MovementActionResult | null>(null);
   const [editForm, setEditForm] = useState<FormState>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<MovementActionResult | null>(null);
@@ -415,6 +416,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
     typeFilter !== "todos" ||
     categoryFilter !== "todas" ||
     periodFilter !== "todos";
+  const mobileListShouldScroll = filteredMovements.length > 4 && editingId === null;
 
   useEffect(() => {
     setSelectedIds((current) => {
@@ -448,6 +450,21 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
     setTypeFilter("todos");
     setCategoryFilter("todas");
     setPeriodFilter("todos");
+  }
+
+  function openMobileCreate() {
+    setCreateFeedback(null);
+    setMobileCreateOpen(true);
+  }
+
+  function closeMobileCreate() {
+    if (isPending) {
+      return;
+    }
+
+    setMobileCreateOpen(false);
+    setCreateForm(emptyForm);
+    setCreateFeedback(null);
   }
 
   function startSelectionMode() {
@@ -494,7 +511,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
     const validationMessage = validateMovementForm(createForm);
 
     if (validationMessage) {
-      setFeedback({ ok: false, message: validationMessage });
+      setCreateFeedback({ ok: false, message: validationMessage });
       return;
     }
 
@@ -502,7 +519,8 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
 
     startTransition(async () => {
       const result = await createMovimentacao(formData);
-      setFeedback(result.ok ? { ok: true, message: "Movimentacao salva com sucesso." } : result);
+      setCreateFeedback(result.ok ? null : result);
+      setFeedback(result.ok ? { ok: true, message: "Movimentacao salva com sucesso." } : null);
 
       if (result.ok) {
         setCreateForm(emptyForm);
@@ -600,26 +618,28 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
         </div>
       </header>
 
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <SummaryCard
-          icon={<ArrowDownLeft className="h-4 w-4" />}
-          label="Entradas"
-          tone="success"
-          value={toCurrency(summary.income)}
-        />
-        <SummaryCard
-          icon={<ArrowUpRight className="h-4 w-4" />}
-          label="Despesas"
-          tone="danger"
-          value={toCurrency(summary.expense)}
-        />
-        <SummaryCard
-          className="col-span-2 lg:col-span-1"
-          icon={<CalendarDays className="h-4 w-4" />}
-          label="Saldo"
-          tone={balance >= 0 ? "primary" : "danger"}
-          value={toCurrency(balance)}
-        />
+      <section className="summary-shell rounded-[30px] p-4 sm:p-5">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <SummaryCard
+            icon={<ArrowDownLeft className="h-4 w-4" />}
+            label="Entradas"
+            tone="success"
+            value={toCurrency(summary.income)}
+          />
+          <SummaryCard
+            icon={<ArrowUpRight className="h-4 w-4" />}
+            label="Despesas"
+            tone="danger"
+            value={toCurrency(summary.expense)}
+          />
+          <SummaryCard
+            className="sm:col-span-2 lg:col-span-1"
+            icon={<CalendarDays className="h-4 w-4" />}
+            label="Saldo"
+            tone={balance >= 0 ? "primary" : "danger"}
+            value={toCurrency(balance)}
+          />
+        </div>
       </section>
 
       {feedback ? (
@@ -637,15 +657,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
 
       <div className="grid gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
         <div className="space-y-4 xl:sticky xl:top-24 xl:self-start">
-          <div className="flex items-center justify-between gap-3 xl:hidden">
-            <p className="text-sm font-bold text-foreground">Nova movimentacao</p>
-            <Button onClick={() => setMobileCreateOpen((current) => !current)} size="sm" type="button">
-              {mobileCreateOpen ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-              {mobileCreateOpen ? "Fechar" : "Abrir"}
-            </Button>
-          </div>
-
-          <Card className={cn(!mobileCreateOpen ? "hidden xl:block" : "block")}>
+          <Card className="hidden xl:block">
             <CardContent className="space-y-5 p-5 sm:p-6">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -660,6 +672,20 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
               <form className="space-y-5" noValidate onSubmit={handleCreate}>
                 <MovementFields form={createForm} idPrefix="create" onChange={updateCreateField} />
 
+                {createFeedback ? (
+                  <p
+                    className={cn(
+                      "rounded-[20px] border px-4 py-3 text-sm leading-6",
+                      createFeedback.ok
+                        ? "border-success/20 bg-success/10 text-success"
+                        : "border-destructive/20 bg-destructive/10 text-destructive",
+                    )}
+                    role="status"
+                  >
+                    {createFeedback.message}
+                  </p>
+                ) : null}
+
                 <Button className="w-full" disabled={isPending} type="submit">
                   {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                   Salvar movimentacao
@@ -672,7 +698,14 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
         <section className="space-y-4">
           <Card>
             <CardContent className="space-y-4 p-5 sm:p-6">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="space-y-1">
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                  Busca e filtros
+                </p>
+                <h2 className="text-lg font-extrabold tracking-tight text-foreground">Encontre o que precisa</h2>
+              </div>
+
+              <div className="flex flex-col gap-3">
                 <div className="surface-panel-muted flex flex-1 items-center gap-2 rounded-[22px] px-3">
                   <Search className="h-4 w-4 text-muted-foreground" />
                   <Input
@@ -680,24 +713,6 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                     onChange={(event) => setSearchTerm(event.target.value)}
                     placeholder="Buscar por descricao ou categoria..."
                     value={searchTerm}
-                  />
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    onClick={selectionMode ? exitSelectionMode : startSelectionMode}
-                    size="sm"
-                    type="button"
-                    variant="outline"
-                  >
-                    {selectionMode ? <X className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
-                    {selectionMode ? "Cancelar selecao" : "Selecionar"}
-                  </Button>
-                  <MovementsCsvExportButton
-                    buttonClassName="h-9 px-3 text-xs"
-                    filename="fechoumei-movimentacoes.csv"
-                    label="Exportar CSV"
-                    movements={filteredMovements}
                   />
                 </div>
               </div>
@@ -752,6 +767,43 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
             </CardContent>
           </Card>
 
+          <div className="surface-panel rounded-[28px] p-4 sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div className="space-y-1">
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                  Lista de movimentacoes
+                </p>
+                <h2 className="text-lg font-extrabold tracking-tight text-foreground">
+                  {filteredMovements.length} registro(s) encontrados
+                </h2>
+                {mobileListShouldScroll ? (
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    As 4 mais recentes aparecem primeiro. Role dentro da lista para ver mais.
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+                <Button
+                  onClick={selectionMode ? exitSelectionMode : startSelectionMode}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  {selectionMode ? <X className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
+                  {selectionMode ? "Cancelar" : "Selecionar"}
+                </Button>
+                <MovementsCsvExportButton
+                  buttonClassName="h-9 w-full px-3 text-xs sm:w-auto"
+                  className="w-full sm:w-auto"
+                  filename="fechoumei-movimentacoes.csv"
+                  label="Exportar CSV"
+                  movements={filteredMovements}
+                />
+              </div>
+            </div>
+          </div>
+
           {selectionMode ? (
             <div className="surface-panel rounded-[24px] border-primary/16 p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -760,7 +812,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                     {selectedCount === 0 ? "Selecione os registros que deseja excluir" : `${selectedCount} registro(s) selecionado(s)`}
                   </p>
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    A exclusao em massa sempre pede confirmacao antes de remover.
+                    Toque em qualquer card para marcar ou desmarcar. A exclusao em massa sempre pede confirmacao.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -790,8 +842,8 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
 
           {movements.length === 0 ? (
             <EmptyState
-              description="Use o formulario acima para lancar sua primeira entrada ou despesa."
-              onAction={() => setMobileCreateOpen(true)}
+              description="Use o botao Nova para lancar sua primeira entrada ou despesa."
+              onAction={openMobileCreate}
               title="Nenhuma movimentacao registrada ainda."
             />
           ) : filteredMovements.length === 0 ? (
@@ -802,7 +854,13 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
               title="Nenhum registro encontrado."
             />
           ) : (
-            <div className="space-y-4">
+            <div
+              className={cn(
+                "space-y-4",
+                mobileListShouldScroll &&
+                  "max-h-[35rem] overflow-y-auto overscroll-contain pr-1 md:max-h-none md:overflow-visible md:pr-0",
+              )}
+            >
               {groupedMovements.map(([date, items]) => (
                 <div className="space-y-2" key={date}>
                   <div className="flex items-center gap-3 px-1">
@@ -820,26 +878,44 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                         <Card
                           className={cn(
                             "overflow-hidden transition-all",
-                            selected && "border-primary/20 bg-primary-soft/30",
+                            selectionMode && "cursor-pointer active:scale-[0.995]",
+                            selected && "border-success/25 bg-success/10",
                             editing && "border-primary/20 bg-primary-soft/20",
                           )}
+                          aria-pressed={selectionMode ? selected : undefined}
                           key={movement.id}
+                          onClick={
+                            selectionMode && !editing
+                              ? () => toggleSelection(movement.id)
+                              : undefined
+                          }
+                          onKeyDown={
+                            selectionMode && !editing
+                              ? (event) => {
+                                  if (event.key === "Enter" || event.key === " ") {
+                                    event.preventDefault();
+                                    toggleSelection(movement.id);
+                                  }
+                                }
+                              : undefined
+                          }
+                          role={selectionMode && !editing ? "button" : undefined}
+                          tabIndex={selectionMode && !editing ? 0 : undefined}
                         >
                           <CardContent className="space-y-4 p-4">
                             <div className={cn("grid gap-3", selectionMode ? "grid-cols-[auto_1fr_auto]" : "grid-cols-[1fr_auto]")}>
                               {selectionMode ? (
-                                <button
-                                  aria-label={selected ? "Remover registro da selecao" : "Selecionar registro"}
-                                  aria-pressed={selected}
+                                <div
+                                  aria-hidden="true"
                                   className={cn(
                                     "mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl border transition-colors",
-                                    selected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground",
+                                    selected
+                                      ? "border-success bg-success text-success-foreground"
+                                      : "border-border bg-card text-muted-foreground",
                                   )}
-                                  onClick={() => toggleSelection(movement.id)}
-                                  type="button"
                                 >
                                   {selected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
-                                </button>
+                                </div>
                               ) : null}
 
                               <div className="flex min-w-0 gap-3">
@@ -887,18 +963,6 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                                   Salvar alteracoes
                                 </Button>
                               </form>
-                            ) : selectionMode ? (
-                              <div className="flex justify-end">
-                                <Button
-                                  onClick={() => toggleSelection(movement.id)}
-                                  size="sm"
-                                  type="button"
-                                  variant={selected ? "secondary" : "outline"}
-                                >
-                                  {selected ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
-                                  {selected ? "Selecionado" : "Selecionar"}
-                                </Button>
-                              </div>
                             ) : (
                               <div className="flex flex-wrap justify-end gap-2">
                                 <Button onClick={() => startEdit(movement)} size="sm" type="button" variant="outline">
@@ -929,15 +993,76 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
         </section>
       </div>
 
-      <Button
-        className="fixed bottom-28 right-4 z-30 shadow-elevated xl:hidden"
-        onClick={() => setMobileCreateOpen((current) => !current)}
-        size="lg"
-        type="button"
-      >
-        {mobileCreateOpen ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-        {mobileCreateOpen ? "Fechar" : "Nova"}
-      </Button>
+      {!mobileCreateOpen ? (
+        <Button
+          className="fixed bottom-28 right-4 z-30 shadow-elevated xl:hidden"
+          onClick={openMobileCreate}
+          size="lg"
+          type="button"
+        >
+          <Plus className="h-4 w-4" />
+          Nova
+        </Button>
+      ) : null}
+
+      {mobileCreateOpen ? (
+        <div
+          aria-labelledby="create-movement-title"
+          aria-modal="true"
+          className="fixed inset-0 z-40 flex items-end bg-black/40 xl:hidden"
+          onClick={closeMobileCreate}
+          role="dialog"
+        >
+          <div
+            className="w-full rounded-t-[32px] bg-card px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 shadow-elevated"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-border/80" />
+
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                  Nova movimentacao
+                </p>
+                <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground" id="create-movement-title">
+                  Lancar entrada ou despesa
+                </h2>
+              </div>
+              <Button disabled={isPending} onClick={closeMobileCreate} size="icon" type="button" variant="ghost">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {createFeedback ? (
+              <p
+                className={cn(
+                  "mt-4 rounded-[20px] border px-4 py-3 text-sm leading-6",
+                  createFeedback.ok
+                    ? "border-success/20 bg-success/10 text-success"
+                    : "border-destructive/20 bg-destructive/10 text-destructive",
+                )}
+                role="status"
+              >
+                {createFeedback.message}
+              </p>
+            ) : null}
+
+            <form className="mt-4 space-y-5" noValidate onSubmit={handleCreate}>
+              <MovementFields form={createForm} idPrefix="create-mobile" onChange={updateCreateField} />
+
+              <div className="grid grid-cols-2 gap-2">
+                <Button disabled={isPending} onClick={closeMobileCreate} type="button" variant="outline">
+                  Cancelar
+                </Button>
+                <Button disabled={isPending} type="submit">
+                  {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                  Salvar
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
 
       {pendingDelete ? (
         <div
@@ -1024,16 +1149,36 @@ function SummaryCard({
   value: string;
 }) {
   return (
-    <Card className={cn("hero-panel overflow-hidden border-primary/16", className)}>
+    <Card
+      className={cn(
+        "overflow-hidden rounded-[26px] border shadow-none",
+        tone === "success" &&
+          "border-success/14 bg-[linear-gradient(180deg,hsl(152_60%_96%)_0%,hsl(152_36%_92%)_100%)]",
+        tone === "danger" &&
+          "border-destructive/16 bg-[linear-gradient(180deg,hsl(0_100%_99%)_0%,hsl(0_82%_95%)_100%)]",
+        tone === "primary" &&
+          "border-primary/16 bg-[linear-gradient(180deg,hsl(0_0%_100%)_0%,hsl(152_46%_94%)_100%)]",
+        className,
+      )}
+    >
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-primary/70">{label}</p>
+            <p
+              className={cn(
+                "text-[11px] font-bold uppercase tracking-[0.08em]",
+                tone === "success" && "text-success/80",
+                tone === "danger" && "text-destructive/80",
+                tone === "primary" && "text-primary/70",
+              )}
+            >
+              {label}
+            </p>
             <p
               className={cn(
                 "font-mono mt-2 text-xl font-extrabold tabular",
                 tone === "success" && "text-success",
-                tone === "danger" && "text-foreground",
+                tone === "danger" && "text-destructive",
                 tone === "primary" && "text-foreground",
               )}
             >
@@ -1043,8 +1188,8 @@ function SummaryCard({
           <div
             className={cn(
               "icon-tile flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
-              tone === "success" && "bg-success/10 text-success",
-              tone === "danger" && "bg-destructive/10 text-destructive",
+              tone === "success" && "bg-white/70 text-success",
+              tone === "danger" && "bg-white/75 text-destructive",
               tone === "primary" && "bg-primary-soft text-primary",
             )}
           >
