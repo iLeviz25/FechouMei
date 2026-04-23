@@ -1,11 +1,10 @@
 "use client";
 
-import { type FormEvent, type ReactNode, useMemo, useState, useTransition } from "react";
+import { type FormEvent, type ReactNode, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   Check,
-  CheckCircle2,
   Eye,
   EyeOff,
   KeyRound,
@@ -17,6 +16,7 @@ import {
   Trash2,
   UserRound,
   Wallet,
+  X,
 } from "lucide-react";
 import { deleteAccount } from "@/app/app/configuracoes/actions";
 import { Badge } from "@/components/ui/badge";
@@ -115,6 +115,10 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
   }
 
   function cancelProfileEditor() {
+    if (isSavingProfile) {
+      return;
+    }
+
     setDraft(values);
     setIsEditingProfile(false);
     setProfileMessage(null);
@@ -210,6 +214,22 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
     router.refresh();
   }
 
+  function openDeleteDialog() {
+    setDeleteOpen(true);
+    setDeleteMessage(null);
+    setDeleteConfirmation("");
+  }
+
+  function closeDeleteDialog() {
+    if (isDeleting) {
+      return;
+    }
+
+    setDeleteOpen(false);
+    setDeleteConfirmation("");
+    setDeleteMessage(null);
+  }
+
   function handleDeleteAccount() {
     setDeleteMessage(null);
 
@@ -283,9 +303,9 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
                 <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Resumo do perfil</p>
                 <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">Seus dados principais</h2>
               </div>
-              <Button onClick={isEditingProfile ? cancelProfileEditor : openProfileEditor} size="sm" type="button" variant="outline">
-                {isEditingProfile ? null : <Pencil className="h-4 w-4" />}
-                {isEditingProfile ? "Cancelar" : "Editar"}
+              <Button onClick={openProfileEditor} size="sm" type="button" variant="outline">
+                <Pencil className="h-4 w-4" />
+                Editar
               </Button>
             </div>
 
@@ -294,6 +314,12 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
                 <ProfileSnapshotItem key={item.label} label={item.label} value={item.value} />
               ))}
             </div>
+
+            {profileMessage === "Perfil atualizado." ? (
+              <p className="rounded-2xl border border-success/20 bg-success/10 px-4 py-3 text-sm leading-6 text-success">
+                {profileMessage}
+              </p>
+            ) : null}
           </CardContent>
         </Card>
 
@@ -314,149 +340,12 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
               description="Area sensivel para excluir definitivamente o acesso e os dados."
               icon={<Trash2 className="h-4 w-4" />}
               label="Excluir conta"
-              onClick={() => {
-                setDeleteOpen(true);
-                setDeleteMessage(null);
-                setDeleteConfirmation("");
-              }}
+              onClick={openDeleteDialog}
               tone="danger"
             />
           </CardContent>
         </Card>
       </section>
-
-      <Card>
-        <CardContent className="space-y-5 p-5 sm:p-6">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Editar perfil</p>
-            <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">Preferencias da sua conta</h2>
-          </div>
-
-          {isEditingProfile ? (
-            <div className="space-y-5">
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field
-                  icon={<UserRound className="h-4 w-4" />}
-                  label="Nome completo"
-                  onChange={(value) => updateDraft({ fullName: value })}
-                  placeholder="Seu nome completo"
-                  value={draft.fullName}
-                />
-
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
-                    Atua com
-                  </Label>
-                  <OptionGroup
-                    onChange={(value) => updateDraft({ businessMode: value })}
-                    options={businessModeOptions}
-                    value={draft.businessMode}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
-                    Tipo de trabalho
-                  </Label>
-                  <OptionGroup
-                    onChange={(value) =>
-                      updateDraft({
-                        customWorkType: value === "Outro" ? draft.customWorkType : "",
-                        workType: value,
-                      })
-                    }
-                    options={workTypeOptions.map((option) => ({ label: option, value: option }))}
-                    value={draft.workType}
-                  />
-                  {draft.workType === "Outro" ? (
-                    <Field
-                      label="Escreva seu tipo de trabalho"
-                      onChange={(value) => updateDraft({ customWorkType: value })}
-                      placeholder="Ex.: fotografia, eventos, costura"
-                      value={draft.customWorkType}
-                    />
-                  ) : null}
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
-                    Categoria principal
-                  </Label>
-                  <OptionGroup
-                    onChange={(value) =>
-                      updateDraft({
-                        customMainCategory: value === "Outro" ? draft.customMainCategory : "",
-                        mainCategory: value,
-                      })
-                    }
-                    options={categoryOptions.map((option) => ({ label: option, value: option }))}
-                    value={draft.mainCategory}
-                  />
-                  {draft.mainCategory === "Outro" ? (
-                    <Field
-                      label="Escreva sua categoria principal"
-                      onChange={(value) => updateDraft({ customMainCategory: value })}
-                      placeholder="Ex.: pet shop, artesanato, arquitetura"
-                      value={draft.customMainCategory}
-                    />
-                  ) : null}
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
-                    Objetivo principal
-                  </Label>
-                  <OptionGroup
-                    onChange={(value) => updateDraft({ mainGoal: value })}
-                    options={goalOptions.map((option) => ({ label: option, value: option }))}
-                    value={draft.mainGoal}
-                  />
-                </div>
-
-                <Field
-                  icon={<Wallet className="h-4 w-4" />}
-                  label="Saldo inicial"
-                  onBlur={() =>
-                    updateDraft({
-                      initialBalance: formatOptionalAmount(parseOptionalAmount(draft.initialBalance)),
-                    })
-                  }
-                  onChange={(value) => updateDraft({ initialBalance: normalizeAmountInput(value) })}
-                  placeholder="Ex.: 2000,00"
-                  value={draft.initialBalance}
-                />
-              </div>
-
-              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                <Button onClick={cancelProfileEditor} type="button" variant="outline">
-                  Cancelar
-                </Button>
-                <Button disabled={isSavingProfile} onClick={saveProfile} type="button">
-                  {isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Salvar alteracoes
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="surface-panel-muted rounded-[24px] p-5 text-sm leading-6 text-muted-foreground">
-              Toque em editar para atualizar seu perfil, categoria, objetivo e saldo inicial.
-            </div>
-          )}
-
-          {profileMessage ? (
-            <p
-              className={cn(
-                "rounded-2xl border px-4 py-3 text-sm leading-6",
-                profileMessage === "Perfil atualizado."
-                  ? "border-success/20 bg-success/10 text-success"
-                  : "border-destructive/20 bg-destructive/10 text-destructive",
-              )}
-            >
-              {profileMessage}
-            </p>
-          ) : null}
-        </CardContent>
-      </Card>
 
       <Card>
         <CardContent className="space-y-5 p-5 sm:p-6">
@@ -506,26 +395,140 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
         </CardContent>
       </Card>
 
-      {deleteOpen ? (
-        <div
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-end bg-neutral-950/45 p-3 backdrop-blur-[2px] sm:items-center sm:justify-center sm:p-4"
-          role="dialog"
+      {isEditingProfile ? (
+        <ResponsiveOverlay
+          closeDisabled={isSavingProfile}
+          description="Atualize seus dados sem poluir a tela principal. Se fechar sem salvar, nada sera alterado."
+          icon={<Pencil className="h-4 w-4" />}
+          maxWidthClass="sm:max-w-3xl"
+          onClose={cancelProfileEditor}
+          title="Editar perfil"
         >
-          <div className="w-full rounded-[28px] border border-destructive/20 bg-card p-5 shadow-elevated sm:max-w-md">
-            <div className="flex items-start gap-3">
-              <div className="rounded-2xl bg-destructive/10 p-2 text-destructive">
-                <AlertTriangle className="h-4 w-4" />
+          <div className="space-y-5">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field
+                icon={<UserRound className="h-4 w-4" />}
+                label="Nome completo"
+                onChange={(value) => updateDraft({ fullName: value })}
+                placeholder="Seu nome completo"
+                value={draft.fullName}
+              />
+
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
+                  Atua com
+                </Label>
+                <OptionGroup
+                  onChange={(value) => updateDraft({ businessMode: value })}
+                  options={businessModeOptions}
+                  value={draft.businessMode}
+                />
               </div>
-              <div className="min-w-0">
-                <h2 className="text-base font-extrabold text-foreground">Excluir conta definitivamente</h2>
-                <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                  Essa acao remove seu login, perfil, movimentacoes, checklist e preferencias salvas.
-                </p>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
+                  Tipo de trabalho
+                </Label>
+                <OptionGroup
+                  onChange={(value) =>
+                    updateDraft({
+                      customWorkType: value === "Outro" ? draft.customWorkType : "",
+                      workType: value,
+                    })
+                  }
+                  options={workTypeOptions.map((option) => ({ label: option, value: option }))}
+                  value={draft.workType}
+                />
+                {draft.workType === "Outro" ? (
+                  <Field
+                    label="Escreva seu tipo de trabalho"
+                    onChange={(value) => updateDraft({ customWorkType: value })}
+                    placeholder="Ex.: fotografia, eventos, costura"
+                    value={draft.customWorkType}
+                  />
+                ) : null}
               </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
+                  Categoria principal
+                </Label>
+                <OptionGroup
+                  onChange={(value) =>
+                    updateDraft({
+                      customMainCategory: value === "Outro" ? draft.customMainCategory : "",
+                      mainCategory: value,
+                    })
+                  }
+                  options={categoryOptions.map((option) => ({ label: option, value: option }))}
+                  value={draft.mainCategory}
+                />
+                {draft.mainCategory === "Outro" ? (
+                  <Field
+                    label="Escreva sua categoria principal"
+                    onChange={(value) => updateDraft({ customMainCategory: value })}
+                    placeholder="Ex.: pet shop, artesanato, arquitetura"
+                    value={draft.customMainCategory}
+                  />
+                ) : null}
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
+                  Objetivo principal
+                </Label>
+                <OptionGroup
+                  onChange={(value) => updateDraft({ mainGoal: value })}
+                  options={goalOptions.map((option) => ({ label: option, value: option }))}
+                  value={draft.mainGoal}
+                />
+              </div>
+
+              <Field
+                icon={<Wallet className="h-4 w-4" />}
+                label="Saldo inicial"
+                onBlur={() =>
+                  updateDraft({
+                    initialBalance: formatOptionalAmount(parseOptionalAmount(draft.initialBalance)),
+                  })
+                }
+                onChange={(value) => updateDraft({ initialBalance: normalizeAmountInput(value) })}
+                placeholder="Ex.: 2000,00"
+                value={draft.initialBalance}
+              />
             </div>
 
-            <div className="mt-4 space-y-2">
+            {profileMessage && profileMessage !== "Perfil atualizado." ? (
+              <p className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm leading-6 text-destructive">
+                {profileMessage}
+              </p>
+            ) : null}
+
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button onClick={cancelProfileEditor} type="button" variant="outline">
+                Cancelar
+              </Button>
+              <Button disabled={isSavingProfile} onClick={saveProfile} type="button">
+                {isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Salvar alteracoes
+              </Button>
+            </div>
+          </div>
+        </ResponsiveOverlay>
+      ) : null}
+
+      {deleteOpen ? (
+        <ResponsiveOverlay
+          closeDisabled={isDeleting}
+          description="Essa acao remove seu login, perfil, movimentacoes, checklist e preferencias salvas."
+          icon={<AlertTriangle className="h-4 w-4" />}
+          maxWidthClass="sm:max-w-md"
+          onClose={closeDeleteDialog}
+          title="Excluir conta definitivamente"
+          tone="danger"
+        >
+          <div className="space-y-4">
+            <div className="space-y-2">
               <Label htmlFor="deleteConfirmation">Digite EXCLUIR para confirmar</Label>
               <Input
                 autoComplete="off"
@@ -541,21 +544,13 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
             </div>
 
             {deleteMessage ? (
-              <p className="mt-4 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm leading-6 text-destructive">
+              <p className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm leading-6 text-destructive">
                 {deleteMessage}
               </p>
             ) : null}
 
-            <div className="mt-5 grid grid-cols-2 gap-2">
-              <Button
-                onClick={() => {
-                  setDeleteOpen(false);
-                  setDeleteConfirmation("");
-                  setDeleteMessage(null);
-                }}
-                type="button"
-                variant="outline"
-              >
+            <div className="grid grid-cols-2 gap-2">
+              <Button onClick={closeDeleteDialog} type="button" variant="outline">
                 Cancelar
               </Button>
               <Button
@@ -569,7 +564,7 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
               </Button>
             </div>
           </div>
-        </div>
+        </ResponsiveOverlay>
       ) : null}
     </div>
   );
@@ -658,6 +653,87 @@ function ProfileSnapshotItem({ label, value }: { label: string; value: string })
     <div className="hero-panel-soft min-w-0 rounded-[24px] px-4 py-3">
       <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
       <p className="mt-1 break-words text-sm font-bold leading-6 text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function ResponsiveOverlay({
+  children,
+  closeDisabled = false,
+  description,
+  icon,
+  maxWidthClass = "sm:max-w-2xl",
+  onClose,
+  title,
+  tone = "default",
+}: {
+  children: ReactNode;
+  closeDisabled?: boolean;
+  description: string;
+  icon: ReactNode;
+  maxWidthClass?: string;
+  onClose: () => void;
+  title: string;
+  tone?: "default" | "danger";
+}) {
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !closeDisabled) {
+        onClose();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [closeDisabled, onClose]);
+
+  return (
+    <div
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-end bg-neutral-950/45 p-3 backdrop-blur-[2px] sm:items-center sm:justify-center sm:p-4"
+      onClick={() => {
+        if (!closeDisabled) {
+          onClose();
+        }
+      }}
+      role="dialog"
+    >
+      <div
+        className={cn(
+          "w-full overflow-hidden rounded-[28px] border bg-card shadow-elevated",
+          tone === "danger" ? "border-destructive/20" : "border-border/70",
+          maxWidthClass,
+        )}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start gap-3 border-b border-border/60 px-5 py-4 sm:px-6">
+          <div
+            className={cn(
+              "rounded-2xl p-2",
+              tone === "danger" ? "bg-destructive/10 text-destructive" : "bg-primary-soft text-primary",
+            )}
+          >
+            {icon}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-extrabold text-foreground">{title}</h2>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
+          </div>
+          <button
+            aria-label="Fechar"
+            className="mt-0.5 rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={closeDisabled}
+            onClick={onClose}
+            type="button"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="max-h-[calc(100vh-8.5rem)] overflow-y-auto px-5 py-5 sm:max-h-[min(85vh,48rem)] sm:px-6">
+          {children}
+        </div>
+      </div>
     </div>
   );
 }
