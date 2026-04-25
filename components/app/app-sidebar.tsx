@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   BellRing,
+  ChevronRight,
   ClipboardCheck,
   LayoutDashboard,
   LogOut,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
+import type { ObligationNotification } from "@/lib/obrigacoes/notifications";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/types/database";
@@ -23,6 +25,7 @@ import type { Profile } from "@/types/database";
 type AppSidebarProps = {
   profile: Profile | null;
   isAdmin?: boolean;
+  notifications?: ObligationNotification[];
 };
 
 const navItems = [
@@ -41,10 +44,11 @@ const adminNavItem = {
   shortLabel: "Admin",
 };
 
-export function AppSidebar({ profile, isAdmin = false }: AppSidebarProps) {
+export function AppSidebar({ profile, isAdmin = false, notifications = [] }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const visiblePathname = pendingHref ?? pathname;
   const initials = (profile?.full_name ?? "MEI")
     .split(" ")
@@ -55,6 +59,7 @@ export function AppSidebar({ profile, isAdmin = false }: AppSidebarProps) {
 
   useEffect(() => {
     setPendingHref(null);
+    setNotificationsOpen(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -111,6 +116,14 @@ export function AppSidebar({ profile, isAdmin = false }: AppSidebarProps) {
             >
               <Logo size="md" />
             </Link>
+            <NotificationBell
+              className="mt-4 w-full justify-start px-3"
+              dropdownAlign="left"
+              notifications={notifications}
+              onNavigate={markRoutePending}
+              onOpenChange={setNotificationsOpen}
+              open={notificationsOpen}
+            />
           </div>
 
           <div className="flex-1 overflow-y-auto px-1 py-4">
@@ -192,7 +205,7 @@ export function AppSidebar({ profile, isAdmin = false }: AppSidebarProps) {
         </div>
       </aside>
 
-      <header className="fixed inset-x-0 top-0 z-20 border-b border-border/70 bg-background/98 px-4 py-3.5 shadow-sm lg:hidden">
+      <header className="fixed inset-x-0 top-0 z-40 border-b border-border/70 bg-background/98 px-4 py-3.5 shadow-sm lg:hidden">
         <div className="flex items-center justify-between gap-3">
           <Link
             className="flex items-center gap-2"
@@ -206,6 +219,13 @@ export function AppSidebar({ profile, isAdmin = false }: AppSidebarProps) {
             <Logo size="sm" />
           </Link>
           <div className="flex items-center gap-2">
+            <NotificationBell
+              mobile
+              notifications={notifications}
+              onNavigate={markRoutePending}
+              onOpenChange={setNotificationsOpen}
+              open={notificationsOpen}
+            />
             {isAdmin ? (
               <Link
                 aria-label="Painel Admin"
@@ -266,5 +286,115 @@ export function AppSidebar({ profile, isAdmin = false }: AppSidebarProps) {
         })}
       </nav>
     </>
+  );
+}
+
+function NotificationBell({
+  className,
+  dropdownAlign = "right",
+  mobile = false,
+  notifications,
+  onNavigate,
+  onOpenChange,
+  open,
+}: {
+  className?: string;
+  dropdownAlign?: "left" | "right";
+  mobile?: boolean;
+  notifications: ObligationNotification[];
+  onNavigate: (href: string) => void;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+}) {
+  const count = notifications.length;
+
+  return (
+    <div className="relative">
+      <button
+        aria-expanded={open}
+        aria-label={count > 0 ? `${count} notificacoes de obrigacoes` : "Notificacoes"}
+        className={cn(
+          "surface-panel-ghost relative flex h-11 w-11 items-center justify-center rounded-[18px] text-muted-foreground transition-colors hover:text-foreground",
+          className,
+        )}
+        onClick={() => onOpenChange(!open)}
+        type="button"
+      >
+        <BellRing className="h-5 w-5 shrink-0" />
+        <span className={cn("hidden text-sm font-bold", className && "ml-2 inline")}>Notificacoes</span>
+        {count > 0 ? (
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-extrabold text-secondary-foreground ring-2 ring-background">
+            {count > 9 ? "9+" : count}
+          </span>
+        ) : null}
+      </button>
+
+      {open ? (
+        <div
+          className={cn(
+            "z-50 overflow-hidden rounded-[24px] border border-border bg-card shadow-elevated",
+            mobile
+              ? "fixed left-3 right-3 top-[4.75rem] max-h-[min(26rem,calc(100dvh_-_7rem))] w-auto"
+              : cn(
+                  "absolute top-12 w-[min(22rem,calc(100vw-2rem))]",
+                  dropdownAlign === "left" ? "left-0" : "right-0",
+                ),
+          )}
+        >
+          <div className="border-b border-border/70 px-4 py-3">
+            <p className="text-sm font-extrabold tracking-tight text-foreground">Notificacoes</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Baseadas nos lembretes e obrigacoes pendentes.</p>
+          </div>
+
+          {count === 0 ? (
+            <div className="px-4 py-5 text-sm font-semibold text-muted-foreground">
+              Nenhuma notificacao no momento.
+            </div>
+          ) : (
+            <div className={cn("overflow-y-auto overscroll-contain p-2", mobile ? "max-h-[calc(100dvh_-_13rem)]" : "max-h-80")}>
+              {notifications.map((notification) => (
+                <Link
+                  className="group flex items-start gap-3 rounded-[18px] px-3 py-3 transition-colors hover:bg-primary-soft/35"
+                  href={notification.href}
+                  key={notification.id}
+                  onClick={() => {
+                    onNavigate(notification.href);
+                    onOpenChange(false);
+                  }}
+                >
+                  <span
+                    className={cn(
+                      "mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full",
+                      notification.status === "overdue" && "bg-destructive",
+                      notification.status === "soon" && "bg-secondary",
+                      notification.status === "pending" && "bg-primary",
+                    )}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-extrabold text-foreground">{notification.title}</span>
+                      <span
+                        className={cn(
+                          "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]",
+                          notification.status === "overdue" && "bg-destructive/10 text-destructive",
+                          notification.status === "soon" && "bg-secondary-soft text-secondary-foreground",
+                          notification.status === "pending" && "bg-primary/10 text-primary",
+                        )}
+                      >
+                        {notification.statusLabel}
+                      </span>
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                      {notification.description} Prazo: {notification.dueDateLabel}.
+                    </span>
+                  </span>
+                  <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null}
+    </div>
   );
 }

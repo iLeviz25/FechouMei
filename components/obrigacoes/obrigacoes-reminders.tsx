@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   BellRing,
   CalendarCheck2,
@@ -78,6 +79,7 @@ function toReminderState(preferences: ReminderPreferences): ReminderState {
 }
 
 export function ObrigacoesReminders({ preferences }: { preferences: ReminderPreferences }) {
+  const router = useRouter();
   const initialState = toReminderState(preferences);
   const [status, setStatus] = useState<ReminderStatus | null>(null);
   const [reminders, setReminders] = useState<ReminderState>(initialState);
@@ -153,6 +155,7 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
     }
 
     setIsSaving(false);
+    router.refresh();
   }
 
   return (
@@ -220,7 +223,8 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
         </div>
 
         <p className="text-xs font-semibold leading-6 text-muted-foreground">
-          Base preparada para lembretes futuros. Nenhum envio externo acontece nesta etapa.
+          Voce so sera avisado se o lembrete estiver ativo e a obrigacao ainda estiver pendente. Nenhum envio externo
+          acontece nesta etapa.
         </p>
 
         {status ? (

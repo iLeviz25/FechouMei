@@ -336,32 +336,6 @@ export function DashboardOverview({
         </div>
       </section>
 
-      <section>
-        <Card className="overflow-hidden rounded-[30px]">
-          <CardContent className="space-y-4 p-4 min-[380px]:space-y-5 min-[380px]:p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary/70">
-                  Acoes rapidas
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Atalhos para o que voce resolve primeiro no celular.
-                </p>
-              </div>
-              <div className="icon-tile flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-primary">
-                <Sparkles className="h-4 w-4" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2.5 min-[430px]:grid-cols-4">
-              {quickActions.map((action) => (
-                <QuickActionCard key={action.label} {...action} />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </section>
-
       <section className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2">
         <SummaryCard
           detail={currentMonthLabel}
@@ -403,6 +377,32 @@ export function DashboardOverview({
           value={toCurrency(annualIncome)}
           valueTone="warning"
         />
+      </section>
+
+      <section>
+        <Card className="overflow-hidden rounded-[30px]">
+          <CardContent className="space-y-4 p-4 min-[380px]:space-y-5 min-[380px]:p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary/70">
+                  Acoes rapidas
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Atalhos para o que voce resolve primeiro no celular.
+                </p>
+              </div>
+              <div className="icon-tile flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+                <Sparkles className="h-4 w-4" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5 min-[430px]:grid-cols-4">
+              {quickActions.map((action) => (
+                <QuickActionCard key={action.label} {...action} />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </section>
 
       <section>

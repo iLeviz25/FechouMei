@@ -435,8 +435,8 @@ export function FechamentoMensalOverview({
       />
 
       <section className="space-y-4">
-        <div className="overflow-hidden rounded-[32px] bg-[linear-gradient(180deg,hsl(155_62%_35%)_0%,hsl(160_70%_28%)_100%)] px-5 py-5 text-white shadow-elevated sm:px-6 sm:py-6">
-          <div className="space-y-5">
+        <div className="overflow-hidden rounded-[30px] bg-[linear-gradient(180deg,hsl(155_62%_35%)_0%,hsl(160_70%_28%)_100%)] px-4 py-4 text-white shadow-elevated sm:px-5 sm:py-5">
+          <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
               <Badge className="border-white/10 bg-white/14 text-white shadow-none" variant="outline">
                 {hasCustomRange ? "Resultado do trecho" : "Resultado do mes"}
@@ -454,7 +454,7 @@ export function FechamentoMensalOverview({
               </p>
               <p
                 className={cn(
-                  "font-mono text-[clamp(2.45rem,11vw,4.15rem)] font-extrabold leading-none tracking-tight",
+                  "font-mono text-[clamp(2.05rem,9vw,3.45rem)] font-extrabold leading-none tracking-tight",
                   monthBalance >= 0 ? "text-white" : "text-[hsl(38_100%_72%)]",
                 )}
               >
@@ -481,10 +481,10 @@ export function FechamentoMensalOverview({
                 {heroTrendText}
               </div>
 
-              <div className="grid grid-cols-6 items-end gap-2 rounded-[26px] bg-white/6 p-3">
+              <div className="grid grid-cols-6 items-end gap-1.5 rounded-[24px] bg-white/6 p-2.5">
                 {trendItems.map((item) => (
                   <div className="flex flex-col items-center gap-2" key={item.key}>
-                    <div className="flex h-16 w-full items-end rounded-[18px] bg-white/8 p-1">
+                    <div className="flex h-12 w-full items-end rounded-[16px] bg-white/8 p-1 sm:h-14">
                       <div
                         className={cn(
                           "w-full rounded-[14px]",

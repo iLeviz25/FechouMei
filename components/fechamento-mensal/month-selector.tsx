@@ -110,21 +110,21 @@ export function MonthSelector({
         </div>
 
         <div className="surface-panel-muted rounded-[24px] border border-border/60 p-4">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-3 min-[430px]:flex-row min-[430px]:items-start min-[430px]:justify-between">
             <div className="flex min-w-0 items-start gap-3">
               <div className="icon-tile flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-primary">
                 <CalendarDays className="h-4 w-4" />
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-bold text-foreground">Refinar intervalo</p>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  Escolha um intervalo de data a data dentro deste mes para recalcular so esse trecho.
+                <p className="max-w-[34rem] text-sm leading-5 text-muted-foreground">
+                  Escolha um intervalo dentro do mes para recalcular apenas esse trecho.
                 </p>
               </div>
             </div>
 
             <Button
-              className="shrink-0 shadow-sm"
+              className="w-full shrink-0 justify-center shadow-sm min-[430px]:w-auto"
               onClick={() => setRangePanelOpen((current) => !current)}
               size="sm"
               type="button"
@@ -179,7 +179,7 @@ export function MonthSelector({
               <p className="text-xs leading-5 text-muted-foreground">
                 {hasCustomRange
                   ? `${toDate(rangeStart || monthStartValue)} a ${toDate(rangeEnd || monthEndValue)}`
-                  : "Clique em Abrir datas para escolher um periodo de um dia ate outro dentro do mes."}
+                  : "Abra datas para escolher um intervalo dentro do mes."}
               </p>
               {hasCustomRange ? <Badge variant="success">Intervalo ativo</Badge> : <Badge variant="secondary">Opcional</Badge>}
             </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, CheckCircle2, Loader2 } from "lucide-react";
 import { toggleChecklistItem } from "@/app/app/obrigacoes/actions";
@@ -23,6 +23,7 @@ type ChecklistFilter = "all" | "pending" | "done";
 type ObrigacoesChecklistProps = {
   items: ChecklistItem[];
   monthKey: string;
+  onItemsChange: Dispatch<SetStateAction<ChecklistItem[]>>;
 };
 
 type EnrichedChecklistItem = ChecklistItem & {
@@ -50,20 +51,26 @@ const filterOptions: Array<{ label: string; value: ChecklistFilter }> = [
   { label: "Concluidas", value: "done" },
 ];
 
-export function ObrigacoesChecklist({ items, monthKey }: ObrigacoesChecklistProps) {
+export function ObrigacoesChecklist({ items, monthKey, onItemsChange }: ObrigacoesChecklistProps) {
   const router = useRouter();
-  const [localItems, setLocalItems] = useState(items);
   const [pendingKeys, setPendingKeys] = useState<string[]>([]);
   const [status, setStatus] = useState<ChecklistStatus | null>(null);
   const [activeFilter, setActiveFilter] = useState<ChecklistFilter>("all");
   const confirmedItemsRef = useRef(items);
+  const pendingKeysRef = useRef<string[]>([]);
   const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     confirmedItemsRef.current = items;
-    setLocalItems(items);
+    pendingKeysRef.current = [];
     setPendingKeys([]);
     setStatus(null);
+  }, [monthKey]);
+
+  useEffect(() => {
+    if (pendingKeysRef.current.length === 0) {
+      confirmedItemsRef.current = items;
+    }
   }, [items]);
 
   useEffect(
@@ -78,8 +85,8 @@ export function ObrigacoesChecklist({ items, monthKey }: ObrigacoesChecklistProp
   const monthInfo = useMemo(() => createMonthInfo(monthKey), [monthKey]);
 
   const enrichedItems = useMemo(
-    () => localItems.map((item) => enrichChecklistItem(item, monthInfo)),
-    [localItems, monthInfo],
+    () => items.map((item) => enrichChecklistItem(item, monthInfo)),
+    [items, monthInfo],
   );
 
   const filterCounts = useMemo(
@@ -104,14 +111,15 @@ export function ObrigacoesChecklist({ items, monthKey }: ObrigacoesChecklistProp
   }, [activeFilter, enrichedItems]);
 
   function handleToggle(item: ChecklistItem) {
-    if (pendingKeys.includes(item.key)) {
+    if (pendingKeysRef.current.includes(item.key)) {
       return;
     }
 
     const nextDone = !item.done;
 
-    setLocalItems((current) => updateItemState(current, item.key, nextDone));
-    setPendingKeys((current) => [...current, item.key]);
+    onItemsChange((current) => updateItemState(current, item.key, nextDone));
+    pendingKeysRef.current = [...pendingKeysRef.current, item.key];
+    setPendingKeys(pendingKeysRef.current);
     setStatus({ kind: "saving", message: "Salvando atualizacao..." });
 
     void persistChecklistItem(item.key, nextDone);
@@ -124,18 +132,15 @@ export function ObrigacoesChecklist({ items, monthKey }: ObrigacoesChecklistProp
       monthKey,
     });
 
-    let shouldRefresh = false;
-
-    setPendingKeys((current) => {
-      const next = current.filter((key) => key !== itemKey);
-      shouldRefresh = next.length === 0;
-      return next;
-    });
+    const nextPendingKeys = pendingKeysRef.current.filter((key) => key !== itemKey);
+    pendingKeysRef.current = nextPendingKeys;
+    setPendingKeys(nextPendingKeys);
+    const shouldRefresh = nextPendingKeys.length === 0;
 
     if (!result.ok) {
       const previousItem = confirmedItemsRef.current.find((item) => item.key === itemKey);
 
-      setLocalItems((current) => updateItemState(current, itemKey, previousItem?.done ?? false));
+      onItemsChange((current) => updateItemState(current, itemKey, previousItem?.done ?? false));
       setStatus({
         kind: "error",
         message: result.message,

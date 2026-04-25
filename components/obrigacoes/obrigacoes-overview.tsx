@@ -1,4 +1,6 @@
 "use client";
+
+import { useEffect, useState } from "react";
 import {
   BellRing,
   CheckCircle2,
@@ -135,8 +137,14 @@ function getDueInfo({
 }
 
 export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPreferences }: ObrigacoesOverviewProps) {
-  const total = checklist.length;
-  const doneCount = checklist.filter((item) => item.done).length;
+  const [optimisticChecklist, setOptimisticChecklist] = useState(checklist);
+
+  useEffect(() => {
+    setOptimisticChecklist(checklist);
+  }, [checklist]);
+
+  const total = optimisticChecklist.length;
+  const doneCount = optimisticChecklist.filter((item) => item.done).length;
   const pendingCount = total - doneCount;
   const progressPercent = total > 0 ? Math.round((doneCount / total) * 100) : 0;
   const today = new Date();
@@ -150,7 +158,7 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
     year: "numeric",
   }).format(new Date(currentYear, monthIndex, 1));
 
-  const dasDone = getChecklistItem(checklist, "pagar-das")?.done ?? false;
+  const dasDone = getChecklistItem(optimisticChecklist, "pagar-das")?.done ?? false;
   const dasInfo = getDueInfo({
     done: dasDone,
     dueDate: new Date(currentYear, monthIndex, DAS_DUE_DAY),
@@ -158,7 +166,7 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
     today,
   });
 
-  const dasnDone = getChecklistItem(checklist, "entregar-dasn")?.done ?? false;
+  const dasnDone = getChecklistItem(optimisticChecklist, "entregar-dasn")?.done ?? false;
   const dasnInfo = getDueInfo({
     done: dasnDone,
     dueDate: new Date(currentYear, DASN_DUE_MONTH, DASN_DUE_DAY),
@@ -166,10 +174,10 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
     today,
   });
 
-  const reviewEntriesDone = getChecklistItem(checklist, "conferir-entradas")?.done ?? false;
-  const reviewExpensesDone = getChecklistItem(checklist, "conferir-despesas")?.done ?? false;
-  const receiptsDone = getChecklistItem(checklist, "guardar-comprovantes")?.done ?? false;
-  const closingDone = getChecklistItem(checklist, "revisar-fechamento")?.done ?? false;
+  const reviewEntriesDone = getChecklistItem(optimisticChecklist, "conferir-entradas")?.done ?? false;
+  const reviewExpensesDone = getChecklistItem(optimisticChecklist, "conferir-despesas")?.done ?? false;
+  const receiptsDone = getChecklistItem(optimisticChecklist, "guardar-comprovantes")?.done ?? false;
+  const closingDone = getChecklistItem(optimisticChecklist, "revisar-fechamento")?.done ?? false;
 
   const reviewWindowInfo = getDueInfo({
     done: reviewEntriesDone && reviewExpensesDone,
@@ -398,7 +406,7 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
           </div>
 
           <div className="px-5 py-5 sm:px-6">
-            <ObrigacoesChecklist items={checklist} monthKey={monthKey} />
+            <ObrigacoesChecklist items={optimisticChecklist} monthKey={monthKey} onItemsChange={setOptimisticChecklist} />
           </div>
         </CardContent>
       </Card>
