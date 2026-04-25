@@ -13,6 +13,7 @@ import {
   Receipt,
   Settings,
   ShieldCheck,
+  Upload,
   UserCircle2,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
@@ -31,6 +32,7 @@ type AppSidebarProps = {
 const navItems = [
   { href: "/app/dashboard", label: "Inicio", shortLabel: "Inicio", icon: LayoutDashboard },
   { href: "/app/movimentacoes", label: "Movimentacoes", shortLabel: "Mov.", icon: Receipt },
+  { href: "/app/importar", label: "Importar dados", shortLabel: "Import.", icon: Upload },
   { href: "/app/fechamento-mensal", label: "Fechamento mensal", shortLabel: "Fechar", icon: ClipboardCheck },
   { href: "/app/obrigacoes", label: "Obrigacoes", shortLabel: "Obrig.", icon: BellRing },
   { href: "/app/agente", label: "Helena", shortLabel: "Helena", icon: MessageCircle },
@@ -249,7 +251,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
         </div>
       </header>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-border/80 bg-background px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_22px_rgba(15,23,42,0.11)] lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-7 border-t border-border/80 bg-background px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_22px_rgba(15,23,42,0.11)] lg:hidden">
         {navItems.map((item) => {
           const isActive = visiblePathname === item.href;
           const Icon = item.icon;
@@ -258,7 +260,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
             <Link
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "relative flex min-h-[64px] min-w-0 flex-col items-center justify-center gap-1 rounded-[20px] px-1 text-[10px] font-bold transition-[background-color,color,box-shadow]",
+                "relative flex min-h-[64px] min-w-0 flex-col items-center justify-center gap-1 rounded-[18px] px-0.5 text-[9px] font-bold transition-[background-color,color,box-shadow] min-[390px]:text-[10px]",
                 isActive
                   ? "bg-card text-primary shadow-sm"
                   : "text-foreground/72 hover:bg-muted/70 hover:text-foreground",
