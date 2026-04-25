@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { RouteTransitionPending } from "@/components/app/route-transition-pending";
 import { MovimentacoesManager } from "@/components/movimentacoes/movimentacoes-manager";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserProfile } from "@/lib/profile";
 
 export default function MovimentacoesPage() {
   return (
@@ -12,31 +12,25 @@ export default function MovimentacoesPage() {
 }
 
 async function MovimentacoesData() {
-  const supabase = await createClient();
+  const { profile, profileError, supabase } = await getCurrentUserProfile();
 
-  const [movementsResult, profileResult] = await Promise.all([
-    supabase
-      .from("movimentacoes")
-      .select("id, type, description, amount, occurred_on, occurred_at, category")
-      .order("occurred_at", { ascending: false })
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("profiles")
-      .select("initial_balance")
-      .maybeSingle(),
-  ]);
+  const movementsResult = await supabase
+    .from("movimentacoes")
+    .select("id, type, description, amount, occurred_on, occurred_at, category")
+    .order("occurred_at", { ascending: false })
+    .order("created_at", { ascending: false });
 
   if (movementsResult.error) {
     throw new Error(`Erro ao carregar movimentações: ${movementsResult.error.message}`);
   }
 
-  if (profileResult.error) {
-    throw new Error(`Erro ao carregar ajuste de saldo: ${profileResult.error.message}`);
+  if (profileError) {
+    throw new Error(`Erro ao carregar ajuste de saldo: ${profileError.message}`);
   }
 
   return (
     <MovimentacoesManager
-      initialBalance={Number(profileResult.data?.initial_balance ?? 0)}
+      initialBalance={Number(profile?.initial_balance ?? 0)}
       movements={movementsResult.data ?? []}
     />
   );

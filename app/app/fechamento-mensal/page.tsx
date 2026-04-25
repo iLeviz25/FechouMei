@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { RouteTransitionPending } from "@/components/app/route-transition-pending";
 import { FechamentoMensalOverview } from "@/components/fechamento-mensal/fechamento-mensal-overview";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserProfile } from "@/lib/profile";
 
 type FechamentoMensalPageProps = {
   searchParams?: Promise<{
@@ -18,7 +18,7 @@ export default function FechamentoMensalPage({ searchParams }: FechamentoMensalP
 }
 
 async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps) {
-  const supabase = await createClient();
+  const { profile, profileError, supabase } = await getCurrentUserProfile();
   const resolvedSearchParams = await searchParams;
   const selectedMonth = resolveMonth({
     monthParam: resolvedSearchParams?.month,
@@ -26,15 +26,18 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
   const monthStart = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1);
   const monthEnd = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0);
   const previousMonth = addMonths(selectedMonth, -1);
+  const trendStart = addMonths(selectedMonth, -5);
   const previousMonthStart = new Date(previousMonth.getFullYear(), previousMonth.getMonth(), 1);
   const previousMonthEnd = new Date(previousMonth.getFullYear(), previousMonth.getMonth() + 1, 0);
+  const trendStartDate = new Date(trendStart.getFullYear(), trendStart.getMonth(), 1);
 
   const monthStartValue = toDateInputValue(monthStart);
   const monthEndValue = toDateInputValue(monthEnd);
   const previousMonthStartValue = toDateInputValue(previousMonthStart);
   const previousMonthEndValue = toDateInputValue(previousMonthEnd);
+  const trendStartValue = toDateInputValue(trendStartDate);
 
-  const [movementsResult, previousMonthResult, balanceUntilMonthResult, profileResult] = await Promise.all([
+  const [movementsResult, previousMonthResult, balanceUntilMonthResult, trendMonthsResult] = await Promise.all([
     supabase
       .from("movimentacoes")
       .select("id, type, description, amount, occurred_on, occurred_at, category")
@@ -52,9 +55,10 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
       .select("type, amount, occurred_on")
       .lte("occurred_on", monthEndValue),
     supabase
-      .from("profiles")
-      .select("initial_balance")
-      .maybeSingle(),
+      .from("movimentacoes")
+      .select("type, amount, occurred_on")
+      .gte("occurred_on", trendStartValue)
+      .lte("occurred_on", monthEndValue),
   ]);
 
   if (movementsResult.error) {
@@ -69,8 +73,12 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
     throw new Error(`Erro ao carregar saldo do fechamento: ${balanceUntilMonthResult.error.message}`);
   }
 
-  if (profileResult.error) {
-    throw new Error(`Erro ao carregar ajuste de saldo: ${profileResult.error.message}`);
+  if (trendMonthsResult.error) {
+    throw new Error(`Erro ao carregar grafico do fechamento: ${trendMonthsResult.error.message}`);
+  }
+
+  if (profileError) {
+    throw new Error(`Erro ao carregar ajuste de saldo: ${profileError.message}`);
   }
 
   const monthLabel = formatMonthLabel(selectedMonth);
@@ -78,7 +86,7 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
   return (
     <FechamentoMensalOverview
       balanceRows={balanceUntilMonthResult.data ?? []}
-      initialBalance={Number(profileResult.data?.initial_balance ?? 0)}
+      initialBalance={Number(profile?.initial_balance ?? 0)}
       monthEndValue={monthEndValue}
       monthLabel={monthLabel}
       monthStartValue={monthStartValue}
@@ -87,6 +95,7 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
       previousMonthEndValue={previousMonthEndValue}
       previousMonthMovements={previousMonthResult.data ?? []}
       previousMonthStartValue={previousMonthStartValue}
+      trendRows={trendMonthsResult.data ?? []}
       yearValue={String(selectedMonth.getFullYear())}
     />
   );

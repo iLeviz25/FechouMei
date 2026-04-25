@@ -1,4 +1,5 @@
 import { runAgentTurnForContext } from "@/lib/agent/orchestrator";
+import { getAgentRuntimeSettings } from "@/lib/agent/runtime-settings";
 import {
   AudioTranscriptionError,
   type AudioTranscriptionStage,
@@ -370,6 +371,42 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
     return discard("missing_remote_number", "Mensagem ignorada sem remetente identificável");
   }
 
+  const runtimeSettings = await getAgentRuntimeSettings(admin);
+
+  if (runtimeSettings.maintenanceMode || !runtimeSettings.helenaEnabled || !runtimeSettings.whatsappEnabled) {
+    const reason = runtimeSettings.maintenanceMode
+      ? "agent_maintenance"
+      : !runtimeSettings.helenaEnabled
+        ? "agent_disabled"
+        : "whatsapp_disabled";
+    const reply = runtimeSettings.maintenanceMode
+      ? "A Helena esta em manutencao rapida agora. Tente novamente em instantes."
+      : !runtimeSettings.helenaEnabled
+        ? "A Helena esta temporariamente indisponivel. Tente novamente em instantes."
+        : "O canal WhatsApp da Helena esta temporariamente indisponivel. Voce ainda pode usar a Helena dentro do app.";
+
+    await replyAndFinishWhatsAppTurn({
+      config,
+      externalMessageId,
+      instance: normalized.instance,
+      messageText: normalized.text,
+      presenceController,
+      reason,
+      remoteId: normalized.remoteJid,
+      remoteNumber,
+      reply,
+      status: "discarded",
+      summary: `WhatsApp bloqueado por configuracao admin: ${reason}.`,
+      trace,
+      userId: null,
+    });
+
+    return {
+      body: { ok: true, reason },
+      status: 200,
+    };
+  }
+
   const userResolution = await resolveWhatsAppInboundUser({
     context: { supabase: admin },
     messageText: normalized.text,
@@ -664,6 +701,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
       conversationId,
     });
     const result = await runAgentTurnForContext({
+      channel: "whatsapp",
       context: executionContext,
       message: agentInputText,
       state: snapshot.state,

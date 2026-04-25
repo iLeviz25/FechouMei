@@ -930,7 +930,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                           return (
                             <Card
                               className={cn(
-                                "w-full max-w-full overflow-hidden rounded-[24px] border border-border/70 bg-white/90 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.45)] transition-all",
+                                "w-full max-w-full overflow-hidden rounded-[24px] border border-border/70 bg-white/90 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.35)] transition-[background-color,border-color,box-shadow,transform]",
                                 selectionMode && "cursor-pointer active:scale-[0.995]",
                                 selected && "border-success/25 bg-success/10",
                                 editing && "border-primary/20 bg-primary-soft/20",
@@ -1340,7 +1340,7 @@ function OptionGroup({
           <button
             aria-pressed={selected}
             className={cn(
-              "inline-flex items-center justify-center gap-1.5 rounded-full border font-bold transition-all",
+              "inline-flex items-center justify-center gap-1.5 rounded-full border font-bold transition-[background-color,border-color,color,box-shadow]",
               compact ? "h-10 whitespace-nowrap px-4 text-sm" : "min-h-11 px-4 py-2 text-sm",
               selected
                 ? "border-primary/16 bg-primary text-primary-foreground"

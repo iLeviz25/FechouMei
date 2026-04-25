@@ -4,15 +4,15 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[18px] text-sm font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/10 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[18px] text-sm font-bold transition-[background-color,border-color,color,box-shadow,opacity,transform] duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/10 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
   {
     variants: {
       variant: {
-        default: "bg-gradient-brand text-primary-foreground shadow-glow ring-1 ring-white/10 hover:-translate-y-0.5 hover:opacity-95",
+        default: "bg-gradient-brand text-primary-foreground shadow-elevated ring-1 ring-white/10 hover:-translate-y-0.5 hover:opacity-95",
         destructive:
           "bg-destructive text-destructive-foreground shadow-card ring-1 ring-white/10 hover:-translate-y-0.5 hover:opacity-95",
         outline:
-          "border border-border/80 bg-white/88 text-foreground shadow-card backdrop-blur-sm hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary-soft/30",
+          "border border-border/80 bg-white/95 text-foreground shadow-card hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary-soft/30",
         secondary:
           "border border-secondary/15 bg-secondary-soft/88 text-secondary-foreground shadow-card hover:-translate-y-0.5 hover:bg-secondary/20",
         ghost: "text-muted-foreground hover:bg-primary-soft/40 hover:text-foreground",

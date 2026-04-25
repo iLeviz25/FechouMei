@@ -184,6 +184,51 @@ function getDashboardStatus({
   return { label: "Tudo em dia", tone: "success" } as const;
 }
 
+function getMeiLimitStatus(usage: number) {
+  if (usage > 1) {
+    return {
+      badgeClass: "bg-destructive/18 text-primary-foreground",
+      label: "Limite ultrapassado",
+      progressClass: "bg-[linear-gradient(90deg,hsl(358_85%_62%)_0%,hsl(358_75%_50%)_100%)]",
+      tone: "danger",
+    } as const;
+  }
+
+  if (usage >= 0.9) {
+    return {
+      badgeClass: "bg-[hsl(28_92%_52%/0.22)] text-primary-foreground",
+      label: "Quase no limite",
+      progressClass: "bg-[linear-gradient(90deg,hsl(38_95%_55%)_0%,hsl(28_92%_52%)_100%)]",
+      tone: "orange",
+    } as const;
+  }
+
+  if (usage >= 0.75) {
+    return {
+      badgeClass: "bg-[hsl(28_92%_52%/0.18)] text-primary-foreground",
+      label: "Cuidado",
+      progressClass: "bg-[linear-gradient(90deg,hsl(40_96%_58%)_0%,hsl(28_92%_52%)_100%)]",
+      tone: "orange",
+    } as const;
+  }
+
+  if (usage > 0.5) {
+    return {
+      badgeClass: "bg-secondary/20 text-primary-foreground",
+      label: "Atencao",
+      progressClass: "bg-[linear-gradient(90deg,hsl(50_96%_58%)_0%,hsl(38_95%_55%)_100%)]",
+      tone: "warning",
+    } as const;
+  }
+
+  return {
+    badgeClass: "bg-success/16 text-primary-foreground",
+    label: "Tranquilo",
+    progressClass: "bg-[linear-gradient(90deg,hsl(158_72%_45%)_0%,hsl(152_70%_58%)_100%)]",
+    tone: "success",
+  } as const;
+}
+
 export function DashboardOverview({
   annualIncome,
   checklistDoneCount,
@@ -197,8 +242,10 @@ export function DashboardOverview({
 }: DashboardOverviewProps) {
   const monthBalance = monthlyIncome - monthlyExpense;
   const limitUsage = annualIncome / MEI_LIMIT;
-  const limitUsagePercent = Math.min(limitUsage * 100, 100);
+  const limitUsageDisplayPercent = Math.max(limitUsage * 100, 0);
+  const limitUsagePercent = Math.min(limitUsageDisplayPercent, 100);
   const remainingLimit = Math.max(MEI_LIMIT - annualIncome, 0);
+  const exceededLimit = Math.max(annualIncome - MEI_LIMIT, 0);
   const today = new Date();
   const dasLate = !dasDone && today.getDate() > DAS_DUE_DAY;
   const currentYear = today.getFullYear();
@@ -210,6 +257,7 @@ export function DashboardOverview({
     limitUsage,
     monthBalance,
   });
+  const limitStatus = getMeiLimitStatus(limitUsage);
 
   const alerts = [
     {
@@ -229,8 +277,8 @@ export function DashboardOverview({
       cta: "Ver projecao",
       description:
         limitUsage >= 1
-          ? "Seu faturamento anual passou do teto do MEI. Revise o fechamento para decidir os proximos passos."
-          : `${limitUsagePercent.toFixed(1).replace(".", ",")}% do limite anual usado. Ainda restam ${toCurrency(remainingLimit)} no teto.`,
+          ? `Seu faturamento anual passou do teto do MEI em ${toCurrency(exceededLimit)}. Revise o fechamento para decidir os proximos passos.`
+          : `${limitUsageDisplayPercent.toFixed(1).replace(".", ",")}% do limite anual usado. Ainda restam ${toCurrency(remainingLimit)} no teto.`,
       href: "/app/fechamento-mensal",
       icon: TrendingUp,
       kicker: limitUsage >= 1 ? "URGENTE" : limitUsage >= 0.75 ? "ATENCAO" : "TUDO CERTO",
@@ -346,7 +394,11 @@ export function DashboardOverview({
           label="Faturamento"
           tone="warning"
           trendLabel={
-            remainingLimit > 0 ? `${toCurrency(remainingLimit)} livres no teto` : "Teto anual atingido"
+            exceededLimit > 0
+              ? `${toCurrency(exceededLimit)} acima do teto`
+              : remainingLimit > 0
+                ? `${toCurrency(remainingLimit)} livres no teto`
+                : "Teto anual atingido"
           }
           value={toCurrency(annualIncome)}
           valueTone="warning"
@@ -354,10 +406,10 @@ export function DashboardOverview({
       </section>
 
       <section>
-        <div className="relative overflow-hidden rounded-[30px] bg-gradient-hero px-4 py-4 text-primary-foreground shadow-glow min-[380px]:px-5 sm:py-5">
+        <div className="relative overflow-hidden rounded-[30px] bg-gradient-hero px-4 py-4 text-primary-foreground shadow-elevated min-[380px]:px-5 sm:py-5">
           <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(hsl(0_0%_100%/0.08)_1px,transparent_1px),linear-gradient(90deg,hsl(0_0%_100%/0.08)_1px,transparent_1px)] [background-size:22px_22px]" />
-          <div className="pointer-events-none absolute -right-16 top-0 h-40 w-40 rounded-full bg-secondary/20 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-20 left-0 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
+          <div className="pointer-events-none absolute -right-16 top-0 h-40 w-40 rounded-full bg-[radial-gradient(circle,hsl(38_95%_55%/0.22)_0%,transparent_70%)]" />
+          <div className="pointer-events-none absolute -bottom-20 left-0 h-44 w-44 rounded-full bg-[radial-gradient(circle,hsl(0_0%_100%/0.14)_0%,transparent_70%)]" />
 
           <div className="relative space-y-4 sm:space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -370,13 +422,11 @@ export function DashboardOverview({
               <Badge
                 className={cn(
                   "w-fit shrink-0 border-0 px-2.5 py-1 text-[10px] tracking-[0.08em] shadow-none",
-                  status.tone === "success" && "bg-success/16 text-primary-foreground",
-                  status.tone === "warning" && "bg-secondary/18 text-primary-foreground",
-                  status.tone === "danger" && "bg-destructive/18 text-primary-foreground",
+                  limitStatus.badgeClass,
                 )}
                 variant="outline"
               >
-                {limitUsage >= 1 ? "Excedido" : limitUsage >= 0.75 ? "No radar" : "Tranquilo"}
+                {limitStatus.label}
               </Badge>
             </div>
 
@@ -394,7 +444,7 @@ export function DashboardOverview({
               <div className="space-y-2.5">
                 <div className="h-3 overflow-hidden rounded-full bg-white/14">
                   <div
-                    className="h-full rounded-full bg-[linear-gradient(90deg,hsl(158_72%_45%)_0%,hsl(152_70%_58%)_100%)]"
+                    className={cn("h-full rounded-full", limitStatus.progressClass)}
                     style={{ width: `${limitUsagePercent}%` }}
                   />
                 </div>
@@ -404,15 +454,15 @@ export function DashboardOverview({
                       Uso
                     </p>
                     <p className="mt-1 text-sm font-semibold text-primary-foreground sm:mt-0 sm:text-sm">
-                      {limitUsagePercent.toFixed(1).replace(".", ",")}% do teto
+                      {limitUsageDisplayPercent.toFixed(1).replace(".", ",")}% do teto
                     </p>
                   </div>
                   <div className="rounded-[18px] bg-white/8 px-3 py-2 text-right sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
                     <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-primary-foreground/58 sm:hidden">
-                      Disponivel
+                      {exceededLimit > 0 ? "Excedido" : "Disponivel"}
                     </p>
                     <p className="mt-1 text-sm font-semibold text-primary-foreground sm:mt-0 sm:text-sm">
-                      {toCurrency(remainingLimit)} disponiveis
+                      {exceededLimit > 0 ? `${toCurrency(exceededLimit)} acima` : `${toCurrency(remainingLimit)} disponiveis`}
                     </p>
                   </div>
                 </div>

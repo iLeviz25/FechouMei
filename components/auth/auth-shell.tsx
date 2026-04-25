@@ -56,11 +56,11 @@ export function AuthShell({
 
       <section className="relative hidden overflow-hidden bg-gradient-hero lg:block">
         <div className="absolute inset-0 grain opacity-50" />
-        <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[hsl(var(--primary-glow)/0.3)] blur-3xl" />
-        <div className="absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-secondary/20 blur-3xl" />
+        <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,hsl(var(--primary-glow)/0.28)_0%,transparent_70%)]" />
+        <div className="absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-[radial-gradient(circle,hsl(38_95%_55%/0.2)_0%,transparent_70%)]" />
 
         <div className="relative flex h-full flex-col justify-between p-12 text-primary-foreground">
-          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium backdrop-blur">
+          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/8 px-3 py-1.5 text-xs font-medium">
             <span className="h-1.5 w-1.5 rounded-full bg-secondary" />
             Organize seu MEI sem planilha
           </div>
@@ -71,7 +71,7 @@ export function AuthShell({
               <div className="text-sm font-bold">R$ 75,90</div>
             </div>
 
-            <div className="rounded-[28px] bg-card/95 p-6 text-foreground shadow-elevated backdrop-blur-sm">
+            <div className="rounded-[28px] bg-card p-6 text-foreground shadow-elevated">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

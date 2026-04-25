@@ -9,6 +9,60 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_audit_events: {
+        Row: {
+          id: string;
+          actor_id: string | null;
+          target_user_id: string | null;
+          origin: "admin" | "helena" | "whatsapp" | "auth" | "app" | "supabase" | "sistema";
+          severity: "info" | "warning" | "error" | "critical";
+          event_type: string;
+          status: string;
+          message: string | null;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          actor_id?: string | null;
+          target_user_id?: string | null;
+          origin?: "admin" | "helena" | "whatsapp" | "auth" | "app" | "supabase" | "sistema";
+          severity?: "info" | "warning" | "error" | "critical";
+          event_type: string;
+          status?: string;
+          message?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          actor_id?: string | null;
+          target_user_id?: string | null;
+          origin?: "admin" | "helena" | "whatsapp" | "auth" | "app" | "supabase" | "sistema";
+          severity?: "info" | "warning" | "error" | "critical";
+          event_type?: string;
+          status?: string;
+          message?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "admin_audit_events_actor_id_fkey";
+            columns: ["actor_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "admin_audit_events_target_user_id_fkey";
+            columns: ["target_user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       agent_conversations: {
         Row: {
           id: string;
@@ -215,6 +269,94 @@ export type Database = {
           },
         ];
       };
+      agent_prompt_traces: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          channel: "playground" | "whatsapp" | "system";
+          model: string | null;
+          trace_type: "interpretation" | "transcription" | "routing" | "fallback";
+          status: "success" | "error" | "skipped";
+          action_name: string | null;
+          prompt_preview: string | null;
+          prompt_text: string | null;
+          user_message_preview: string | null;
+          response_preview: string | null;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          channel?: "playground" | "whatsapp" | "system";
+          model?: string | null;
+          trace_type?: "interpretation" | "transcription" | "routing" | "fallback";
+          status?: "success" | "error" | "skipped";
+          action_name?: string | null;
+          prompt_preview?: string | null;
+          prompt_text?: string | null;
+          user_message_preview?: string | null;
+          response_preview?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          channel?: "playground" | "whatsapp" | "system";
+          model?: string | null;
+          trace_type?: "interpretation" | "transcription" | "routing" | "fallback";
+          status?: "success" | "error" | "skipped";
+          action_name?: string | null;
+          prompt_preview?: string | null;
+          prompt_text?: string | null;
+          user_message_preview?: string | null;
+          response_preview?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_prompt_traces_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      app_settings: {
+        Row: {
+          key: string;
+          value: Json;
+          description: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          key: string;
+          value?: Json;
+          description?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          key?: string;
+          value?: Json;
+          description?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "app_settings_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       whatsapp_assistant_links: {
         Row: {
           id: string;
@@ -398,6 +540,7 @@ export type Database = {
           main_goal: string | null;
           initial_balance: number;
           onboarding_completed: boolean;
+          role: "user" | "admin";
           created_at: string;
           updated_at: string;
         };
@@ -410,6 +553,7 @@ export type Database = {
           main_goal?: string | null;
           initial_balance?: number;
           onboarding_completed?: boolean;
+          role?: "user" | "admin";
           created_at?: string;
           updated_at?: string;
         };
@@ -422,6 +566,7 @@ export type Database = {
           main_goal?: string | null;
           initial_balance?: number;
           onboarding_completed?: boolean;
+          role?: "user" | "admin";
           created_at?: string;
           updated_at?: string;
         };
@@ -437,7 +582,102 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      get_admin_overview_metrics: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      get_admin_helena_dashboard: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      get_admin_agent_prompt_detail: {
+        Args: {
+          trace_id: string;
+        };
+        Returns: Json;
+      };
+      get_admin_agent_prompts: {
+        Args: {
+          search_text?: string | null;
+          status_filter?: "success" | "error" | "skipped" | null;
+          type_filter?: "interpretation" | "transcription" | "routing" | "fallback" | null;
+          page_size?: number | null;
+          page_offset?: number | null;
+        };
+        Returns: Json;
+      };
+      get_agent_runtime_settings: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      get_admin_logs: {
+        Args: {
+          search_text?: string | null;
+          severity_filter?: "info" | "warning" | "error" | "critical" | null;
+          origin_filter?: "helena" | "whatsapp" | "auth" | "app" | "supabase" | "sistema" | "admin" | null;
+          period_filter?: "24h" | "7d" | "30d" | null;
+          page_size?: number | null;
+          page_offset?: number | null;
+        };
+        Returns: Json;
+      };
+      get_admin_settings: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      get_admin_user_detail: {
+        Args: {
+          target_user_id: string;
+        };
+        Returns: Json;
+      };
+      get_admin_users: {
+        Args: {
+          search_text?: string | null;
+          role_filter?: "user" | "admin" | null;
+          whatsapp_filter?: "linked" | "unlinked" | null;
+          page_size?: number | null;
+          page_offset?: number | null;
+        };
+        Returns: Json;
+      };
+      is_admin: {
+        Args: {
+          user_id?: string;
+        };
+        Returns: boolean;
+      };
+      set_user_role: {
+        Args: {
+          target_user_id: string;
+          new_role: "user" | "admin";
+        };
+        Returns: void;
+      };
+      record_agent_prompt_trace: {
+        Args: {
+          target_user_id: string;
+          trace_channel: "playground" | "whatsapp" | "system";
+          trace_model: string | null;
+          trace_type: "interpretation" | "transcription" | "routing" | "fallback";
+          trace_status: "success" | "error" | "skipped";
+          action_name: string | null;
+          prompt_text: string;
+          user_message?: string | null;
+          response_text?: string | null;
+          metadata?: Json;
+        };
+        Returns: string;
+      };
+      update_admin_setting: {
+        Args: {
+          setting_key: string;
+          setting_value: Json;
+        };
+        Returns: Json;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
@@ -450,4 +690,5 @@ export type AgentConversation = Database["public"]["Tables"]["agent_conversation
 export type AgentPersistedMessage = Database["public"]["Tables"]["agent_messages"]["Row"];
 export type AgentActionEvent = Database["public"]["Tables"]["agent_action_events"]["Row"];
 export type AgentChannelEvent = Database["public"]["Tables"]["agent_channel_events"]["Row"];
+export type AgentPromptTrace = Database["public"]["Tables"]["agent_prompt_traces"]["Row"];
 export type WhatsAppAssistantLink = Database["public"]["Tables"]["whatsapp_assistant_links"]["Row"];

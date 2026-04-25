@@ -11,6 +11,7 @@ import {
   MessageCircle,
   Receipt,
   Settings,
+  ShieldCheck,
   UserCircle2,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
@@ -21,6 +22,7 @@ import type { Profile } from "@/types/database";
 
 type AppSidebarProps = {
   profile: Profile | null;
+  isAdmin?: boolean;
 };
 
 const navItems = [
@@ -32,7 +34,14 @@ const navItems = [
   { href: "/app/configuracoes", label: "Configuracoes", shortLabel: "Conta", icon: Settings },
 ];
 
-export function AppSidebar({ profile }: AppSidebarProps) {
+const adminNavItem = {
+  href: "/admin",
+  icon: ShieldCheck,
+  label: "Painel Admin",
+  shortLabel: "Admin",
+};
+
+export function AppSidebar({ profile, isAdmin = false }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
@@ -43,14 +52,6 @@ export function AppSidebar({ profile }: AppSidebarProps) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("");
-
-  useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      navItems.forEach((item) => router.prefetch(item.href));
-    }, 150);
-
-    return () => window.clearTimeout(timeout);
-  }, [router]);
 
   useEffect(() => {
     setPendingHref(null);
@@ -94,7 +95,7 @@ export function AppSidebar({ profile }: AppSidebarProps) {
           className="pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 bg-transparent"
           role="progressbar"
         >
-          <div className="animate-pulse h-full w-full origin-left bg-primary/80 shadow-glow" />
+          <div className="h-full w-full origin-left bg-primary/80" />
         </div>
       ) : null}
 
@@ -125,9 +126,9 @@ export function AppSidebar({ profile }: AppSidebarProps) {
                   <Link
                     aria-current={isActive ? "page" : undefined}
                     className={cn(
-                      "group relative flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold transition-all",
+                      "group relative flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold transition-[background-color,color,box-shadow,border-color]",
                       isActive
-                        ? "bg-gradient-brand text-primary-foreground shadow-glow"
+                        ? "bg-gradient-brand text-primary-foreground shadow-elevated"
                         : "text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))] hover:text-[hsl(var(--sidebar-accent-foreground))]",
                     )}
                     href={item.href}
@@ -146,11 +147,36 @@ export function AppSidebar({ profile }: AppSidebarProps) {
                 );
               })}
             </nav>
+
+            {isAdmin ? (
+              <div className="mt-5 border-t border-[hsl(var(--sidebar-border))] pt-4">
+                <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                  Admin
+                </p>
+                <Link
+                  aria-current={visiblePathname.startsWith("/admin") ? "page" : undefined}
+                  className={cn(
+                    "group relative flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold transition-[background-color,color,box-shadow,border-color]",
+                    visiblePathname.startsWith("/admin")
+                      ? "bg-primary text-primary-foreground shadow-elevated"
+                      : "border border-primary/15 bg-primary-soft/35 text-primary hover:border-primary/25 hover:bg-primary-soft/60",
+                  )}
+                  href={adminNavItem.href}
+                  onClick={() => markRoutePending(adminNavItem.href)}
+                  onFocus={() => warmRoute(adminNavItem.href)}
+                  onPointerEnter={() => warmRoute(adminNavItem.href)}
+                  prefetch
+                >
+                  <ShieldCheck className="h-4 w-4" />
+                  {adminNavItem.label}
+                </Link>
+              </div>
+            ) : null}
           </div>
 
           <div className="space-y-3 border-t border-[hsl(var(--sidebar-border))] px-1 pt-4">
             <div className="flex items-center gap-3 rounded-2xl border border-[hsl(var(--sidebar-border))] bg-muted/40 p-3 shadow-card">
-              <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-brand text-sm font-extrabold text-primary-foreground shadow-glow">
+              <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-brand text-sm font-extrabold text-primary-foreground shadow-elevated">
                 {initials || "ME"}
                 <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-success ring-2 ring-card" />
               </div>
@@ -166,7 +192,7 @@ export function AppSidebar({ profile }: AppSidebarProps) {
         </div>
       </aside>
 
-      <header className="fixed inset-x-0 top-0 z-20 border-b border-border/70 bg-background/92 px-4 py-3.5 shadow-sm backdrop-blur lg:hidden">
+      <header className="fixed inset-x-0 top-0 z-20 border-b border-border/70 bg-background/98 px-4 py-3.5 shadow-sm lg:hidden">
         <div className="flex items-center justify-between gap-3">
           <Link
             className="flex items-center gap-2"
@@ -179,16 +205,31 @@ export function AppSidebar({ profile }: AppSidebarProps) {
           >
             <Logo size="sm" />
           </Link>
-          <Link
-            className="surface-panel-ghost flex h-11 w-11 items-center justify-center rounded-[18px] text-muted-foreground"
-            href="/app/configuracoes"
-          >
-            <UserCircle2 className="h-5 w-5" />
-          </Link>
+          <div className="flex items-center gap-2">
+            {isAdmin ? (
+              <Link
+                aria-label="Painel Admin"
+                className="surface-panel-ghost flex h-11 w-11 items-center justify-center rounded-[18px] text-primary"
+                href="/admin"
+                onClick={() => markRoutePending("/admin")}
+                onFocus={() => warmRoute("/admin")}
+                onPointerEnter={() => warmRoute("/admin")}
+                onTouchStart={() => warmRoute("/admin")}
+              >
+                <ShieldCheck className="h-5 w-5" />
+              </Link>
+            ) : null}
+            <Link
+              className="surface-panel-ghost flex h-11 w-11 items-center justify-center rounded-[18px] text-muted-foreground"
+              href="/app/configuracoes"
+            >
+              <UserCircle2 className="h-5 w-5" />
+            </Link>
+          </div>
         </div>
       </header>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-border/80 bg-background/98 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-16px_36px_rgba(15,23,42,0.14)] backdrop-blur-xl lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-border/80 bg-background px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_22px_rgba(15,23,42,0.11)] lg:hidden">
         {navItems.map((item) => {
           const isActive = visiblePathname === item.href;
           const Icon = item.icon;
@@ -197,9 +238,9 @@ export function AppSidebar({ profile }: AppSidebarProps) {
             <Link
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "relative flex min-h-[64px] min-w-0 flex-col items-center justify-center gap-1 rounded-[20px] px-1 text-[10px] font-bold transition-all",
+                "relative flex min-h-[64px] min-w-0 flex-col items-center justify-center gap-1 rounded-[20px] px-1 text-[10px] font-bold transition-[background-color,color,box-shadow]",
                 isActive
-                  ? "surface-panel-muted text-primary shadow-card"
+                  ? "bg-card text-primary shadow-sm"
                   : "text-foreground/72 hover:bg-muted/70 hover:text-foreground",
               )}
               href={item.href}

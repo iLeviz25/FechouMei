@@ -32,6 +32,11 @@ import {
   interpretMessageWithGemini,
 } from "@/lib/agent/gemini";
 import {
+  evaluateAgentAvailability,
+  logAgentRuntimeBlock,
+} from "@/lib/agent/runtime-settings";
+import { recordAgentPromptTrace } from "@/lib/agent/prompt-tracing";
+import {
   canonicalizeCategoryInput,
   cleanDescriptionUsingResolvedCategory,
   cleanTransactionDescription,
@@ -40,6 +45,7 @@ import {
 } from "@/lib/agent/transaction-parser";
 import type {
   AgentActionId,
+  AgentConversationChannel,
   AgentActionTrace,
   AgentConversationState,
   AgentDeleteTarget,
@@ -67,6 +73,7 @@ import {
 } from "@/lib/agent/utils";
 
 type RunAgentTurnInput = {
+  channel?: AgentConversationChannel;
   message: string;
   state?: AgentConversationState | null;
 };
@@ -86,7 +93,7 @@ type CompoundExpenseHandling =
 
 type SplitOrCombinedChoice = "combined" | "split";
 
-export async function runAgentTurn({ message, state }: RunAgentTurnInput): Promise<AgentTurnResult> {
+export async function runAgentTurn({ channel = "playground", message, state }: RunAgentTurnInput): Promise<AgentTurnResult> {
   const trimmedMessage = message.trim();
   const currentState = normalizeConversationState(state);
 
@@ -111,12 +118,26 @@ export async function runAgentTurn({ message, state }: RunAgentTurnInput): Promi
   }
 
   const context: AgentExecutionContext = { supabase, userId: user.id };
+  const availability = await evaluateAgentAvailability({
+    channel,
+    supabase,
+    userId: user.id,
+  });
+
+  if (!availability.allowed) {
+    await logAgentRuntimeBlock({ channel, supabase, userId: user.id }, availability);
+    return {
+      reply: availability.reply,
+      state: currentState,
+    };
+  }
 
   try {
     const deterministic = classifyDeterministically(trimmedMessage, currentState);
 
     if (deterministic) {
       const deterministicResult = await handleDeterministicClassification({
+        channel,
         context,
         currentState,
         message: trimmedMessage,
@@ -139,10 +160,15 @@ export async function runAgentTurn({ message, state }: RunAgentTurnInput): Promi
     }
 
     if (currentState.status === "collecting") {
-      return handleCollectingTurn({ context, message: trimmedMessage, state: currentState });
+      return handleCollectingTurn({ channel, context, message: trimmedMessage, state: currentState });
     }
 
-    const interpretation = await safeGeminiInterpretation(trimmedMessage, currentState);
+    const interpretation = await safeGeminiInterpretation({
+      channel,
+      context,
+      message: trimmedMessage,
+      state: currentState,
+    });
 
     if (!interpretation) {
       return {
@@ -187,6 +213,7 @@ export async function runAgentTurn({ message, state }: RunAgentTurnInput): Promi
 }
 
 export async function runAgentTurnForContext({
+  channel = "playground",
   context,
   message,
   state,
@@ -201,11 +228,30 @@ export async function runAgentTurnForContext({
     };
   }
 
+  const availability = await evaluateAgentAvailability({
+    channel,
+    supabase: context.supabase,
+    userId: context.userId,
+  });
+
+  if (!availability.allowed) {
+    await logAgentRuntimeBlock({
+      channel,
+      supabase: context.supabase,
+      userId: context.userId,
+    }, availability);
+    return {
+      reply: availability.reply,
+      state: currentState,
+    };
+  }
+
   try {
     const deterministic = classifyDeterministically(trimmedMessage, currentState);
 
     if (deterministic) {
       const deterministicResult = await handleDeterministicClassification({
+        channel,
         context,
         currentState,
         message: trimmedMessage,
@@ -228,10 +274,15 @@ export async function runAgentTurnForContext({
     }
 
     if (currentState.status === "collecting") {
-      return handleCollectingTurn({ context, message: trimmedMessage, state: currentState });
+      return handleCollectingTurn({ channel, context, message: trimmedMessage, state: currentState });
     }
 
-    const interpretation = await safeGeminiInterpretation(trimmedMessage, currentState);
+    const interpretation = await safeGeminiInterpretation({
+      channel,
+      context,
+      message: trimmedMessage,
+      state: currentState,
+    });
 
     if (!interpretation) {
       return {
@@ -276,16 +327,41 @@ export async function runAgentTurnForContext({
 }
 
 async function handleDeterministicClassification({
+  channel,
   context,
   currentState,
   message,
   result,
 }: {
+  channel: AgentConversationChannel;
   context: AgentExecutionContext;
   currentState: AgentConversationState;
   message: string;
   result: NonNullable<ReturnType<typeof classifyDeterministically>>;
 }): Promise<AgentTurnResult | null> {
+  await recordAgentPromptTrace({
+    actionName: result.action ?? result.kind,
+    channel,
+    metadata: {
+      confidence: result.confidence ?? null,
+      deterministic: true,
+      kind: result.kind,
+    },
+    model: "deterministic",
+    promptText: [
+      "Fluxo deterministico da Helena.",
+      "Nenhuma chamada ao modelo foi necessaria para esta mensagem.",
+      `Kind: ${result.kind}`,
+      `Action: ${result.action ?? "none"}`,
+    ].join("\n"),
+    responseText: result.reply ?? result.action ?? result.kind,
+    status: "skipped",
+    supabase: context.supabase,
+    traceType: "routing",
+    userId: context.userId,
+    userMessage: message,
+  });
+
   if (currentState.expectedResponseKind === "choose_split_or_combined") {
     const splitChoice = detectSplitOrCombinedChoice(message);
 
@@ -986,10 +1062,12 @@ async function handleConfirmationTurn({
 }
 
 async function handleCollectingTurn({
+  channel,
   context,
   message,
   state,
 }: {
+  channel: AgentConversationChannel;
   context: AgentExecutionContext;
   message: string;
   state: AgentConversationState;
@@ -1168,7 +1246,12 @@ async function handleCollectingTurn({
     };
   }
 
-  const interpretation = await safeGeminiInterpretation(message, state);
+  const interpretation = await safeGeminiInterpretation({
+    channel,
+    context,
+    message,
+    state,
+  });
 
   if (!interpretation) {
     return {
@@ -2082,9 +2165,27 @@ async function handleDeleteRequest(context: AgentExecutionContext): Promise<Agen
   };
 }
 
-async function safeGeminiInterpretation(message: string, state: AgentConversationState) {
+async function safeGeminiInterpretation({
+  channel,
+  context,
+  message,
+  state,
+}: {
+  channel: AgentConversationChannel;
+  context: AgentExecutionContext;
+  message: string;
+  state: AgentConversationState;
+}) {
   try {
-    return await interpretMessageWithGemini({ message, state });
+    return await interpretMessageWithGemini({
+      message,
+      state,
+      trace: {
+        channel,
+        supabase: context.supabase,
+        userId: context.userId,
+      },
+    });
   } catch (error) {
     if (error instanceof GeminiConfigurationError || error instanceof GeminiProviderError) {
       throw error;

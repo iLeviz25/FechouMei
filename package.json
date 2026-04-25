@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit --project tsconfig.typecheck.json",
+    "admin:grant": "node scripts/grant-admin.mjs",
     "test:whatsapp-audio": "node tests/whatsapp-audio.test.mjs"
   },
   "dependencies": {

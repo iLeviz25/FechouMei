@@ -1,5 +1,10 @@
 import { agentActionCatalog } from "@/lib/agent/catalog";
+import { recordAgentPromptTrace } from "@/lib/agent/prompt-tracing";
 import type { AgentConversationState, AgentModelInterpretation } from "@/lib/agent/types";
+import { emptyAgentState } from "@/lib/agent/utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { AgentConversationChannel } from "@/lib/agent/types";
+import type { Database, Json } from "@/types/database";
 
 type GeminiGenerateContentResponse = {
   candidates?: Array<{
@@ -15,6 +20,11 @@ type GeminiGenerateContentResponse = {
 type InterpretMessageInput = {
   message: string;
   state: AgentConversationState;
+  trace?: {
+    channel?: AgentConversationChannel;
+    supabase: SupabaseClient<Database>;
+    userId: string;
+  };
 };
 
 const defaultModel = "gemini-2.5-flash";
@@ -33,9 +43,42 @@ export class GeminiProviderError extends Error {
   }
 }
 
+export type AgentPromptTemplate = {
+  id: string;
+  description: string;
+  promptText: string;
+  title: string;
+};
+
+export function getAgentPromptTemplates(): AgentPromptTemplate[] {
+  return [
+    {
+      description: "Prompt principal usado para classificar intencao, acao e campos extraidos antes da Helena responder.",
+      id: "helena.interpretation",
+      promptText: buildInterpretationPrompt({
+        message: "{{mensagem_do_usuario}}",
+        state: emptyAgentState(),
+      }),
+      title: "Interpretacao de mensagens",
+    },
+    {
+      description: "Instrucao usada na transcricao de audio do WhatsApp antes de enviar o texto para a Helena.",
+      id: "helena.audio_transcription",
+      promptText: [
+        "Transcreva o audio em portugues do Brasil.",
+        "Retorne somente o texto transcrito.",
+        "Nao resuma, nao explique e nao adicione comentarios.",
+        "Se uma parte estiver inaudivel, seja conservador e nao invente.",
+      ].join(" "),
+      title: "Transcricao de audio",
+    },
+  ];
+}
+
 export async function interpretMessageWithGemini({
   message,
   state,
+  trace,
 }: InterpretMessageInput): Promise<AgentModelInterpretation> {
   if (typeof window !== "undefined") {
     throw new GeminiConfigurationError("A Gemini API só pode ser chamada no servidor.");
@@ -43,6 +86,7 @@ export async function interpretMessageWithGemini({
 
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   const model = process.env.GEMINI_MODEL?.trim() || defaultModel;
+  const prompt = buildInterpretationPrompt({ message, state });
 
   if (!apiKey) {
     throw new GeminiConfigurationError("Faltando GEMINI_API_KEY no servidor.");
@@ -53,7 +97,7 @@ export async function interpretMessageWithGemini({
       body: JSON.stringify({
         contents: [
           {
-            parts: [{ text: buildInterpretationPrompt({ message, state }) }],
+            parts: [{ text: prompt }],
           },
         ],
         generationConfig: {
@@ -124,18 +168,57 @@ export async function interpretMessageWithGemini({
       throw new GeminiProviderError("Tive uma instabilidade agora para processar sua mensagem. Tente novamente em instantes.");
     }
 
-    return parseInterpretation(text);
+    const interpretation = parseInterpretation(text);
+    await traceGeminiPrompt({
+      actionName: interpretation.action,
+      message,
+      metadata: {
+        confidence: interpretation.confidence,
+        kind: interpretation.kind ?? "unsupported_or_unknown",
+      },
+      model,
+      prompt,
+      responseText: text,
+      status: "success",
+      trace,
+    });
+
+    return interpretation;
   } catch (error) {
     if (error instanceof GeminiConfigurationError || error instanceof GeminiProviderError) {
+      await traceGeminiPrompt({
+        actionName: null,
+        message,
+        metadata: {
+          errorName: error.name,
+        },
+        model,
+        prompt,
+        responseText: error.message,
+        status: "error",
+        trace,
+      });
       throw error;
     }
 
     console.error("Gemini unexpected error", error);
+    await traceGeminiPrompt({
+      actionName: null,
+      message,
+      metadata: {
+        errorName: error instanceof Error ? error.name : "UnknownError",
+      },
+      model,
+      prompt,
+      responseText: error instanceof Error ? error.message : "Erro inesperado.",
+      status: "error",
+      trace,
+    });
     throw new GeminiProviderError("Tive uma instabilidade agora para processar sua mensagem. Tente novamente em instantes.");
   }
 }
 
-function buildInterpretationPrompt({ message, state }: InterpretMessageInput) {
+export function buildInterpretationPrompt({ message, state }: Omit<InterpretMessageInput, "trace">) {
   return [
     "Você interpreta mensagens de um usuário do FechouMEI, um app financeiro simples para MEI.",
     "Responda somente JSON válido, sem markdown.",
@@ -152,6 +235,44 @@ function buildInterpretationPrompt({ message, state }: InterpretMessageInput) {
     `Estado atual: ${JSON.stringify(state)}`,
     `Mensagem do usuário: ${message}`,
   ].join("\n\n");
+}
+
+async function traceGeminiPrompt({
+  actionName,
+  message,
+  metadata,
+  model,
+  prompt,
+  responseText,
+  status,
+  trace,
+}: {
+  actionName: string | null;
+  message: string;
+  metadata: Record<string, Json>;
+  model: string;
+  prompt: string;
+  responseText: string | null;
+  status: "success" | "error";
+  trace: InterpretMessageInput["trace"];
+}) {
+  if (!trace) {
+    return;
+  }
+
+  await recordAgentPromptTrace({
+    actionName,
+    channel: trace.channel,
+    metadata,
+    model,
+    promptText: prompt,
+    responseText,
+    status,
+    supabase: trace.supabase,
+    traceType: "interpretation",
+    userId: trace.userId,
+    userMessage: message,
+  });
 }
 
 function parseInterpretation(text: string): AgentModelInterpretation {

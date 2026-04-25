@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { RouteTransitionPending } from "@/components/app/route-transition-pending";
 import { DashboardOverview } from "@/components/dashboard/dashboard-overview";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserProfile } from "@/lib/profile";
 
 function toDateInputValue(date: Date) {
   const year = date.getFullYear();
@@ -19,7 +19,11 @@ export default function DashboardPage() {
 }
 
 async function DashboardData() {
-  const supabase = await createClient();
+  const { profile, profileError, supabase } = await getCurrentUserProfile();
+
+  if (profileError) {
+    throw new Error(`Erro ao carregar ajuste de saldo: ${profileError.message}`);
+  }
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -39,7 +43,6 @@ async function DashboardData() {
     allMovementsResult,
     recentResult,
     checklistResult,
-    profileResult,
     previousMonthResult,
   ] = await Promise.all([
     supabase
@@ -61,10 +64,6 @@ async function DashboardData() {
       .select("item_key, done")
       .eq("month", monthKey),
     supabase
-      .from("profiles")
-      .select("initial_balance")
-      .maybeSingle(),
-    supabase
       .from("movimentacoes")
       .select("type, amount")
       .gte("occurred_on", previousMonthStartValue)
@@ -85,10 +84,6 @@ async function DashboardData() {
 
   if (checklistResult.error) {
     throw new Error(`Erro ao carregar obrigacoes do mes: ${checklistResult.error.message}`);
-  }
-
-  if (profileResult.error) {
-    throw new Error(`Erro ao carregar ajuste de saldo: ${profileResult.error.message}`);
   }
 
   if (previousMonthResult.error) {
@@ -113,7 +108,7 @@ async function DashboardData() {
     { annualIncome: 0, monthlyExpense: 0, monthlyIncome: 0 },
   );
 
-  const initialBalance = Number(profileResult.data?.initial_balance ?? 0);
+  const initialBalance = Number(profile?.initial_balance ?? 0);
   const currentBalance = (allMovementsResult.data ?? []).reduce((balance, movement) => {
     if (movement.type === "entrada") {
       return balance + movement.amount;

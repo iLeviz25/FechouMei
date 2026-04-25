@@ -41,6 +41,7 @@ type FechamentoMensalOverviewProps = {
   previousMonthEndValue: string;
   previousMonthMovements: BalanceMovement[];
   previousMonthStartValue: string;
+  trendRows: BalanceMovement[];
   yearValue: string;
 };
 
@@ -52,6 +53,12 @@ type TrendItem = {
   key: string;
   label: string;
   value: number;
+};
+
+type DeltaInfo = {
+  hasBase: boolean;
+  label: string;
+  positive: boolean;
 };
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -104,18 +111,28 @@ function formatSignedCurrency(value: number) {
   return `${prefix}${toCurrency(Math.abs(value))}`;
 }
 
-function formatDeltaPercent(current: number, previous: number) {
+function getDeltaInfo(current: number, previous: number): DeltaInfo {
   if (current === 0 && previous === 0) {
-    return "0%";
+    return { hasBase: true, label: "0%", positive: true };
   }
 
   if (previous === 0) {
-    return current >= 0 ? "+100%" : "-100%";
+    return { hasBase: false, label: "Sem base anterior", positive: current >= 0 };
+  }
+
+  if (previous < 0 && current >= 0) {
+    return { hasBase: true, label: "Virou positivo", positive: true };
   }
 
   const delta = ((current - previous) / Math.abs(previous)) * 100;
   const rounded = Math.abs(delta) >= 100 ? delta.toFixed(0) : delta.toFixed(1);
-  return `${delta >= 0 ? "+" : ""}${rounded.replace(".", ",")}%`;
+  const positive = previous < 0 ? current >= previous : current >= previous;
+
+  return {
+    hasBase: true,
+    label: `${delta >= 0 ? "+" : ""}${rounded.replace(".", ",")}%`,
+    positive,
+  };
 }
 
 function toCategoryDisplay(value: string) {
@@ -166,7 +183,10 @@ function buildTrendItems(rows: BalanceMovement[], currentMonthValue: string) {
 
     return {
       current: key === currentMonthValue,
-      height: Math.max(18, Math.round((Math.abs(totalsByMonth[key]) / maxMagnitude) * 100)),
+      height:
+        totalsByMonth[key] === 0
+          ? 8
+          : Math.max(18, Math.round((Math.abs(totalsByMonth[key]) / maxMagnitude) * 100)),
       key,
       label,
       value: totalsByMonth[key],
@@ -185,6 +205,7 @@ export function FechamentoMensalOverview({
   previousMonthEndValue,
   previousMonthMovements,
   previousMonthStartValue,
+  trendRows,
   yearValue,
 }: FechamentoMensalOverviewProps) {
   const [rangeStart, setRangeStart] = useState("");
@@ -263,7 +284,6 @@ export function FechamentoMensalOverview({
 
   const monthBalance = monthlyTotals.monthlyIncome - monthlyTotals.monthlyExpense;
   const previousBalance = previousTotals.monthlyIncome - previousTotals.monthlyExpense;
-  const balanceDelta = monthBalance - previousBalance;
   const incomeDelta = monthlyTotals.monthlyIncome - previousTotals.monthlyIncome;
   const expenseDelta = monthlyTotals.monthlyExpense - previousTotals.monthlyExpense;
   const balanceUntilPeriod = useMemo(() => {
@@ -315,12 +335,17 @@ export function FechamentoMensalOverview({
       ? (topExpenseCategory.top.amount / monthlyTotals.monthlyExpense) * 100
       : 0;
   const trendItems = useMemo(
-    () => buildTrendItems(balanceRows, `${yearValue}-${monthValue}`),
-    [balanceRows, monthValue, yearValue],
+    () => buildTrendItems(trendRows, `${yearValue}-${monthValue}`),
+    [monthValue, trendRows, yearValue],
   );
 
-  const heroTrendPositive = balanceDelta >= 0;
-  const heroTrendText = `${formatDeltaPercent(monthBalance, previousBalance)} ${comparisonLabel.toLowerCase()}`;
+  const balanceDeltaInfo = getDeltaInfo(monthBalance, previousBalance);
+  const incomeDeltaInfo = getDeltaInfo(monthlyTotals.monthlyIncome, previousTotals.monthlyIncome);
+  const expenseDeltaInfo = getDeltaInfo(monthlyTotals.monthlyExpense, previousTotals.monthlyExpense);
+  const heroTrendPositive = balanceDeltaInfo.positive;
+  const heroTrendText = balanceDeltaInfo.hasBase
+    ? `${balanceDeltaInfo.label} ${comparisonLabel.toLowerCase()}`
+    : balanceDeltaInfo.label;
   const highlightItems = [
     {
       icon: Trophy,
@@ -427,9 +452,19 @@ export function FechamentoMensalOverview({
               <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-white/68">
                 {hasCustomRange ? effectivePeriodLabel : "Resultado do mes"}
               </p>
-              <p className="font-mono text-[clamp(2.45rem,11vw,4.15rem)] font-extrabold leading-none tracking-tight text-white">
+              <p
+                className={cn(
+                  "font-mono text-[clamp(2.45rem,11vw,4.15rem)] font-extrabold leading-none tracking-tight",
+                  monthBalance >= 0 ? "text-white" : "text-[hsl(38_100%_72%)]",
+                )}
+              >
                 {formatSignedCurrency(monthBalance)}
               </p>
+              {monthBalance < 0 ? (
+                <Badge className="border-white/10 bg-white/14 text-[hsl(38_100%_78%)] shadow-none" variant="outline">
+                  Resultado negativo
+                </Badge>
+              ) : null}
               <p className="text-sm leading-6 text-white/76">
                 {hasCustomRange ? effectivePeriodLabel : `${currentMonthHeaderLabel} • fechamento consolidado do periodo`}
               </p>
@@ -454,10 +489,12 @@ export function FechamentoMensalOverview({
                         className={cn(
                           "w-full rounded-[14px]",
                           item.current
-                            ? "bg-[linear-gradient(180deg,hsl(40_100%_62%)_0%,hsl(36_100%_56%)_100%)]"
+                            ? item.value >= 0
+                              ? "bg-[linear-gradient(180deg,hsl(40_100%_62%)_0%,hsl(36_100%_56%)_100%)]"
+                              : "bg-[linear-gradient(180deg,hsl(358_92%_74%)_0%,hsl(358_75%_58%)_100%)]"
                             : item.value >= 0
-                              ? "bg-white/34"
-                              : "bg-white/18",
+                              ? "bg-white/60"
+                              : "bg-destructive/70",
                         )}
                         style={{ height: `${item.height}%` }}
                       />
@@ -477,14 +514,14 @@ export function FechamentoMensalOverview({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 lg:grid-cols-3">
           <SummaryStatCard
             detail={formatCount(monthlyTotals.incomeCount, "lancamento", "lancamentos")}
             icon={ArrowDownLeft}
             label="Entradas"
             tone="success"
             trendGood={incomeDelta >= 0}
-            trendText={formatDeltaPercent(monthlyTotals.monthlyIncome, previousTotals.monthlyIncome)}
+            trendText={incomeDeltaInfo.label}
             value={toCurrency(monthlyTotals.monthlyIncome)}
           />
           <SummaryStatCard
@@ -493,11 +530,11 @@ export function FechamentoMensalOverview({
             label="Despesas"
             tone="danger"
             trendGood={expenseDelta <= 0}
-            trendText={formatDeltaPercent(monthlyTotals.monthlyExpense, previousTotals.monthlyExpense)}
+            trendText={expenseDeltaInfo.label}
             value={toCurrency(monthlyTotals.monthlyExpense)}
           />
           <SummaryStatCard
-            className="col-span-2 lg:col-span-1"
+            className="min-[430px]:col-span-2 lg:col-span-1"
             detail={hasCustomRange ? `ate ${toDate(effectiveEnd)}` : `ate ${monthLabel}`}
             icon={Wallet}
             label="Saldo acumulado"
@@ -679,54 +716,52 @@ function SummaryStatCard({
         className,
       )}
     >
-      <CardContent className="p-4 sm:p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p
-              className={cn(
-                "text-[11px] font-bold uppercase tracking-[0.08em]",
-                tone === "success" && "text-primary/82",
-                tone === "danger" && "text-destructive/82",
-                tone === "neutral" && "text-foreground/58",
-              )}
-            >
-              {label}
-            </p>
-            <p
-              className={cn(
-                "mt-2 font-mono text-[clamp(1.4rem,5vw,2rem)] font-extrabold leading-none tracking-tight",
-                tone === "success" && "text-primary",
-                tone === "danger" && "text-destructive",
-                tone === "neutral" && "text-foreground",
-              )}
-            >
-              {value}
-            </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <p className="text-sm text-muted-foreground">{detail}</p>
-              {trendText ? (
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em]",
-                    trendGood ? "bg-primary/12 text-primary" : "bg-destructive/12 text-destructive",
-                  )}
-                >
-                  {trendGood ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                  {trendText}
-                </span>
-              ) : null}
-            </div>
-          </div>
+      <CardContent className="relative p-4 pr-14 sm:p-5 sm:pr-16">
+        <div
+          className={cn(
+            "icon-tile absolute right-4 top-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl sm:right-5 sm:top-5 sm:h-11 sm:w-11",
+            tone === "success" && "bg-white/72 text-primary",
+            tone === "danger" && "bg-white/78 text-destructive",
+            tone === "neutral" && "bg-white/80 text-foreground",
+          )}
+        >
+          <Icon className="h-4 w-4" />
+        </div>
 
-          <div
+        <div className="min-w-0">
+          <p
             className={cn(
-              "icon-tile flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
-              tone === "success" && "bg-white/72 text-primary",
-              tone === "danger" && "bg-white/78 text-destructive",
-              tone === "neutral" && "bg-white/80 text-foreground",
+              "text-[11px] font-bold uppercase tracking-[0.08em]",
+              tone === "success" && "text-primary/82",
+              tone === "danger" && "text-destructive/82",
+              tone === "neutral" && "text-foreground/58",
             )}
           >
-            <Icon className="h-4 w-4" />
+            {label}
+          </p>
+          <p
+            className={cn(
+              "mt-2 max-w-full whitespace-nowrap font-mono text-[clamp(1.05rem,4.1vw,1.75rem)] font-extrabold leading-none tracking-tight",
+              tone === "success" && "text-primary",
+              tone === "danger" && "text-destructive",
+              tone === "neutral" && "text-foreground",
+            )}
+          >
+            {value}
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <p className="text-sm text-muted-foreground">{detail}</p>
+            {trendText ? (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em]",
+                  trendGood ? "bg-primary/12 text-primary" : "bg-destructive/12 text-destructive",
+                )}
+              >
+                {trendGood ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                {trendText}
+              </span>
+            ) : null}
           </div>
         </div>
       </CardContent>

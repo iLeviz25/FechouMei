@@ -20,7 +20,7 @@ export function Logo({ className, size = "md", variant = "default" }: LogoProps)
     <div className={cn("flex items-center gap-2.5", className)}>
       <div
         className={cn(
-          "relative flex items-center justify-center bg-gradient-brand shadow-glow ring-1 ring-inset ring-white/15",
+          "relative flex items-center justify-center bg-gradient-brand shadow-elevated ring-1 ring-inset ring-white/15",
           config.mark,
           config.radius,
         )}

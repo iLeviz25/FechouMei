@@ -201,7 +201,7 @@ export function ObrigacoesChecklist({ items, monthKey }: ObrigacoesChecklistProp
           return (
             <button
               className={cn(
-                "flex w-full items-start gap-3 rounded-[24px] border px-4 py-4 text-left transition-all",
+                "flex w-full items-start gap-3 rounded-[24px] border px-4 py-4 text-left transition-[background-color,border-color,color,box-shadow,transform]",
                 item.done
                   ? "border-success/18 bg-[linear-gradient(180deg,hsl(152_54%_97%),hsl(152_30%_94%))] text-muted-foreground"
                   : "surface-panel-muted text-foreground hover:-translate-y-0.5 hover:border-primary/20 hover:bg-primary-soft/20",

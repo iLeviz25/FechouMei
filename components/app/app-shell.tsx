@@ -6,14 +6,15 @@ import type { Profile } from "@/types/database";
 type AppShellProps = {
   profile: Profile | null;
   children: React.ReactNode;
+  isAdmin?: boolean;
 };
 
-export function AppShell({ profile, children }: AppShellProps) {
+export function AppShell({ profile, children, isAdmin = false }: AppShellProps) {
   return (
     <ProfileProvider profile={profile}>
       <div className="min-h-screen overflow-x-hidden bg-gradient-surface">
         <RealtimeAppRefresh userId={profile?.id ?? null} />
-        <AppSidebar profile={profile} />
+        <AppSidebar isAdmin={isAdmin} profile={profile} />
         <main className="min-h-screen px-4 pb-32 pt-[5rem] sm:px-6 md:pb-10 md:pl-[296px] md:pt-7 lg:px-8 lg:pl-[304px]">
           <div className="mx-auto w-full max-w-[1240px]">{children}</div>
         </main>

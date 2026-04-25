@@ -8,7 +8,8 @@ export async function middleware(request: NextRequest) {
   });
 
   const pathname = request.nextUrl.pathname;
-  const isProtectedRoute = pathname.startsWith("/app") || pathname.startsWith("/onboarding");
+  const isAdminRoute = pathname.startsWith("/admin");
+  const isProtectedRoute = pathname.startsWith("/app") || pathname.startsWith("/onboarding") || isAdminRoute;
 
   if (!isProtectedRoute) {
     return response;
@@ -44,19 +45,35 @@ export async function middleware(request: NextRequest) {
   });
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
-  if (isProtectedRoute && !session) {
+  if (userError || !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirectedFrom", pathname);
     return NextResponse.redirect(url);
   }
 
+  if (isAdminRoute) {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError || profile?.role !== "admin") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/app/dashboard";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+  }
+
   return response;
 }
 
 export const config = {
-  matcher: ["/app/:path*", "/onboarding"],
+  matcher: ["/app/:path*", "/onboarding", "/admin/:path*"],
 };

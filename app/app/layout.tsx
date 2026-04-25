@@ -21,5 +21,5 @@ export default async function AuthenticatedLayout({
     redirect("/onboarding");
   }
 
-  return <AppShell profile={profile}>{children}</AppShell>;
+  return <AppShell isAdmin={profile.role === "admin"} profile={profile}>{children}</AppShell>;
 }

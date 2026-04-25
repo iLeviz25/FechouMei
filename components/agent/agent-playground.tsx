@@ -127,7 +127,7 @@ export function AgentPlayground({
     <Card className="overflow-hidden rounded-[30px]">
       <CardContent className="p-0">
         <div className="surface-panel flex items-center gap-3 border-b border-border/70 px-4 py-4 sm:px-5">
-          <div className="relative flex h-11 w-11 items-center justify-center rounded-full bg-gradient-brand text-primary-foreground shadow-glow">
+          <div className="relative flex h-11 w-11 items-center justify-center rounded-full bg-gradient-brand text-primary-foreground shadow-elevated">
             <Bot className="h-5 w-5" />
             <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-success ring-2 ring-card" />
           </div>
@@ -234,7 +234,7 @@ export function AgentPlayground({
 
         <form className="flex items-end gap-2 border-t border-border/70 bg-muted/10 px-4 py-4 sm:px-5" onSubmit={handleSubmit}>
           <textarea
-            className="surface-panel-ghost min-h-[52px] max-h-32 flex-1 resize-none rounded-[20px] px-4 py-3 text-sm leading-6 shadow-sm outline-none transition-all placeholder:text-muted-foreground focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
+                className="surface-panel-ghost min-h-[52px] max-h-32 flex-1 resize-none rounded-[20px] px-4 py-3 text-sm leading-6 shadow-sm outline-none transition-[background-color,border-color,box-shadow,color] placeholder:text-muted-foreground focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isPending}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={(event) => {

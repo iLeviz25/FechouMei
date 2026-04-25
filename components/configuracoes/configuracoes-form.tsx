@@ -773,7 +773,7 @@ function ActionCard({
   return (
     <button
       className={cn(
-        "flex w-full items-start gap-3 rounded-[28px] border p-4 text-left transition-all sm:p-5",
+        "flex w-full items-start gap-3 rounded-[28px] border p-4 text-left transition-[background-color,border-color,box-shadow,transform] sm:p-5",
         tone === "danger"
           ? "border-destructive/20 bg-destructive/5 hover:border-destructive/30"
           : "surface-panel hover:-translate-y-0.5 hover:border-primary/20 hover:bg-primary-soft/20",
@@ -831,7 +831,7 @@ function ResponsiveOverlay({
   return (
     <div
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-end bg-neutral-950/45 p-3 backdrop-blur-[2px] sm:items-center sm:justify-center sm:p-4"
+            className="fixed inset-0 z-50 flex items-end bg-neutral-950/45 p-3 sm:items-center sm:justify-center sm:p-4"
       onClick={() => {
         if (!closeDisabled) {
           onClose();
@@ -967,9 +967,9 @@ function OptionGroup({
           <button
             aria-pressed={selected}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-bold transition-all",
+              "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-bold transition-[background-color,border-color,color,box-shadow]",
               selected
-                ? "border-primary bg-primary text-primary-foreground shadow-glow"
+                ? "border-primary bg-primary text-primary-foreground shadow-elevated"
                 : "surface-panel-ghost text-muted-foreground hover:border-primary/30 hover:text-foreground",
             )}
             key={option.value}

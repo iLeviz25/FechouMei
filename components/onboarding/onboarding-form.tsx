@@ -292,7 +292,7 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
                 </div>
                 <div className="h-2 overflow-hidden rounded-md bg-neutral-100">
                   <div
-                    className="h-full rounded-md bg-emerald-600 transition-all duration-300"
+            className="h-full rounded-md bg-emerald-600 transition-[width] duration-300"
                     style={{ width: `${progressValue}%` }}
                   />
                 </div>

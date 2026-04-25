@@ -175,7 +175,7 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
               <button
                 aria-pressed={active}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-[24px] border px-4 py-4 text-left transition-all",
+                  "flex w-full items-center gap-3 rounded-[24px] border px-4 py-4 text-left transition-[background-color,border-color,color,box-shadow]",
                   active
                     ? "border-primary/18 bg-[linear-gradient(180deg,hsl(152_56%_96%),hsl(152_30%_93%))]"
                     : "surface-panel-muted hover:border-primary/20 hover:bg-primary-soft/20",
