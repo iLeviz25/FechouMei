@@ -16,6 +16,7 @@ import { DashboardGreeting } from "@/components/dashboard/dashboard-greeting";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { getMeiLimitInfo, MEI_ANNUAL_LIMIT } from "@/lib/mei-limit";
 import { getMovementVisualTone } from "@/lib/movement-visuals";
 import { cn } from "@/lib/utils";
 import type { Movimentacao } from "@/types/database";
@@ -38,7 +39,6 @@ type DashboardOverviewProps = {
 };
 
 const DAS_DUE_DAY = 20;
-const MEI_LIMIT = 81000;
 const DASHBOARD_CHECKLIST_ITEMS = 6;
 
 const compactCurrencyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -184,51 +184,6 @@ function getDashboardStatus({
   return { label: "Tudo em dia", tone: "success" } as const;
 }
 
-function getMeiLimitStatus(usage: number) {
-  if (usage > 1) {
-    return {
-      badgeClass: "bg-destructive/18 text-primary-foreground",
-      label: "Limite ultrapassado",
-      progressClass: "bg-[linear-gradient(90deg,hsl(358_85%_62%)_0%,hsl(358_75%_50%)_100%)]",
-      tone: "danger",
-    } as const;
-  }
-
-  if (usage >= 0.9) {
-    return {
-      badgeClass: "bg-[hsl(28_92%_52%/0.22)] text-primary-foreground",
-      label: "Quase no limite",
-      progressClass: "bg-[linear-gradient(90deg,hsl(38_95%_55%)_0%,hsl(28_92%_52%)_100%)]",
-      tone: "orange",
-    } as const;
-  }
-
-  if (usage >= 0.75) {
-    return {
-      badgeClass: "bg-[hsl(28_92%_52%/0.18)] text-primary-foreground",
-      label: "Cuidado",
-      progressClass: "bg-[linear-gradient(90deg,hsl(40_96%_58%)_0%,hsl(28_92%_52%)_100%)]",
-      tone: "orange",
-    } as const;
-  }
-
-  if (usage > 0.5) {
-    return {
-      badgeClass: "bg-secondary/20 text-primary-foreground",
-      label: "Atencao",
-      progressClass: "bg-[linear-gradient(90deg,hsl(50_96%_58%)_0%,hsl(38_95%_55%)_100%)]",
-      tone: "warning",
-    } as const;
-  }
-
-  return {
-    badgeClass: "bg-success/16 text-primary-foreground",
-    label: "Tranquilo",
-    progressClass: "bg-[linear-gradient(90deg,hsl(158_72%_45%)_0%,hsl(152_70%_58%)_100%)]",
-    tone: "success",
-  } as const;
-}
-
 export function DashboardOverview({
   annualIncome,
   checklistDoneCount,
@@ -241,11 +196,12 @@ export function DashboardOverview({
   recentMovements,
 }: DashboardOverviewProps) {
   const monthBalance = monthlyIncome - monthlyExpense;
-  const limitUsage = annualIncome / MEI_LIMIT;
-  const limitUsageDisplayPercent = Math.max(limitUsage * 100, 0);
-  const limitUsagePercent = Math.min(limitUsageDisplayPercent, 100);
-  const remainingLimit = Math.max(MEI_LIMIT - annualIncome, 0);
-  const exceededLimit = Math.max(annualIncome - MEI_LIMIT, 0);
+  const limitInfo = getMeiLimitInfo(annualIncome);
+  const limitUsage = limitInfo.usage;
+  const limitUsageDisplayPercent = limitInfo.usageDisplayPercent;
+  const limitUsagePercent = limitInfo.usagePercent;
+  const remainingLimit = limitInfo.remainingLimit;
+  const exceededLimit = limitInfo.exceededLimit;
   const today = new Date();
   const dasLate = !dasDone && today.getDate() > DAS_DUE_DAY;
   const currentYear = today.getFullYear();
@@ -257,7 +213,7 @@ export function DashboardOverview({
     limitUsage,
     monthBalance,
   });
-  const limitStatus = getMeiLimitStatus(limitUsage);
+  const limitStatus = limitInfo.status;
 
   const alerts = [
     {
@@ -437,7 +393,7 @@ export function DashboardOverview({
                   {toCurrency(annualIncome)}
                 </p>
                 <p className="text-xs text-primary-foreground/72 sm:text-sm">
-                  de {toCurrency(MEI_LIMIT)} no teto anual
+                  de {toCurrency(MEI_ANNUAL_LIMIT)} no teto anual
                 </p>
               </div>
 

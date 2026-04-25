@@ -205,3 +205,50 @@
     @apply space-y-5 pb-8 sm:space-y-6;
   }
 }
+
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  .print-report-root {
+    color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print-break-inside-avoid {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print-report-root,
+  .print-report-root * {
+    max-width: 100%;
+    overflow: visible !important;
+  }
+
+  .report-print-table {
+    table-layout: fixed;
+    width: 100% !important;
+  }
+
+  .report-print-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .report-print-table th,
+  .report-print-table td {
+    overflow-wrap: anywhere;
+    vertical-align: top;
+  }
+
+  .report-print-table .report-print-value {
+    overflow-wrap: normal;
+    white-space: nowrap;
+  }
+}

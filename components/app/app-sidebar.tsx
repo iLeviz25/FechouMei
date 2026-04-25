@@ -7,6 +7,7 @@ import {
   BellRing,
   ChevronRight,
   ClipboardCheck,
+  FileText,
   LayoutDashboard,
   LogOut,
   MessageCircle,
@@ -34,6 +35,7 @@ const navItems = [
   { href: "/app/movimentacoes", label: "Movimentacoes", shortLabel: "Mov.", icon: Receipt },
   { href: "/app/importar", label: "Importar dados", shortLabel: "Import.", icon: Upload },
   { href: "/app/fechamento-mensal", label: "Fechamento mensal", shortLabel: "Fechar", icon: ClipboardCheck },
+  { href: "/app/relatorios", label: "Relatorios", shortLabel: "Relat.", icon: FileText },
   { href: "/app/obrigacoes", label: "Obrigacoes", shortLabel: "Obrig.", icon: BellRing },
   { href: "/app/agente", label: "Helena", shortLabel: "Helena", icon: MessageCircle },
   { href: "/app/configuracoes", label: "Configuracoes", shortLabel: "Conta", icon: Settings },
@@ -99,14 +101,14 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
         <div
           aria-label="Carregando rota"
           aria-valuetext="Carregando"
-          className="pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 bg-transparent"
+          className="pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 bg-transparent print:hidden"
           role="progressbar"
         >
           <div className="h-full w-full origin-left bg-primary/80" />
         </div>
       ) : null}
 
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-[hsl(var(--sidebar-border))] bg-[hsl(var(--sidebar-background))] lg:flex lg:flex-col">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-[hsl(var(--sidebar-border))] bg-[hsl(var(--sidebar-background))] print:hidden lg:flex lg:flex-col">
         <div className="flex h-full flex-col px-3 pb-4 pt-4">
           <div className="border-b border-[hsl(var(--sidebar-border))] px-2 pb-5">
             <Link
@@ -207,7 +209,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
         </div>
       </aside>
 
-      <header className="fixed inset-x-0 top-0 z-40 border-b border-border/70 bg-background/98 px-4 py-3.5 shadow-sm lg:hidden">
+      <header className="fixed inset-x-0 top-0 z-40 border-b border-border/70 bg-background/98 px-4 py-3.5 shadow-sm print:hidden lg:hidden">
         <div className="flex items-center justify-between gap-3">
           <Link
             className="flex items-center gap-2"
@@ -251,7 +253,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
         </div>
       </header>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-7 border-t border-border/80 bg-background px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_22px_rgba(15,23,42,0.11)] lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-8 border-t border-border/80 bg-background px-1 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_22px_rgba(15,23,42,0.11)] print:hidden lg:hidden">
         {navItems.map((item) => {
           const isActive = visiblePathname === item.href;
           const Icon = item.icon;
@@ -260,7 +262,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
             <Link
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "relative flex min-h-[64px] min-w-0 flex-col items-center justify-center gap-1 rounded-[18px] px-0.5 text-[9px] font-bold transition-[background-color,color,box-shadow] min-[390px]:text-[10px]",
+                "relative flex min-h-[64px] min-w-0 flex-col items-center justify-center gap-1 rounded-[16px] px-0.5 text-[8px] font-bold transition-[background-color,color,box-shadow] min-[390px]:text-[9px]",
                 isActive
                   ? "bg-card text-primary shadow-sm"
                   : "text-foreground/72 hover:bg-muted/70 hover:text-foreground",

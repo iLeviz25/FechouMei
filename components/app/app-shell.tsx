@@ -14,11 +14,11 @@ type AppShellProps = {
 export function AppShell({ profile, children, isAdmin = false, notifications = [] }: AppShellProps) {
   return (
     <ProfileProvider profile={profile}>
-      <div className="min-h-screen overflow-x-hidden bg-gradient-surface">
+      <div className="min-h-screen overflow-x-hidden bg-gradient-surface print:bg-white">
         <RealtimeAppRefresh userId={profile?.id ?? null} />
         <AppSidebar isAdmin={isAdmin} notifications={notifications} profile={profile} />
-        <main className="min-h-screen px-4 pb-32 pt-[5rem] sm:px-6 md:pb-10 md:pl-[296px] md:pt-7 lg:px-8 lg:pl-[304px]">
-          <div className="mx-auto w-full max-w-[1240px]">{children}</div>
+        <main className="min-h-screen px-4 pb-32 pt-[5rem] sm:px-6 md:pb-10 md:pl-[296px] md:pt-7 lg:px-8 lg:pl-[304px] print:min-h-0 print:p-0">
+          <div className="mx-auto w-full max-w-[1240px] print:max-w-none">{children}</div>
         </main>
       </div>
     </ProfileProvider>
