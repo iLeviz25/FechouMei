@@ -9,6 +9,7 @@ type RealtimeAppRefreshProps = {
 };
 
 const refreshDelayMs = 250;
+const focusRefreshCooldownMs = 3000;
 const realtimeTables = [
   { filterColumn: "user_id", table: "movimentacoes" },
   { filterColumn: "user_id", table: "obrigacoes_checklist" },
@@ -18,6 +19,7 @@ const realtimeTables = [
 
 export function RealtimeAppRefresh({ userId }: RealtimeAppRefreshProps) {
   const router = useRouter();
+  const lastFocusRefreshRef = useRef(0);
   const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -62,11 +64,23 @@ export function RealtimeAppRefresh({ userId }: RealtimeAppRefreshProps) {
 
     const refreshWhenVisible = () => {
       if (document.visibilityState === "visible") {
-        scheduleRefresh();
+        scheduleFocusRefresh();
       }
     };
 
-    window.addEventListener("focus", scheduleRefresh);
+    const scheduleFocusRefresh = () => {
+      const now = Date.now();
+
+      if (now - lastFocusRefreshRef.current < focusRefreshCooldownMs) {
+        return;
+      }
+
+      lastFocusRefreshRef.current = now;
+      scheduleRefresh();
+    };
+
+    window.addEventListener("focus", scheduleFocusRefresh);
+    window.addEventListener("pageshow", scheduleFocusRefresh);
     document.addEventListener("visibilitychange", refreshWhenVisible);
 
     return () => {
@@ -74,7 +88,8 @@ export function RealtimeAppRefresh({ userId }: RealtimeAppRefreshProps) {
         clearTimeout(refreshTimeoutRef.current);
       }
 
-      window.removeEventListener("focus", scheduleRefresh);
+      window.removeEventListener("focus", scheduleFocusRefresh);
+      window.removeEventListener("pageshow", scheduleFocusRefresh);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
       channels.forEach((channel) => {
         void supabase.removeChannel(channel);

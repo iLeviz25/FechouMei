@@ -19,12 +19,13 @@ type SemanticAnalysis = {
 
 const directIncomePatterns: SemanticPattern[] = [
   { pattern: /\b(?:entrou|recebi|caiu|ganhei|vendi|veio|faturei|faturou)\b/, weight: 5 },
+  { pattern: /\b(?:credito|pix recebido|transferencia recebida|cliente pagou|reembolso recebido)\b/, weight: 5 },
   { pattern: /\b(?:recebimento|receita)\b/, weight: 4 },
 ];
 
 const directExpensePatterns: SemanticPattern[] = [
-  { pattern: /\b(?:saiu|paguei|gastei|comprei|desembolsei|descontou|custou)\b/, weight: 5 },
-  { pattern: /\b(?:boleto|despesa|gasto)\b/, weight: 4 },
+  { pattern: /\b(?:saiu|paguei|pagar|pago|gastei|comprei|compra|desembolsei|descontou|custou)\b/, weight: 5 },
+  { pattern: /\b(?:debito|boleto|despesa|gasto|pagamento)\b/, weight: 4 },
 ];
 
 const genericActionPatterns: SemanticPattern[] = [
@@ -53,7 +54,7 @@ const expenseContextPatterns: SemanticPattern[] = [
   { pattern: /\b(?:alimentacao|comida|refeicao|almoco|jantar|lanche|hamburguer|hamburger|pizza|pastel|ifood|restaurante|padaria|mercado|carne|melancia|fruta|cafe)\b/, weight: 3 },
   { pattern: /\b(?:imposto|taxa|tributo|das|mei)\b/, weight: 3 },
   { pattern: /\b(?:ferramenta|software|assinatura|sistema|licenca|prego|martelo|furadeira|chave de fenda|parafuso|alicate)\b/, weight: 3 },
-  { pattern: /\b(?:aluguel|luz|agua)\b/, weight: 3 },
+  { pattern: /\b(?:aluguel|luz|agua|banco|manutencao)\b/, weight: 3 },
 ];
 
 export function normalizeSemanticText(value: string) {
@@ -164,7 +165,7 @@ function scorePatterns(normalized: string, patterns: SemanticPattern[]) {
 }
 
 function hasMoneySignal(normalized: string) {
-  return /\b(?:r\$|\d+(?:[,.]\d{1,2})?|real|reais|conto|contos|mil|cem|cento|duzentos|trezentos|quatrocentos|quinhentos|seiscentos|setecentos|oitocentos|novecentos)\b/.test(
+  return /\b(?:r\$|brl|\d+(?:[,.]\d{1,2})?|real|reais|conto|contos|mil|cem|cento|duzentos|trezentos|quatrocentos|quinhentos|seiscentos|setecentos|oitocentos|novecentos)\b/.test(
     normalized,
   );
 }

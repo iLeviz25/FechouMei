@@ -1,6 +1,7 @@
 import type {
   WhatsAppAudioMessage,
   WhatsAppChannelConfig,
+  WhatsAppDocumentMessage,
   WhatsAppNormalizedInboundMessage,
 } from "@/lib/channels/whatsapp/types";
 import { getWhatsAppAssistantNumber } from "@/lib/channels/whatsapp/activation";
@@ -125,6 +126,14 @@ export function normalizeEvolutionWebhookPayload(payload: unknown): WhatsAppNorm
       rawMessage,
       remoteJid,
     }),
+    document: extractInboundDocument({
+      externalMessageId,
+      messageType,
+      rawData,
+      rawKey,
+      rawMessage,
+      remoteJid,
+    }),
     event: asString(root?.event)?.toLowerCase() ?? null,
     externalMessageId,
     instance:
@@ -173,6 +182,51 @@ export async function sendWhatsAppTextReply({
       const errorText = await safeReadText(response);
       throw new Error(`Evolution sendText falhou com status ${response.status}: ${errorText}`);
     }
+  }
+}
+
+export async function sendWhatsAppDocument({
+  caption = "",
+  config,
+  content,
+  fileName,
+  mimeType,
+  remoteNumber,
+}: {
+  caption?: string;
+  config: WhatsAppChannelConfig;
+  content: Buffer | Uint8Array | string;
+  fileName: string;
+  mimeType: string;
+  remoteNumber: string;
+}) {
+  const media = typeof content === "string"
+    ? Buffer.from(content, "utf8").toString("base64")
+    : Buffer.from(content).toString("base64");
+  const body = stringifyAsciiSafeJson({
+    caption,
+    fileName,
+    media,
+    mediatype: "document",
+    mimetype: mimeType,
+    number: remoteNumber,
+  });
+
+  const response = await fetch(`${config.evolutionApiUrl}/message/sendMedia/${config.instanceName}`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Accept-Charset": "utf-8",
+      "Content-Type": jsonUtf8ContentType,
+      apikey: config.evolutionApiKey,
+    },
+    body,
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const errorText = await safeReadText(response);
+    throw new Error(`Evolution sendMedia falhou com status ${response.status}: ${errorText}`);
   }
 }
 
@@ -277,6 +331,20 @@ function extractInboundText(message: Record<string, unknown> | null) {
     return extendedText.trim();
   }
 
+  const documentText = asString(asRecord(message.documentMessage)?.caption);
+
+  if (documentText) {
+    return documentText.trim();
+  }
+
+  const documentWithCaptionText = asString(
+    asRecord(asRecord(asRecord(message.documentWithCaptionMessage)?.message)?.documentMessage)?.caption,
+  );
+
+  if (documentWithCaptionText) {
+    return documentWithCaptionText.trim();
+  }
+
   return null;
 }
 
@@ -295,6 +363,14 @@ function inferMessageType(message: Record<string, unknown> | null) {
 
   if (asRecord(message.audioMessage)) {
     return "audioMessage";
+  }
+
+  if (asRecord(message.documentMessage)) {
+    return "documentMessage";
+  }
+
+  if (asRecord(message.documentWithCaptionMessage)) {
+    return "documentWithCaptionMessage";
   }
 
   const keys = Object.keys(message);
@@ -350,6 +426,67 @@ function extractInboundAudio({
       null,
     sizeBytes:
       asNumber(audioMessage?.fileLength) ??
+      asNumber(rawData?.fileLength) ??
+      asNumber(rawData?.size) ??
+      null,
+  };
+}
+
+function extractInboundDocument({
+  externalMessageId,
+  messageType,
+  rawData,
+  rawKey,
+  rawMessage,
+  remoteJid,
+}: {
+  externalMessageId: string | null;
+  messageType: string | null;
+  rawData: Record<string, unknown> | null;
+  rawKey: Record<string, unknown> | null;
+  rawMessage: Record<string, unknown> | null;
+  remoteJid: string | null;
+}): WhatsAppDocumentMessage | null {
+  const documentMessage =
+    asRecord(rawMessage?.documentMessage) ??
+    asRecord(asRecord(asRecord(rawMessage?.documentWithCaptionMessage)?.message)?.documentMessage);
+  const isDocument =
+    messageType === "documentMessage" ||
+    messageType === "documentWithCaptionMessage" ||
+    Boolean(documentMessage);
+
+  if (!isDocument || !externalMessageId || !remoteJid) {
+    return null;
+  }
+
+  return {
+    base64:
+      asString(rawData?.base64) ??
+      asString(rawData?.mediaBase64) ??
+      asString(documentMessage?.base64) ??
+      null,
+    downloadPayload: {
+      key: rawKey ?? { fromMe: false, id: externalMessageId, remoteJid },
+      message: rawMessage ?? undefined,
+      messageType: messageType ?? "documentMessage",
+    },
+    externalMessageId,
+    fileName:
+      asString(documentMessage?.fileName) ??
+      asString(documentMessage?.filename) ??
+      asString(rawData?.fileName) ??
+      asString(rawData?.filename) ??
+      null,
+    mimeType:
+      asString(documentMessage?.mimetype) ??
+      asString(documentMessage?.mimeType) ??
+      asString(rawData?.mimeType) ??
+      asString(rawData?.mimetype) ??
+      null,
+    remoteJid,
+    sizeBytes:
+      asNumber(documentMessage?.fileLength) ??
+      asNumber(documentMessage?.fileSize) ??
       asNumber(rawData?.fileLength) ??
       asNumber(rawData?.size) ??
       null,

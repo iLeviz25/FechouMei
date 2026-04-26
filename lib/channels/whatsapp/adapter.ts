@@ -14,6 +14,8 @@ import {
 import {
   WhatsAppMediaDownloadError,
   WhatsAppUnsupportedAudioError,
+  WhatsAppUnsupportedDocumentError,
+  downloadWhatsAppDocument,
   downloadWhatsAppAudio,
 } from "@/lib/channels/whatsapp/media";
 import {
@@ -29,9 +31,21 @@ import {
   isGroupJid,
   markWhatsAppMessageAsRead,
   normalizeEvolutionWebhookPayload,
+  sendWhatsAppDocument,
   sendWhatsAppTypingIndicator,
   sendWhatsAppTextReply,
 } from "@/lib/channels/whatsapp/evolution";
+import {
+  buildTransactionCsvPeriod,
+  getTransactionCsvExport,
+  withCsvBom,
+} from "@/lib/export/transactions-csv";
+import { buildAppUrl } from "@/lib/app-url";
+import {
+  cancelWhatsAppImportSession,
+  confirmWhatsAppImportSession,
+  createImportReviewSessionFromFile,
+} from "@/lib/import/sessions";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 
 const genericFallbackReply = "Tive uma instabilidade agora para processar isso. Tente novamente em instantes.";
@@ -297,6 +311,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
   trace.mark("webhook_received", {
     event: normalized.event,
     hasAudio: Boolean(normalized.audio),
+    hasDocument: Boolean(normalized.document),
   });
 
   let presenceController: WhatsAppPresenceController | null = null;
@@ -466,6 +481,160 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
     remoteNumber,
     trace,
   });
+
+  if (normalized.document) {
+    try {
+      trace.mark("media_download_started", {
+        documentFileName: normalized.document.fileName,
+        documentMimeType: normalized.document.mimeType,
+      });
+      const downloadedDocument = await downloadWhatsAppDocument({
+        config,
+        document: normalized.document,
+      });
+      trace.mark("media_download_finished", {
+        bytes: downloadedDocument.buffer.length,
+        fileType: downloadedDocument.fileType,
+        mimeType: downloadedDocument.mimeType,
+      });
+
+      trace.mark("parse_started", {
+        source: "whatsapp_document",
+      });
+      const { parseResult, session } = await createImportReviewSessionFromFile({
+        buffer: downloadedDocument.buffer,
+        channelRemoteId: normalized.remoteJid,
+        fileName: downloadedDocument.fileName,
+        fileType: downloadedDocument.mimeType,
+        source: "whatsapp",
+        supabase: admin,
+        userId: resolvedUserId,
+      });
+      trace.mark("parse_finished", {
+        importableCount: parseResult.summary.importableCount,
+        totalRows: parseResult.summary.totalRows,
+      });
+
+      const reviewUrl = buildAppUrl(`/app/importar/sessao/${session.id}`);
+      await replyAndFinishWhatsAppTurn({
+        config,
+        externalMessageId,
+        instance: normalized.instance,
+        messageText: normalized.text,
+        presenceController,
+        reason: "whatsapp_import_session_created",
+        remoteId: normalized.remoteJid,
+        remoteNumber,
+        reply: buildImportSessionReply(parseResult.summary, reviewUrl),
+        status: "processed",
+        summary: `Arquivo recebido pelo WhatsApp e sessao de revisao criada: ${session.id}.`,
+        trace,
+        userId: resolvedUserId,
+      });
+
+      return {
+        body: { ok: true, status: "import_session_created" },
+        status: 200,
+      };
+    } catch (error) {
+      const unsupported = error instanceof WhatsAppUnsupportedDocumentError;
+      const reply = unsupported
+        ? "Por enquanto eu consigo importar apenas arquivos CSV ou XLSX. Envie uma planilha nesses formatos para eu preparar a revisao."
+        : "Recebi seu arquivo, mas nao consegui preparar a revisao agora. Tente enviar novamente em instantes.";
+
+      console.warn("[FECHOUMEI_WHATSAPP_IMPORT_FILE_WARNING]", {
+        error: summarizeError(error),
+        messageId: externalMessageId,
+        provider: getEvolutionProviderName(),
+        unsupported,
+      });
+
+      await replyAndFinishWhatsAppTurn({
+        config,
+        externalMessageId,
+        instance: normalized.instance,
+        messageText: normalized.text,
+        presenceController,
+        reason: unsupported ? "unsupported_import_document" : "import_document_failed",
+        remoteId: normalized.remoteJid,
+        remoteNumber,
+        reply,
+        status: unsupported ? "discarded" : "failed",
+        summary: unsupported
+          ? "Arquivo inbound descartado por formato ou tamanho nao suportado."
+          : "Falha ao preparar sessao de revisao para arquivo inbound.",
+        trace,
+        userId: resolvedUserId,
+      });
+
+      return {
+        body: { ok: true, status: unsupported ? "discarded" : "failed" },
+        status: 200,
+      };
+    }
+  }
+
+  const exportTextReply = await handleWhatsAppExportTextIntent({
+    config,
+    messageText: normalized.text,
+    remoteNumber,
+    supabase: admin,
+    userId: resolvedUserId,
+  });
+
+  if (exportTextReply) {
+    await replyAndFinishWhatsAppTurn({
+      config,
+      externalMessageId,
+      instance: normalized.instance,
+      messageText: normalized.text,
+      presenceController,
+      reason: exportTextReply.reason,
+      remoteId: normalized.remoteJid,
+      remoteNumber,
+      reply: exportTextReply.reply,
+      status: exportTextReply.status,
+      summary: exportTextReply.summary,
+      trace,
+      userId: resolvedUserId,
+    });
+
+    return {
+      body: { ok: true, status: exportTextReply.reason },
+      status: 200,
+    };
+  }
+
+  const importTextReply = await handleWhatsAppImportTextIntent({
+    messageText: normalized.text,
+    remoteId: normalized.remoteJid,
+    supabase: admin,
+    userId: resolvedUserId,
+  });
+
+  if (importTextReply) {
+    await replyAndFinishWhatsAppTurn({
+      config,
+      externalMessageId,
+      instance: normalized.instance,
+      messageText: normalized.text,
+      presenceController,
+      reason: importTextReply.reason,
+      remoteId: normalized.remoteJid,
+      remoteNumber,
+      reply: importTextReply.reply,
+      status: importTextReply.status,
+      summary: importTextReply.summary,
+      trace,
+      userId: resolvedUserId,
+    });
+
+    return {
+      body: { ok: true, status: importTextReply.reason },
+      status: 200,
+    };
+  }
+
   const persistenceContext = {
     channel: "whatsapp" as const,
     supabase: admin,
@@ -863,6 +1032,16 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
 }
 
 function getInboundReceivedSummary(normalized: ReturnType<typeof normalizeEvolutionWebhookPayload>) {
+  if (normalized.document) {
+    const metadata = [
+      normalized.document.fileName ? `arquivo=${normalized.document.fileName}` : null,
+      normalized.document.mimeType ? `mime=${normalized.document.mimeType}` : null,
+      typeof normalized.document.sizeBytes === "number" ? `tamanho=${normalized.document.sizeBytes}` : null,
+    ].filter(Boolean);
+
+    return `Evento inbound de arquivo recebido pelo canal local do WhatsApp${metadata.length > 0 ? ` (${metadata.join(", ")})` : ""}.`;
+  }
+
   if (!normalized.audio) {
     return "Evento inbound de texto recebido pelo canal local do WhatsApp.";
   }
@@ -874,6 +1053,497 @@ function getInboundReceivedSummary(normalized: ReturnType<typeof normalizeEvolut
   ].filter(Boolean);
 
   return `Evento inbound de audio recebido pelo canal local do WhatsApp${metadata.length > 0 ? ` (${metadata.join(", ")})` : ""}.`;
+}
+
+async function handleWhatsAppExportTextIntent({
+  config,
+  messageText,
+  remoteNumber,
+  supabase,
+  userId,
+}: {
+  config: ReturnType<typeof getWhatsAppChannelConfig>;
+  messageText?: string | null;
+  remoteNumber: string;
+  supabase: ReturnType<typeof createServiceRoleClient>;
+  userId: string;
+}): Promise<{
+  reason: string;
+  reply: string;
+  status: "processed" | "discarded" | "failed";
+  summary: string;
+} | null> {
+  const intent = getWhatsAppExportIntent(messageText);
+
+  if (!intent) {
+    return null;
+  }
+
+  if (intent.kind === "unsupported_pdf") {
+    return {
+      reason: "whatsapp_export_pdf_requested",
+      reply: "Por enquanto consigo enviar CSV pelo WhatsApp. O PDF ainda precisa ser gerado pelo app em Relatorios.",
+      status: "processed",
+      summary: "Usuario solicitou exportacao em PDF pelo WhatsApp; formato ainda nao suportado.",
+    };
+  }
+
+  if (intent.kind === "unsupported_xlsx") {
+    return {
+      reason: "whatsapp_export_xlsx_requested",
+      reply: "Por enquanto envio CSV pelo WhatsApp. Voce pode abrir esse arquivo no Excel ou Google Sheets.",
+      status: "processed",
+      summary: "Usuario solicitou exportacao em XLSX pelo WhatsApp; formato ainda nao suportado.",
+    };
+  }
+
+  try {
+    const exportResult = await getTransactionCsvExport({
+      period: intent.period,
+      supabase,
+      typeFilter: intent.typeFilter,
+      userId,
+    });
+    const periodLabel = formatPeriodLabel(intent.period);
+    const filterLabel = getExportTypeFilterLabel(intent.typeFilter);
+
+    if (exportResult.movements.length === 0) {
+      return {
+        reason: "whatsapp_export_empty",
+        reply: `Nao encontrei movimentacoes${filterLabel} em ${periodLabel} para exportar.`,
+        status: "processed",
+        summary: "Pedido de exportacao pelo WhatsApp sem movimentacoes no periodo.",
+      };
+    }
+
+    await sendWhatsAppDocument({
+      caption: `CSV FechouMEI - ${periodLabel}`,
+      config,
+      content: Buffer.from(withCsvBom(exportResult.csv), "utf8"),
+      fileName: exportResult.fileName,
+      mimeType: "text/csv",
+      remoteNumber,
+    });
+
+    return {
+      reason: "whatsapp_export_csv_sent",
+      reply: [
+        "Pronto.",
+        `Enviei o CSV com ${exportResult.movements.length} movimentacao${exportResult.movements.length === 1 ? "" : "es"}${filterLabel} de ${periodLabel}.`,
+        intent.defaultedToCurrentMonth ? "Usei o mes atual como periodo padrao." : null,
+      ].filter(Boolean).join("\n"),
+      status: "processed",
+      summary: `CSV de movimentacoes exportado pelo WhatsApp (${exportResult.movements.length} linhas).`,
+    };
+  } catch (error) {
+    console.warn("[FECHOUMEI_WHATSAPP_EXPORT_WARNING]", {
+      error: summarizeError(error),
+      provider: getEvolutionProviderName(),
+    });
+
+    return {
+      reason: "whatsapp_export_failed",
+      reply: "Tive um problema para gerar o arquivo agora. Tente novamente em instantes.",
+      status: "failed",
+      summary: "Falha ao exportar CSV de movimentacoes pelo WhatsApp.",
+    };
+  }
+}
+
+async function handleWhatsAppImportTextIntent({
+  messageText,
+  remoteId,
+  supabase,
+  userId,
+}: {
+  messageText?: string | null;
+  remoteId?: string | null;
+  supabase: ReturnType<typeof createServiceRoleClient>;
+  userId: string;
+}): Promise<{
+  reason: string;
+  reply: string;
+  status: "processed" | "discarded" | "failed";
+  summary: string;
+} | null> {
+  const intent = getWhatsAppImportIntent(messageText);
+
+  if (!intent) {
+    return null;
+  }
+
+  if (intent === "request_file") {
+    return {
+      reason: "whatsapp_import_file_requested",
+      reply: "Claro. Me envie um arquivo CSV ou XLSX com suas movimentacoes que eu preparo a importacao para voce revisar ou confirmar.",
+      status: "processed",
+      summary: "Usuario solicitou importacao pelo WhatsApp sem anexar arquivo.",
+    };
+  }
+
+  try {
+    if (intent === "cancel") {
+      const result = await cancelWhatsAppImportSession({
+        channelRemoteId: remoteId,
+        supabase,
+        userId,
+      });
+
+      return {
+        reason: result.ok ? "whatsapp_import_cancelled" : "whatsapp_import_cancel_failed",
+        reply: result.message,
+        status: result.ok ? "processed" : "discarded",
+        summary: result.ok ? "Sessao de importacao cancelada pelo WhatsApp." : "Cancelamento de importacao sem sessao pendente.",
+      };
+    }
+
+    const result = await confirmWhatsAppImportSession({
+      channelRemoteId: remoteId,
+      supabase,
+      userId,
+    });
+
+    const normalizedText = normalizeIntentText(messageText);
+    if (!result.ok && normalizedText === "sim" && result.message.startsWith("Nao encontrei")) {
+      return null;
+    }
+
+    return {
+      reason: result.ok ? "whatsapp_import_confirmed" : "whatsapp_import_confirm_blocked",
+      reply: buildWhatsAppImportConfirmationReply(result),
+      status: result.ok ? "processed" : "discarded",
+      summary: result.ok ? "Sessao de importacao confirmada pelo WhatsApp." : "Confirmacao de importacao bloqueada pelo WhatsApp.",
+    };
+  } catch (error) {
+    return {
+      reason: "whatsapp_import_confirm_failed",
+      reply: error instanceof Error ? error.message : genericFallbackReply,
+      status: "failed",
+      summary: "Falha ao confirmar importacao pelo WhatsApp.",
+    };
+  }
+}
+
+function buildImportSessionReply(
+  summary: {
+    duplicateExistingCount: number;
+    duplicateFileCount: number;
+    errorCount: number;
+    expenseAmount: number;
+    expenseCount: number;
+    incomeAmount: number;
+    importableCount: number;
+    incomeCount: number;
+    totalRows: number;
+  },
+  reviewUrl: string | null,
+) {
+  const duplicateCount = summary.duplicateExistingCount + summary.duplicateFileCount;
+  const newCount = summary.importableCount;
+
+  if (summary.importableCount === 0 && duplicateCount > 0) {
+    return [
+      "Esse arquivo parece ja ter sido importado antes.",
+      `Encontrei ${duplicateCount} movimentacao${duplicateCount === 1 ? "" : "es"}, mas todas parecem ja existir no FechouMEI.`,
+      "Nao importei novamente para evitar duplicidade.",
+      reviewUrl ? `Se quiser conferir a revisao, acesse:\n${reviewUrl}` : null,
+    ].filter(Boolean).join("\n\n");
+  }
+
+  if (summary.importableCount === 0) {
+    return [
+      "Nao consegui encontrar movimentacoes validas nesse arquivo.",
+      "Confira se ele tem data, descricao e valor.",
+      reviewUrl && summary.totalRows > 0 ? `Voce pode revisar os detalhes aqui:\n${reviewUrl}` : null,
+    ].filter(Boolean).join("\n\n");
+  }
+
+  if (summary.errorCount > 0) {
+    return [
+      "Recebi sua planilha, mas algumas linhas precisam de atencao.",
+      "",
+      "Encontrei:",
+      `- ${newCount} movimentacao${newCount === 1 ? "" : "es"} nova${newCount === 1 ? "" : "s"}`,
+      `- ${summary.incomeCount} entrada${summary.incomeCount === 1 ? "" : "s"} - ${formatCurrency(summary.incomeAmount)}`,
+      `- ${summary.expenseCount} despesa${summary.expenseCount === 1 ? "" : "s"} - ${formatCurrency(summary.expenseAmount)}`,
+      `- ${summary.errorCount} com erro`,
+      `- ${duplicateCount} possivel${duplicateCount === 1 ? "" : "is"} duplicada${duplicateCount === 1 ? "" : "s"}`,
+      "",
+      reviewUrl
+        ? `Para evitar importar errado, revise no app:\n${reviewUrl}`
+        : "Para evitar importar errado, abra o app em Importar dados e revise antes de salvar.",
+    ].filter(Boolean).join("\n");
+  }
+
+  if (duplicateCount > 0) {
+    return [
+      "Recebi sua planilha.",
+      "",
+      "Encontrei:",
+      `- ${newCount} movimentacao${newCount === 1 ? "" : "es"} nova${newCount === 1 ? "" : "s"}`,
+      `- ${duplicateCount} possivel${duplicateCount === 1 ? "" : "is"} duplicada${duplicateCount === 1 ? "" : "s"}`,
+      `- ${summary.incomeCount} entrada${summary.incomeCount === 1 ? "" : "s"} - ${formatCurrency(summary.incomeAmount)}`,
+      `- ${summary.expenseCount} despesa${summary.expenseCount === 1 ? "" : "s"} - ${formatCurrency(summary.expenseAmount)}`,
+      "",
+      "Posso importar apenas as novas? Responda: confirmar.",
+      reviewUrl ? `Se preferir revisar linha por linha, acesse:\n${reviewUrl}` : null,
+    ].filter(Boolean).join("\n");
+  }
+
+  return [
+    "Recebi sua planilha.",
+    "",
+    `Encontrei ${summary.importableCount} movimentacao${summary.importableCount === 1 ? "" : "es"}:`,
+    `- ${summary.incomeCount} entrada${summary.incomeCount === 1 ? "" : "s"} - ${formatCurrency(summary.incomeAmount)}`,
+    `- ${summary.expenseCount} despesa${summary.expenseCount === 1 ? "" : "s"} - ${formatCurrency(summary.expenseAmount)}`,
+    `- ${summary.errorCount} com erro`,
+    `- ${duplicateCount} possivel${duplicateCount === 1 ? "" : "is"} duplicada${duplicateCount === 1 ? "" : "s"}`,
+    "",
+    "Para salvar direto no FechouMEI, responda: confirmar.",
+    "Se preferir revisar linha por linha, abra o app em Importar dados.",
+  ].join("\n");
+}
+
+function buildWhatsAppImportConfirmationReply(result: {
+  importedCount?: number;
+  importedExpenseAmount?: number;
+  importedExpenseCount?: number;
+  importedIncomeAmount?: number;
+  importedIncomeCount?: number;
+  message: string;
+  ok: boolean;
+  reviewUrl?: string;
+  skippedDuplicateCount?: number;
+}) {
+  if (!result.ok) {
+    if (result.reviewUrl) {
+      const reviewUrl = buildAppUrl(result.reviewUrl);
+      return [
+        result.message,
+        "",
+        reviewUrl ?? "Abra o app em Importar dados para revisar.",
+      ].join("\n");
+    }
+
+    return result.message;
+  }
+
+  if (!result.importedCount || result.importedCount <= 0) {
+    return result.message;
+  }
+
+  return [
+    "Pronto.",
+    `Importei ${result.importedCount} movimentacao${result.importedCount === 1 ? "" : "es"} no FechouMEI:`,
+    `- ${result.importedIncomeCount ?? 0} entrada${result.importedIncomeCount === 1 ? "" : "s"} - ${formatCurrency(result.importedIncomeAmount ?? 0)}`,
+    `- ${result.importedExpenseCount ?? 0} despesa${result.importedExpenseCount === 1 ? "" : "s"} - ${formatCurrency(result.importedExpenseAmount ?? 0)}`,
+    result.skippedDuplicateCount && result.skippedDuplicateCount > 0
+      ? `- ${result.skippedDuplicateCount} duplicada${result.skippedDuplicateCount === 1 ? "" : "s"} ignorada${result.skippedDuplicateCount === 1 ? "" : "s"}`
+      : null,
+    "",
+    "Voce pode conferir em Movimentacoes.",
+  ].filter(Boolean).join("\n");
+}
+
+function getWhatsAppImportIntent(messageText?: string | null) {
+  const normalized = normalizeIntentText(messageText);
+
+  if (!normalized) {
+    return null;
+  }
+
+  if (/^(cancelar|cancela|descartar|nao importar|não importar)$/.test(normalized)) {
+    return "cancel" as const;
+  }
+
+  if (/^(confirmar|confirma|pode importar|importar|salvar|sim|pode salvar)$/.test(normalized)) {
+    return "confirm" as const;
+  }
+
+  if (/\b(importa|importar|importacao|importação)\b/.test(normalized) && /\b(planilha|arquivo|csv|xlsx|extrato)\b/.test(normalized)) {
+    return "request_file" as const;
+  }
+
+  return null;
+}
+
+function getWhatsAppExportIntent(messageText?: string | null) {
+  const normalized = normalizeIntentText(messageText);
+
+  if (!normalized) {
+    return null;
+  }
+
+  const asksPdf = /\b(pdf)\b/.test(normalized);
+  const asksXlsx = /\b(xlsx|excel)\b/.test(normalized);
+  const mentionsImport = /\b(importa|importar|importacao)\b/.test(normalized);
+  const hasExportVerb = /\b(exporta|exportar|gera|gerar|manda|mandar|envia|enviar|baixar|baixa|download)\b/.test(normalized);
+  const hasFileWord = /\b(csv|arquivo|relatorio|movimentacao|movimentacoes|entradas?|despesas?|dados)\b/.test(normalized);
+  const wantsReport = /\b(quero|preciso|gostaria)\b/.test(normalized) && /\b(relatorio|csv|arquivo|movimentacao|movimentacoes)\b/.test(normalized);
+  const parsedPeriod = parseWhatsAppExportPeriod(normalized);
+  const looksLikeExport = /\bcsv\b/.test(normalized) || wantsReport || (hasExportVerb && (hasFileWord || parsedPeriod.explicit));
+
+  if (mentionsImport && !/\b(exporta|exportar|csv|relatorio|baixar|download)\b/.test(normalized)) {
+    return null;
+  }
+
+  if (!looksLikeExport && (asksPdf || asksXlsx)) {
+    const hasReportContext = /\b(relatorio|movimentacao|movimentacoes|entradas?|despesas?)\b/.test(normalized);
+    if (!hasReportContext) {
+      return null;
+    }
+  }
+
+  if (asksPdf && (looksLikeExport || hasExportVerb || /\b(relatorio)\b/.test(normalized))) {
+    return { kind: "unsupported_pdf" as const };
+  }
+
+  if (asksXlsx && (looksLikeExport || hasExportVerb || /\b(relatorio|movimentacao|movimentacoes)\b/.test(normalized))) {
+    return { kind: "unsupported_xlsx" as const };
+  }
+
+  if (!looksLikeExport) {
+    return null;
+  }
+
+  return {
+    defaultedToCurrentMonth: !parsedPeriod.explicit,
+    kind: "csv" as const,
+    period: parsedPeriod.period,
+    typeFilter: getWhatsAppExportTypeFilter(normalized),
+  };
+}
+
+function getWhatsAppExportTypeFilter(normalizedText: string): "entrada" | "despesa" | "todos" {
+  const asksExpenses = /\b(despesa|despesas|gasto|gastos|saida|saidas)\b/.test(normalizedText);
+  const asksIncomes = /\b(entrada|entradas|receita|receitas|faturamento)\b/.test(normalizedText);
+
+  if (asksExpenses && !asksIncomes) {
+    return "despesa";
+  }
+
+  if (asksIncomes && !asksExpenses) {
+    return "entrada";
+  }
+
+  return "todos";
+}
+
+function parseWhatsAppExportPeriod(normalizedText: string) {
+  const current = getCurrentSaoPauloYearMonth();
+
+  if (/\b(mes passado|ultimo mes|m[eê]s passado)\b/.test(normalizedText)) {
+    return {
+      explicit: true,
+      period: buildTransactionCsvPeriod(
+        current.month === 1 ? current.year - 1 : current.year,
+        current.month === 1 ? 12 : current.month - 1,
+      ),
+    };
+  }
+
+  if (/\b(esse mes|este mes|mes atual|deste mes|desse mes)\b/.test(normalizedText)) {
+    return {
+      explicit: true,
+      period: buildTransactionCsvPeriod(current.year, current.month),
+    };
+  }
+
+  const numericMonthYear = normalizedText.match(/\b(0?[1-9]|1[0-2])[\/.-](20\d{2})\b/);
+  if (numericMonthYear) {
+    return {
+      explicit: true,
+      period: buildTransactionCsvPeriod(Number(numericMonthYear[2]), Number(numericMonthYear[1])),
+    };
+  }
+
+  const numericYearMonth = normalizedText.match(/\b(20\d{2})[\/.-](0?[1-9]|1[0-2])\b/);
+  if (numericYearMonth) {
+    return {
+      explicit: true,
+      period: buildTransactionCsvPeriod(Number(numericYearMonth[1]), Number(numericYearMonth[2])),
+    };
+  }
+
+  for (const month of portugueseMonths) {
+    const monthPattern = new RegExp(`\\b${month.normalized}\\b(?:\\s+de\\s+(20\\d{2}))?`);
+    const monthMatch = normalizedText.match(monthPattern);
+
+    if (monthMatch) {
+      return {
+        explicit: true,
+        period: buildTransactionCsvPeriod(Number(monthMatch[1] ?? current.year), month.value),
+      };
+    }
+  }
+
+  return {
+    explicit: false,
+    period: buildTransactionCsvPeriod(current.year, current.month),
+  };
+}
+
+function getCurrentSaoPauloYearMonth() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    month: "2-digit",
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+  }).formatToParts(new Date());
+
+  return {
+    month: Number(parts.find((part) => part.type === "month")?.value ?? "1"),
+    year: Number(parts.find((part) => part.type === "year")?.value ?? new Date().getFullYear()),
+  };
+}
+
+const portugueseMonths = [
+  { label: "janeiro", normalized: "janeiro", value: 1 },
+  { label: "fevereiro", normalized: "fevereiro", value: 2 },
+  { label: "marco", normalized: "marco", value: 3 },
+  { label: "abril", normalized: "abril", value: 4 },
+  { label: "maio", normalized: "maio", value: 5 },
+  { label: "junho", normalized: "junho", value: 6 },
+  { label: "julho", normalized: "julho", value: 7 },
+  { label: "agosto", normalized: "agosto", value: 8 },
+  { label: "setembro", normalized: "setembro", value: 9 },
+  { label: "outubro", normalized: "outubro", value: 10 },
+  { label: "novembro", normalized: "novembro", value: 11 },
+  { label: "dezembro", normalized: "dezembro", value: 12 },
+];
+
+function formatPeriodLabel(period: { month: number; year: number }) {
+  const month = portugueseMonths.find((candidate) => candidate.value === period.month)?.label ?? `mes ${period.month}`;
+
+  return `${month} de ${period.year}`;
+}
+
+function getExportTypeFilterLabel(typeFilter: "entrada" | "despesa" | "todos") {
+  if (typeFilter === "entrada") {
+    return " de entradas";
+  }
+
+  if (typeFilter === "despesa") {
+    return " de despesas";
+  }
+
+  return "";
+}
+
+function normalizeIntentText(value?: string | null) {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR")
+    .trim()
+    .replace(/[.!?]+$/g, "")
+    .replace(/\s+/g, " ");
+}
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    currency: "BRL",
+    style: "currency",
+  }).format(value);
 }
 
 async function replyAndFinishWhatsAppTurn({

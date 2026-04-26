@@ -4,6 +4,7 @@ import type {
   MovementField,
   MovementType,
 } from "@/lib/agent/types";
+import { extractMoneyAmount } from "@/lib/agent/money";
 import { parseSpokenNumberPtBr } from "@/lib/agent/spoken-number";
 
 export const MEI_ANNUAL_LIMIT = 81000;
@@ -143,8 +144,9 @@ export function getMissingFieldsQuestion(type: MovementType, missingFields: Move
 
 export function getMovementConfirmationMessage(draft: AgentMovementDraft) {
   const typeLabel = draft.type === "entrada" ? "entrada" : "despesa";
+  const connector = draft.type === "entrada" ? "de" : "em";
 
-  return `Entendi: registrar ${typeLabel} de ${toCurrency(draft.amount ?? 0)}, descrição ${draft.description}, categoria ${draft.category}, ${formatDateLabel(draft.occurred_on ?? toDateInputValue(new Date()))}. Posso confirmar?`;
+  return `Entendi: ${typeLabel} de ${toCurrency(draft.amount ?? 0)} ${connector} ${draft.description}, categoria ${draft.category}, ${formatDateLabel(draft.occurred_on ?? toDateInputValue(new Date()))}. Posso registrar?`;
 }
 
 export function emptyAgentState(): AgentConversationState {
@@ -221,17 +223,7 @@ export function parseAmountFromText(message: string) {
     return Number.isFinite(value) && value > 0 ? Math.round(value * 100) / 100 : null;
   }
 
-  const match = message.match(/(?:r\$\s*)?((?:\d{1,3}(?:\.\d{3})+)|\d+)(?:[,.](\d{1,2}))?/i);
-
-  if (!match) {
-    return parseSpokenNumberPtBr(message);
-  }
-
-  const integerPart = match[1].replace(/\./g, "");
-  const decimalPart = match[2] ? match[2].padEnd(2, "0") : "00";
-  const value = Number(`${integerPart}.${decimalPart}`);
-
-  return Number.isFinite(value) && value > 0 ? value : null;
+  return extractMoneyAmount(message) ?? parseSpokenNumberPtBr(message);
 }
 
 function cleanupFieldAnswer(value: string, prefixes: string[]) {

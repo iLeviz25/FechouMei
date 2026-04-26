@@ -3,16 +3,14 @@
 import { useState } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  buildTransactionsCsv,
+  type TransactionCsvMovement,
+  withCsvBom,
+} from "@/lib/export/transactions-csv";
 import { cn } from "@/lib/utils";
 
-export type CsvMovement = {
-  amount: number;
-  category: string;
-  description: string;
-  occurred_at?: string;
-  occurred_on: string;
-  type: string;
-};
+export type CsvMovement = TransactionCsvMovement;
 
 type MovementsCsvExportButtonProps = {
   buttonClassName?: string;
@@ -22,34 +20,8 @@ type MovementsCsvExportButtonProps = {
   movements: CsvMovement[];
 };
 
-const columns = [
-  { header: "data", value: (movement: CsvMovement) => movement.occurred_on },
-  { header: "data_hora", value: (movement: CsvMovement) => movement.occurred_at ?? "" },
-  { header: "tipo", value: (movement: CsvMovement) => movement.type },
-  { header: "descrição", value: (movement: CsvMovement) => movement.description },
-  { header: "categoria", value: (movement: CsvMovement) => movement.category },
-  {
-    header: "valor",
-    value: (movement: CsvMovement) => movement.amount.toFixed(2).replace(".", ","),
-  },
-];
-
-function escapeCsvCell(value: string) {
-  const safeValue = /^[=+\-@]/.test(value) ? `'${value}` : value;
-  return `"${safeValue.replace(/"/g, '""')}"`;
-}
-
-function buildCsv(movements: CsvMovement[]) {
-  const header = columns.map((column) => escapeCsvCell(column.header)).join(";");
-  const rows = movements.map((movement) =>
-    columns.map((column) => escapeCsvCell(column.value(movement))).join(";"),
-  );
-
-  return [header, ...rows].join("\r\n");
-}
-
 function downloadCsv(filename: string, content: string) {
-  const blob = new Blob([`\uFEFF${content}`], { type: "text/csv;charset=utf-8" });
+  const blob = new Blob([withCsvBom(content)], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
 
@@ -76,7 +48,7 @@ export function MovementsCsvExportButton({
       return;
     }
 
-    downloadCsv(filename, buildCsv(movements));
+    downloadCsv(filename, buildTransactionsCsv(movements));
     setMessage("Download do CSV iniciado.");
     window.setTimeout(() => setMessage(null), 3500);
   }

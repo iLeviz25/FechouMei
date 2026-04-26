@@ -357,6 +357,97 @@ export type Database = {
           },
         ];
       };
+      import_sessions: {
+        Row: {
+          id: string;
+          user_id: string;
+          source: "whatsapp" | "upload";
+          channel_remote_id: string | null;
+          file_name: string | null;
+          file_type: string | null;
+          status: "draft" | "reviewed" | "imported" | "expired" | "failed" | "cancelled";
+          summary: Json;
+          created_at: string;
+          updated_at: string;
+          expires_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          source?: "whatsapp" | "upload";
+          channel_remote_id?: string | null;
+          file_name?: string | null;
+          file_type?: string | null;
+          status?: "draft" | "reviewed" | "imported" | "expired" | "failed" | "cancelled";
+          summary?: Json;
+          created_at?: string;
+          updated_at?: string;
+          expires_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          source?: "whatsapp" | "upload";
+          channel_remote_id?: string | null;
+          file_name?: string | null;
+          file_type?: string | null;
+          status?: "draft" | "reviewed" | "imported" | "expired" | "failed" | "cancelled";
+          summary?: Json;
+          created_at?: string;
+          updated_at?: string;
+          expires_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "import_sessions_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      import_session_rows: {
+        Row: {
+          id: string;
+          session_id: string;
+          row_index: number;
+          raw_data: Json;
+          normalized_data: Json;
+          status: "valid" | "error" | "duplicate" | "duplicate_file" | "duplicate_existing";
+          error_message: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          row_index: number;
+          raw_data?: Json;
+          normalized_data?: Json;
+          status: "valid" | "error" | "duplicate" | "duplicate_file" | "duplicate_existing";
+          error_message?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          session_id?: string;
+          row_index?: number;
+          raw_data?: Json;
+          normalized_data?: Json;
+          status?: "valid" | "error" | "duplicate" | "duplicate_file" | "duplicate_existing";
+          error_message?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "import_session_rows_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "import_sessions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       whatsapp_assistant_links: {
         Row: {
           id: string;
@@ -691,4 +782,6 @@ export type AgentPersistedMessage = Database["public"]["Tables"]["agent_messages
 export type AgentActionEvent = Database["public"]["Tables"]["agent_action_events"]["Row"];
 export type AgentChannelEvent = Database["public"]["Tables"]["agent_channel_events"]["Row"];
 export type AgentPromptTrace = Database["public"]["Tables"]["agent_prompt_traces"]["Row"];
+export type ImportSession = Database["public"]["Tables"]["import_sessions"]["Row"];
+export type ImportSessionRow = Database["public"]["Tables"]["import_session_rows"]["Row"];
 export type WhatsAppAssistantLink = Database["public"]["Tables"]["whatsapp_assistant_links"]["Row"];

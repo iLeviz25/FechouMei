@@ -10,8 +10,19 @@ export type WhatsAppAudioMessage = {
   sizeBytes?: number | null;
 };
 
+export type WhatsAppDocumentMessage = {
+  base64?: string | null;
+  downloadPayload?: Record<string, unknown> | null;
+  externalMessageId: string;
+  fileName?: string | null;
+  mimeType?: string | null;
+  remoteJid: string;
+  sizeBytes?: number | null;
+};
+
 export type WhatsAppNormalizedInboundMessage = {
   audio?: WhatsAppAudioMessage | null;
+  document?: WhatsAppDocumentMessage | null;
   event: string | null;
   externalMessageId: string | null;
   instance: string | null;

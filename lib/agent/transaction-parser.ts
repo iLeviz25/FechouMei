@@ -1,5 +1,6 @@
 import type { AgentMovementDraft, MovementField, MovementType } from "@/lib/agent/types";
 import { getReliableMovementMissingFields, isUsefulMovementDescription } from "@/lib/agent/draft-sufficiency";
+import { extractMoneyAmount, stripMoneyExpressions } from "@/lib/agent/money";
 import { inferSemanticTransactionType } from "@/lib/agent/transaction-semantics";
 import { parseSpokenNumberPtBr } from "@/lib/agent/spoken-number";
 import { normalizeSpokenAgentMessage } from "@/lib/agent/spoken-text";
@@ -137,6 +138,8 @@ const categoryAliases: Record<MovementCategory, string[]> = {
 categoryAliases["Serviço"].push("energia");
 categoryAliases.Material.push("materia prima", "materia-prima");
 categoryAliases.Ferramenta.push(
+  "canva",
+  "canva pro",
   "prego",
   "pregos",
   "martelo",
@@ -188,13 +191,20 @@ const serviceSpecificItems = new Set([
   "telefone",
 ]);
 
-const moneyPattern = /(?:r\$\s*)?((?:\d{1,3}(?:\.\d{3})+)|\d+)(?:[,.](\d{1,2}))?\s*(?:reais|real|brl|conto|contos)?/i;
-const moneyPatternGlobal = /(?:r\$\s*)?((?:\d{1,3}(?:\.\d{3})+)|\d+)(?:[,.](\d{1,2}))?\s*(?:reais|real|brl|conto|contos)?/gi;
-
 const expenseVerbs = [
+  "assinei",
+  "assinatura",
+  "compra",
+  "comprado",
   "paguei",
+  "pagar",
+  "pagamento",
+  "pago",
   "gastei",
+  "gasto",
   "comprei",
+  "debito",
+  "dÃ©bito",
   "desembolsei",
   "saiu",
   "foi",
@@ -203,9 +213,12 @@ const expenseVerbs = [
   "despesa",
   "peguei",
   "descontou",
+  "uber",
 ];
 
 const incomeVerbs = [
+  "credito",
+  "crÃ©dito",
   "entrou",
   "recebi",
   "caiu",
@@ -217,6 +230,11 @@ const incomeVerbs = [
   "recebimento",
   "receita",
   "entrada",
+  "pix recebido",
+  "transferencia recebida",
+  "transferÃªncia recebida",
+  "cliente pagou",
+  "reembolso recebido",
 ];
 
 const operationalPhrasePatterns = [
@@ -226,6 +244,7 @@ const operationalPhrasePatterns = [
   /\b(?:agora|adicione|adiciona|adicionar|bota|botar|registre|registra|resgitra|registrar|lança|lanca|lançar|lancar|lance|coloca|colocar|cadastra|cadastre|cadastrar|faz|fazer|fa[çc]a|cria|crie|criar)\b/gi,
   /\b(?:por favor|porfavor|pra mim|para mim)\b/gi,
   /\b(?:que\s+)?(?:eu\s+)?(?:recebi|paguei|gastei|comprei)\b/gi,
+  /\b(?:pagar|pago|pagamento|gasto|compra|comprado|lancei|lancado|lanÃ§ado|registrei|registrado)\b/gi,
   /\bque\s+(?:entrou|saiu|caiu|foi)\b/gi,
   /\b(?:tive|entrou|caiu|veio|saiu|foi|custou|descontou|boleto|despesa|entrada|vendi|faturei|faturou|ganhei|peguei)\b/gi,
   /\bcomo\s+(?:entrada|despesa)\b/gi,
@@ -237,6 +256,10 @@ const operationalPhrasePatterns = [
 const clientEntityPatterns = [
   /\b(?:do|da|de|para|pra|pro)\s+(?:meu|minha)?\s*cliente\s+(.+?)(?=$|[,.!?]|\s+(?:hoje|ontem|dia|no\s+dia|na\s+data|por\s+favor|pra\s+mim|para\s+mim))/i,
   /\bcliente\s+(.+?)(?=$|[,.!?]|\s+(?:hoje|ontem|dia|no\s+dia|na\s+data|por\s+favor|pra\s+mim|para\s+mim))/i,
+];
+
+const incomeSourceEntityPatterns = [
+  /\b(?:do|da|de)\s+(.+?)(?=$|[,.!?]|\s+(?:hoje|ontem|dia|no\s+dia|na\s+data|por\s+favor|pra\s+mim|para\s+mim))/i,
 ];
 
 const fillerTokens = new Set([
@@ -255,8 +278,14 @@ const fillerTokens = new Set([
   "na",
   "nos",
   "nas",
+  "pela",
+  "pelo",
+  "pelas",
+  "pelos",
   "com",
   "como",
+  "ao",
+  "aos",
   "cria",
   "criar",
   "crie",
@@ -269,10 +298,11 @@ const fillerTokens = new Set([
   "por",
   "para",
   "pra",
-  "pro",
   "reais",
   "real",
   "brl",
+  "r$",
+  "rs",
   "pode",
   "essa",
   "esse",
@@ -369,7 +399,7 @@ export function canonicalizeCategoryInput(category?: string) {
   return decideCategoryWithConfidence(category, { allowFallback: false });
 }
 
-export function extractSourceEntity(message: string, _type?: MovementType): SourceEntity | null {
+export function extractSourceEntity(message: string, type?: MovementType): SourceEntity | null {
   const withoutMoney = stripMoneyPhrase(message);
 
   for (const pattern of clientEntityPatterns) {
@@ -382,6 +412,21 @@ export function extractSourceEntity(message: string, _type?: MovementType): Sour
         confidence: "high",
         description: entity,
       };
+    }
+  }
+
+  if (type === "entrada") {
+    for (const pattern of incomeSourceEntityPatterns) {
+      const match = withoutMoney.match(pattern);
+      const entity = cleanupEntityName(match?.[1]);
+
+      if (entity) {
+        return {
+          category: "Cliente",
+          confidence: "medium",
+          description: entity,
+        };
+      }
     }
   }
 
@@ -399,6 +444,8 @@ export function cleanTransactionDescription(message: string, type?: MovementType
     stripDescriptionDateNoise(stripOperationalPhrases(stripMoneyPhrase(message))),
   );
   const compacted = stripBoundaryFillers(noOperationalText)
+    .replace(/^\s*(?:paguei|pagar|pago|pagamento|gastei|gasto|comprei|compra|comprado|recebi|entrou|caiu|vendi|credito|debito)\b\s*/i, " ")
+    .replace(/^\s*(?:de|do|da|dos|das|com|em|no|na|para|pra|pro|por|pela|pelo)\s+/i, " ")
     .replace(/[?!.,;:]+/g, " ")
     .replace(/\b(?:de|com)\s+(?:de|com)\b/gi, " ")
     .replace(/\s+/g, " ")
@@ -443,17 +490,7 @@ export function cleanDescriptionUsingResolvedCategory(
 }
 
 export function extractMoneyPtBr(message: string) {
-  const match = message.match(moneyPattern);
-
-  if (!match) {
-    return parseSpokenNumberPtBr(message);
-  }
-
-  const integerPart = match[1].replace(/\./g, "");
-  const decimalPart = match[2] ? match[2].padEnd(2, "0") : "00";
-  const value = Number(`${integerPart}.${decimalPart}`);
-
-  return Number.isFinite(value) && value > 0 ? value : null;
+  return extractMoneyAmount(message) ?? parseSpokenNumberPtBr(message);
 }
 
 export function inferTransactionType(message: string): MovementType | null {
@@ -465,7 +502,7 @@ export function inferTransactionType(message: string): MovementType | null {
     return semanticType;
   }
 
-  const hasDirectAction = /\b(?:recebi|entrou|caiu|veio|ganhei|vendi|faturei|faturou|paguei|gastei|comprei|saiu|descontou|desembolsei|custou)\b/.test(
+  const hasDirectAction = /\b(?:recebi|entrou|caiu|veio|ganhei|vendi|faturei|faturou|credito|pix recebido|transferencia recebida|cliente pagou|paguei|pagar|pago|pagamento|gastei|gasto|compra|comprei|saiu|debito|descontou|desembolsei|custou)\b/.test(
     normalized,
   );
 
@@ -699,7 +736,7 @@ function calculateConfidence({
 }
 
 function stripMoneyPhrase(message: string) {
-  return message.replace(moneyPatternGlobal, " ");
+  return stripMoneyExpressions(message);
 }
 
 function stripOperationalPhrases(message: string) {

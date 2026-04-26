@@ -2198,9 +2198,11 @@ async function safeGeminiInterpretation({
 
 function applyLocalExtraction(message: string, draft: AgentMovementDraft, type: MovementType): AgentMovementDraft {
   const parsed = parseTransactionMessage(message, type);
+  const cleanedModelDescription = draft.description ? cleanTransactionDescription(draft.description, type) : undefined;
   const next: AgentMovementDraft = {
     ...(parsed?.draft ?? {}),
     ...draft,
+    description: cleanedModelDescription ?? parsed?.draft.description ?? draft.description,
     type,
   };
 
@@ -2210,6 +2212,10 @@ function applyLocalExtraction(message: string, draft: AgentMovementDraft, type: 
     if (amount) {
       next.amount = amount;
     }
+  }
+
+  if (parsed?.draft.description && shouldPreferLocalDescription(draft.description, parsed.draft.description)) {
+    next.description = parsed.draft.description;
   }
 
   if (!next.description && parsed?.draft.description) {
@@ -2225,6 +2231,25 @@ function applyLocalExtraction(message: string, draft: AgentMovementDraft, type: 
   }
 
   return next;
+}
+
+function shouldPreferLocalDescription(modelDescription: string | undefined, localDescription: string) {
+  if (!modelDescription) {
+    return true;
+  }
+
+  const normalizedModel = normalizeComparableText(modelDescription);
+  const normalizedLocal = normalizeComparableText(localDescription);
+
+  if (!normalizedModel || normalizedModel === normalizedLocal) {
+    return false;
+  }
+
+  return (
+    /\b(?:r\$|brl|real|reais|paguei|pagar|pagamento|gastei|comprei|compra|lance|lanca|registra|registrar)\b/.test(
+      normalizedModel,
+    ) || normalizedLocal.length + 3 < normalizedModel.length
+  );
 }
 
 function getPlannedActionReply(actionId: AgentActionId) {
