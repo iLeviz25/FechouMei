@@ -16,6 +16,7 @@ import {
   MessageCircle,
   Receipt,
   Sparkles,
+  Upload,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -34,7 +35,15 @@ import {
 
 type TourStep = {
   icon: LucideIcon;
-  id: "dashboard" | "movimentacoes" | "fechamento" | "relatorios" | "obrigacoes" | "helena" | "final";
+  id:
+    | "dashboard"
+    | "movimentacoes"
+    | "importacao"
+    | "fechamento"
+    | "relatorios"
+    | "obrigacoes"
+    | "helena"
+    | "final";
   targetSelectors: string[];
   text: string;
   title: string;
@@ -90,6 +99,13 @@ const tourSteps: TourStep[] = [
     text: "Use esta área para adicionar, editar, filtrar e exportar movimentações do seu negócio.",
   },
   {
+    icon: Upload,
+    id: "importacao",
+    targetSelectors: ['[data-tour-target="importacao-nav"]'],
+    title: "Importe seus registros antigos",
+    text: "Se você já usa planilha, pode importar entradas e despesas por CSV ou XLSX, revisar os dados e salvar tudo com mais segurança.",
+  },
+  {
     icon: ClipboardCheck,
     id: "fechamento",
     targetSelectors: ['[data-tour-target="fechamento-nav"]'],
@@ -122,7 +138,7 @@ const tourSteps: TourStep[] = [
     id: "final",
     targetSelectors: [],
     title: "Pronto para começar",
-    text: "Agora você já sabe o básico. Comece registrando uma entrada ou despesa, ou chame a Helena no WhatsApp.",
+    text: "Agora você já sabe o básico. Comece registrando uma entrada ou despesa, importe seus dados antigos ou chame a Helena no WhatsApp.",
   },
 ];
 
