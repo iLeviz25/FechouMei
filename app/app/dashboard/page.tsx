@@ -19,7 +19,7 @@ export default function DashboardPage() {
 }
 
 async function DashboardData() {
-  const { profile, profileError, supabase } = await getCurrentUserProfile();
+  const { profile, profileError, supabase, user } = await getCurrentUserProfile();
 
   if (profileError) {
     throw new Error(`Erro ao carregar ajuste de saldo: ${profileError.message}`);
@@ -44,6 +44,7 @@ async function DashboardData() {
     recentResult,
     checklistResult,
     previousMonthResult,
+    whatsappLinkResult,
   ] = await Promise.all([
     supabase
       .from("movimentacoes")
@@ -68,6 +69,12 @@ async function DashboardData() {
       .select("type, amount")
       .gte("occurred_on", previousMonthStartValue)
       .lte("occurred_on", previousMonthEndValue),
+    supabase
+      .from("whatsapp_assistant_links")
+      .select("status")
+      .eq("user_id", user?.id ?? "")
+      .eq("status", "linked")
+      .maybeSingle(),
   ]);
 
   if (yearResult.error) {
@@ -88,6 +95,10 @@ async function DashboardData() {
 
   if (previousMonthResult.error) {
     throw new Error(`Erro ao carregar comparacao do mes anterior: ${previousMonthResult.error.message}`);
+  }
+
+  if (whatsappLinkResult.error) {
+    throw new Error(`Erro ao carregar vinculo da Helena: ${whatsappLinkResult.error.message}`);
   }
 
   const totals = (yearResult.data ?? []).reduce(

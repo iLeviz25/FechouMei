@@ -31,13 +31,13 @@ type AppSidebarProps = {
 };
 
 const navItems = [
-  { href: "/app/dashboard", label: "Inicio", shortLabel: "Inicio", icon: LayoutDashboard },
-  { href: "/app/movimentacoes", label: "Movimentacoes", shortLabel: "Mov.", icon: Receipt },
+  { href: "/app/dashboard", label: "Inicio", shortLabel: "Inicio", icon: LayoutDashboard, tourTarget: "dashboard-nav" },
+  { href: "/app/movimentacoes", label: "Movimentacoes", shortLabel: "Mov.", icon: Receipt, tourTarget: "movimentacoes-nav" },
   { href: "/app/importar", label: "Importar dados", shortLabel: "Import.", icon: Upload },
-  { href: "/app/fechamento-mensal", label: "Fechamento mensal", shortLabel: "Fechar", icon: ClipboardCheck },
-  { href: "/app/relatorios", label: "Relatorios", shortLabel: "Relat.", icon: FileText },
-  { href: "/app/obrigacoes", label: "Obrigacoes", shortLabel: "Obrig.", icon: BellRing },
-  { href: "/app/agente", label: "Helena", shortLabel: "Helena", icon: MessageCircle },
+  { href: "/app/fechamento-mensal", label: "Fechamento mensal", shortLabel: "Fechar", icon: ClipboardCheck, tourTarget: "fechamento-nav" },
+  { href: "/app/relatorios", label: "Relatorios", shortLabel: "Relat.", icon: FileText, tourTarget: "relatorios-nav" },
+  { href: "/app/obrigacoes", label: "Obrigacoes", shortLabel: "Obrig.", icon: BellRing, tourTarget: "obrigacoes-nav" },
+  { href: "/app/agente", label: "Helena", shortLabel: "Helena", icon: MessageCircle, tourTarget: "helena-nav" },
   { href: "/app/configuracoes", label: "Configuracoes", shortLabel: "Conta", icon: Settings },
 ];
 
@@ -148,6 +148,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
                         ? "bg-gradient-brand text-primary-foreground shadow-elevated"
                         : "text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))] hover:text-[hsl(var(--sidebar-accent-foreground))]",
                     )}
+                    data-tour-target={item.tourTarget}
                     href={item.href}
                     key={item.href}
                     onClick={() => markRoutePending(item.href)}
@@ -267,6 +268,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
                   ? "bg-card text-primary shadow-sm"
                   : "text-foreground/72 hover:bg-muted/70 hover:text-foreground",
               )}
+              data-tour-target={item.tourTarget}
               href={item.href}
               key={item.href}
               onClick={() => markRoutePending(item.href)}

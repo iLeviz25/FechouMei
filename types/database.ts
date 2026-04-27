@@ -631,6 +631,7 @@ export type Database = {
           main_goal: string | null;
           initial_balance: number;
           onboarding_completed: boolean;
+          onboarding_tour_completed_at: string | null;
           role: "user" | "admin";
           created_at: string;
           updated_at: string;
@@ -644,6 +645,7 @@ export type Database = {
           main_goal?: string | null;
           initial_balance?: number;
           onboarding_completed?: boolean;
+          onboarding_tour_completed_at?: string | null;
           role?: "user" | "admin";
           created_at?: string;
           updated_at?: string;
@@ -657,6 +659,7 @@ export type Database = {
           main_goal?: string | null;
           initial_balance?: number;
           onboarding_completed?: boolean;
+          onboarding_tour_completed_at?: string | null;
           role?: "user" | "admin";
           created_at?: string;
           updated_at?: string;

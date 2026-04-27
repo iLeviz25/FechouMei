@@ -214,7 +214,6 @@ export function DashboardOverview({
     monthBalance,
   });
   const limitStatus = limitInfo.status;
-
   const alerts = [
     {
       cta: dasDone ? "Abrir obrigacoes" : "Pagar agora",
@@ -262,7 +261,7 @@ export function DashboardOverview({
 
   return (
     <div className="mobile-section-gap mx-auto w-full max-w-[430px] px-1 sm:max-w-none sm:px-0">
-      <section className="space-y-4 px-1">
+      <section className="space-y-4 px-1" data-tour-target="dashboard-summary">
         <div className="space-y-3">
           <div className="min-w-0 space-y-2">
             <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary/75">

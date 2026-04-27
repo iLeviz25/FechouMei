@@ -25,6 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { deleteAccount } from "@/app/app/configuracoes/actions";
+import { useOnboardingTour } from "@/components/onboarding/onboarding-tour";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -86,6 +87,7 @@ const goalOptions = [
 
 export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
   const router = useRouter();
+  const { openTour } = useOnboardingTour();
   const initialValues = useMemo(() => getInitialProfileValues(profile), [profile]);
   const [values, setValues] = useState(initialValues);
   const [draft, setDraft] = useState(initialValues);
@@ -378,6 +380,19 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
             ) : null}
           </CardContent>
         </Card>
+      </section>
+
+      <section className="space-y-3">
+        <Badge className="w-fit" variant="secondary">
+          <Sparkles className="mr-1 h-3 w-3" />
+          Guia
+        </Badge>
+        <ActionCard
+          description="Reabra o tour rápido pelas áreas principais do FechouMEI."
+          icon={<Sparkles className="h-4 w-4" />}
+          label="Ver guia do app"
+          onClick={openTour}
+        />
       </section>
 
       <section className="space-y-3">
