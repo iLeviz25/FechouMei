@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import { RouteTransitionPending } from "@/components/app/route-transition-pending";
 import { ObrigacoesOverview } from "@/components/obrigacoes/obrigacoes-overview";
+import { getOrCreateReminderPreferences } from "@/lib/obrigacoes/reminder-preferences";
 import { createClient } from "@/lib/supabase/server";
-import type { ReminderPreferences } from "@/types/database";
 
 const checklistTemplate = [
   { key: "conferir-entradas", label: "Conferir entradas do mês" },
@@ -77,34 +77,6 @@ async function getChecklistRows(
 async function getReminderPreferences(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
-): Promise<ReminderPreferences> {
-  const { data, error } = await supabase
-    .from("reminder_preferences")
-    .select("user_id, das_monthly_enabled, dasn_annual_enabled, monthly_review_enabled, receipts_enabled, created_at, updated_at")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`Erro ao carregar lembretes de obrigações: ${error.message}`);
-  }
-
-  if (data) {
-    return data;
-  }
-
-  return createDefaultReminderPreferences(userId);
-}
-
-function createDefaultReminderPreferences(userId: string): ReminderPreferences {
-  const timestamp = new Date().toISOString();
-
-  return {
-    user_id: userId,
-    das_monthly_enabled: false,
-    dasn_annual_enabled: false,
-    monthly_review_enabled: false,
-    receipts_enabled: false,
-    created_at: timestamp,
-    updated_at: timestamp,
-  };
+) {
+  return getOrCreateReminderPreferences(supabase, userId);
 }

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getOrCreateReminderPreferences } from "@/lib/obrigacoes/reminder-preferences";
 import type { Database, ReminderPreferences } from "@/types/database";
 
 export type ObligationNotificationStatus = "overdue" | "soon" | "pending";
@@ -40,23 +41,18 @@ export async function getObligationNotificationsForUser({
   userId: string;
 }) {
   try {
-    const [checklistResult, preferencesResult] = await Promise.all([
+    const [checklistResult, preferences] = await Promise.all([
       supabase
         .from("obrigacoes_checklist")
         .select("item_key, done")
         .eq("user_id", userId)
         .eq("month", monthKey),
-      supabase
-        .from("reminder_preferences")
-        .select("user_id, das_monthly_enabled, dasn_annual_enabled, monthly_review_enabled, receipts_enabled, created_at, updated_at")
-        .eq("user_id", userId)
-        .maybeSingle(),
+      getOrCreateReminderPreferences(supabase, userId),
     ]);
 
-    if (checklistResult.error || preferencesResult.error) {
+    if (checklistResult.error) {
       console.warn("[obrigacoes.notifications] failed to load notifications", {
         checklistError: checklistResult.error?.message,
-        preferencesError: preferencesResult.error?.message,
       });
       return [];
     }
@@ -69,7 +65,7 @@ export async function getObligationNotificationsForUser({
     return deriveObligationNotifications({
       checklist,
       monthKey,
-      preferences: preferencesResult.data ?? createDefaultReminderPreferences(userId),
+      preferences,
     });
   } catch (error) {
     console.warn("[obrigacoes.notifications] unexpected failure", error);
@@ -210,18 +206,4 @@ function formatDueDate(date: Date) {
 
 function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function createDefaultReminderPreferences(userId: string): ReminderPreferences {
-  const timestamp = new Date().toISOString();
-
-  return {
-    created_at: timestamp,
-    das_monthly_enabled: false,
-    dasn_annual_enabled: false,
-    monthly_review_enabled: false,
-    receipts_enabled: false,
-    updated_at: timestamp,
-    user_id: userId,
-  };
 }
