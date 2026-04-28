@@ -34,9 +34,15 @@ export function toDateInputValue(date: Date) {
 
 export function formatDateLabel(value: string) {
   const todayValue = toDateInputValue(new Date());
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
 
   if (value === todayValue) {
     return "hoje";
+  }
+
+  if (value === toDateInputValue(yesterday)) {
+    return "ontem";
   }
 
   return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));

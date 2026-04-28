@@ -884,7 +884,7 @@ function formatSavedMovementSummary(movement: Pick<AgentDeleteTarget, "amount" |
   const typeLabel = movement.type === "entrada" ? "uma entrada" : "uma despesa";
   const connector = movement.type === "entrada" ? "de" : "com";
   const dateLabel = formatDateLabel(movement.occurred_on);
-  const date = dateLabel === "hoje" ? "" : ` em ${dateLabel}`;
+  const date = dateLabel === "hoje" ? "" : ` com data de ${dateLabel}`;
 
   return `${typeLabel} de ${toCurrency(movement.amount)} ${connector} ${movement.description}${date}`;
 }

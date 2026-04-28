@@ -93,6 +93,8 @@ type CompoundExpenseHandling =
 
 type SplitOrCombinedChoice = "combined" | "split";
 
+const agentInstabilityReply = "Tive uma instabilidade agora para entender sua mensagem. Pode tentar de novo em instantes?";
+
 export async function runAgentTurn({ channel = "playground", message, state }: RunAgentTurnInput): Promise<AgentTurnResult> {
   const trimmedMessage = message.trim();
   const currentState = normalizeConversationState(state);
@@ -172,7 +174,7 @@ export async function runAgentTurn({ channel = "playground", message, state }: R
 
     if (!interpretation) {
       return {
-        reply: "Tive uma instabilidade agora para processar sua mensagem. Tente novamente em instantes.",
+        reply: agentInstabilityReply,
         state: currentState,
       };
     }
@@ -188,7 +190,7 @@ export async function runAgentTurn({ channel = "playground", message, state }: R
       console.error("Agent Gemini configuration error", error);
       return {
         actionTrace: getFailureTrace(currentState, "Falha de configuração do provider."),
-        reply: "Tive uma instabilidade agora para processar isso. Tente novamente em instantes.",
+        reply: agentInstabilityReply,
         state: currentState,
       };
     }
@@ -197,7 +199,7 @@ export async function runAgentTurn({ channel = "playground", message, state }: R
       console.error("Agent Gemini provider error", error);
       return {
         actionTrace: getFailureTrace(currentState, "Falha do provider."),
-        reply: `Tive uma instabilidade agora para processar isso. Tente novamente em instantes.${currentState.status !== "idle" ? " Seu rascunho continua salvo." : ""}`,
+        reply: getAgentInstabilityReply(currentState),
         state: currentState,
       };
     }
@@ -206,7 +208,7 @@ export async function runAgentTurn({ channel = "playground", message, state }: R
 
     return {
       actionTrace: getFailureTrace(currentState, getErrorSummary(error)),
-      reply: "Não consegui concluir isso agora. Tente novamente em instantes.",
+      reply: agentInstabilityReply,
       state: currentState,
     };
   }
@@ -286,7 +288,7 @@ export async function runAgentTurnForContext({
 
     if (!interpretation) {
       return {
-        reply: "Tive uma instabilidade agora para processar sua mensagem. Tente novamente em instantes.",
+        reply: agentInstabilityReply,
         state: currentState,
       };
     }
@@ -302,7 +304,7 @@ export async function runAgentTurnForContext({
       console.error("Agent Gemini configuration error", error);
       return {
         actionTrace: getFailureTrace(currentState, "Falha de configuração do provider."),
-        reply: "Tive uma instabilidade agora para processar isso. Tente novamente em instantes.",
+        reply: agentInstabilityReply,
         state: currentState,
       };
     }
@@ -311,7 +313,7 @@ export async function runAgentTurnForContext({
       console.error("Agent Gemini provider error", error);
       return {
         actionTrace: getFailureTrace(currentState, "Falha do provider."),
-        reply: `Tive uma instabilidade agora para processar isso. Tente novamente em instantes.${currentState.status !== "idle" ? " Seu rascunho continua salvo." : ""}`,
+        reply: getAgentInstabilityReply(currentState),
         state: currentState,
       };
     }
@@ -320,7 +322,7 @@ export async function runAgentTurnForContext({
 
     return {
       actionTrace: getFailureTrace(currentState, getErrorSummary(error)),
-      reply: "Não consegui concluir isso agora. Tente novamente em instantes.",
+      reply: agentInstabilityReply,
       state: currentState,
     };
   }
@@ -739,17 +741,41 @@ async function handleCorrectionTurn({
     };
   }
 
-  const type = correction.type ?? (currentState.pendingAction === "register_income" ? "entrada" : "despesa");
+  const currentType = currentState.pendingAction === "register_income" ? "entrada" : "despesa";
+  const type = correction.type ?? currentType;
+  const typeChanged = Boolean(correction.type && correction.type !== currentType);
+  const currentDraft = currentState.draft ?? {};
+  const draft = typeChanged
+    ? {
+        amount: currentDraft.amount,
+        occurred_on: currentDraft.occurred_on,
+        ...correction,
+      }
+    : {
+        ...currentDraft,
+        ...correction,
+      };
 
-  return handleMovementRegistrationTurn({
+  if (typeChanged && type === "entrada" && (!draft.category || isExpenseLeaningCategory(draft.category))) {
+    draft.category = "Venda";
+  }
+
+  const result = await handleMovementRegistrationTurn({
     context,
-    draft: {
-      ...(currentState.draft ?? {}),
-      ...correction,
-    },
+    draft,
     sourceMessage: message,
     type,
   });
+
+  return {
+    ...result,
+    reply: getCorrectionFeedbackReply({
+      correction,
+      fallbackReply: result.reply,
+      state: result.state,
+      type,
+    }),
+  };
 }
 
 async function handleModelInterpretation({
@@ -772,24 +798,14 @@ async function handleModelInterpretation({
 
   if (interpretation.kind === "greeting") {
     return {
-      reply: "Oi! Me manda o que voce precisa registrar ou consultar.",
+      reply: "Oi! Me manda o que você precisa registrar ou consultar.",
       state: currentState,
     };
   }
 
   if (interpretation.kind === "small_talk") {
     return {
-      reply: "Posso conversar um pouco, mas meu foco e te ajudar com a rotina financeira do MEI.",
-      state: currentState,
-    };
-  }
-
-  if (false) {
-    return {
-      reply:
-        interpretation.kind === "greeting"
-          ? "Oi! Posso te ajudar com entradas, despesas, resumo do mês e obrigações."
-          : "Posso conversar um pouco, mas meu melhor papel é te ajudar com a rotina financeira do MEI.",
+      reply: "Tô por aqui. Meu foco é te ajudar com registros, consultas e rotina do MEI.",
       state: currentState,
     };
   }
@@ -812,14 +828,7 @@ async function handleModelInterpretation({
 
   if (interpretation.action === "unknown" || interpretation.confidence === "low") {
     return {
-      reply: "Nao peguei direitinho. Voce pode me pedir para registrar entrada ou despesa, ver resumo do mes, limite do MEI, pendencias ou ultimos registros.",
-      state: currentState,
-    };
-  }
-
-  if (false) {
-    return {
-      reply: "Não entendi com segurança. Você pode pedir para registrar entrada/despesa, ver resumo, limite, obrigações ou registros recentes.",
+      reply: "Não peguei direitinho. Você pode me pedir para registrar entrada ou despesa, ver resumo do mês, limite do MEI, pendências ou últimos registros.",
       state: currentState,
     };
   }
@@ -1255,7 +1264,7 @@ async function handleCollectingTurn({
 
   if (!interpretation) {
     return {
-      reply: "Tive uma instabilidade agora para processar sua mensagem. Seu rascunho continua salvo.",
+      reply: getAgentInstabilityReply(state),
       state,
     };
   }
@@ -1685,8 +1694,8 @@ function getRegistrationMissingFieldsQuestion(
 ) {
   if (missingFields.length === 1 && missingFields[0] === "description" && draft.amount) {
     return type === "entrada"
-      ? `Esses ${toCurrency(draft.amount)} entraram de quê?`
-      : `Essa despesa de ${toCurrency(draft.amount)} foi de quê?`;
+      ? `Essa entrada de ${toCurrency(draft.amount)} foi de quê?`
+      : `Esse gasto de ${toCurrency(draft.amount)} foi com o quê?`;
   }
 
   if (missingFields.length === 1 && missingFields[0] === "category" && draft.description) {
@@ -1694,6 +1703,110 @@ function getRegistrationMissingFieldsQuestion(
   }
 
   return getMissingFieldsQuestion(type, missingFields);
+}
+
+function getCorrectionFeedbackReply({
+  correction,
+  fallbackReply,
+  state,
+  type,
+}: {
+  correction: Partial<AgentMovementDraft>;
+  fallbackReply: string;
+  state: AgentConversationState;
+  type: MovementType;
+}) {
+  const draft = state.draft ?? {};
+  const missingFields = state.missingFields ?? getPracticalMissingFields(draft);
+
+  if (correction.type && missingFields.length === 0 && draft.amount && draft.description) {
+    return `${getTypeCorrectionConfirmationLead(type, draft)} Posso salvar?`;
+  }
+
+  const feedback = getCorrectionFeedbackLead(correction);
+
+  if (!feedback) {
+    return fallbackReply;
+  }
+
+  return `${feedback} ${getCorrectionFollowUp(type, draft, missingFields, correction)}`;
+}
+
+function getTypeCorrectionConfirmationLead(type: MovementType, draft: AgentMovementDraft) {
+  const connector = type === "entrada" ? getIncomeCorrectionConnector(draft.description ?? "") : "com";
+
+  if (type === "entrada") {
+    return `Boa, corrigi para entrada de ${toCurrency(draft.amount ?? 0)} ${connector} ${draft.description}.`;
+  }
+
+  return `Entendi, mudei para despesa de ${toCurrency(draft.amount ?? 0)} ${connector} ${draft.description}.`;
+}
+
+function getIncomeCorrectionConnector(description: string) {
+  return /\b(?:pix|jantar|almoco|almoço|lanche|mercado|restaurante|ifood)\b/i.test(description) ? "no" : "de";
+}
+
+function isExpenseLeaningCategory(category?: string) {
+  return Boolean(category && ["Alimentação", "Ferramenta", "Imposto", "Material", "Transporte"].includes(category));
+}
+
+function getCorrectionFeedbackLead(correction: Partial<AgentMovementDraft>) {
+  if (correction.type) {
+    return `Boa, corrigi para ${correction.type}.`;
+  }
+
+  if (typeof correction.amount === "number") {
+    return `Corrigido para ${toCurrency(correction.amount)}.`;
+  }
+
+  if (correction.occurred_on) {
+    return `Fechado, coloquei com data de ${formatDateLabel(correction.occurred_on)}.`;
+  }
+
+  if (correction.description) {
+    return `Corrigi a descrição para ${correction.description}.`;
+  }
+
+  if (correction.category) {
+    return `Corrigi a categoria para ${correction.category}.`;
+  }
+
+  return null;
+}
+
+function getCorrectionFollowUp(
+  type: MovementType,
+  draft: AgentMovementDraft,
+  missingFields: MovementField[],
+  correction: Partial<AgentMovementDraft>,
+) {
+  if (missingFields.includes("amount")) {
+    return "Agora me diz: qual foi o valor?";
+  }
+
+  if (missingFields.includes("description")) {
+    return type === "entrada"
+      ? "Agora me diz: essa entrada foi de quê?"
+      : "Esse gasto foi com o quê?";
+  }
+
+  if (missingFields.includes("category")) {
+    return "Qual categoria eu uso?";
+  }
+
+  if (missingFields.includes("occurred_on")) {
+    return "Qual foi a data?";
+  }
+
+  if (correction.occurred_on || correction.amount) {
+    return "Posso salvar assim?";
+  }
+
+  if (draft.amount && draft.description) {
+    return "Tudo certo para salvar?";
+  }
+
+  return "Posso salvar assim?";
 }
 
 function getDraftPreservedQuestionReply(type: MovementType, state: AgentConversationState) {
@@ -1722,18 +1835,19 @@ function getMovementBatchConfirmationReply(batch: AgentMovementDraft[]) {
   }
 
   const items = batch.map((draft, index) => `${index + 1}. ${formatMovementDraftSummary(draft)}`);
-  return `Confiro assim:\n${items.join("\n")}\nPosso salvar?`;
+  return `Beleza, preparei assim:\n${items.join("\n")}\nPosso salvar?`;
 }
 
 function getSingleMovementConfirmationReply(draft: AgentMovementDraft) {
-  return `Confiro assim: ${formatMovementDraftSummary(draft)}. Posso salvar?`;
+  return `Anotado: ${formatMovementDraftSummary(draft)}. Posso salvar?`;
 }
 
 function formatMovementDraftSummary(draft: AgentMovementDraft) {
-  const typeLabel = draft.type === "entrada" ? "uma entrada" : "uma despesa";
+  const typeLabel = draft.type === "entrada" ? "entrada" : "gasto";
   const connector = draft.type === "entrada" ? "de" : "com";
-  const date = draft.occurred_on && formatDateLabel(draft.occurred_on) !== "hoje"
-    ? ` em ${formatDateLabel(draft.occurred_on)}`
+  const dateLabel = draft.occurred_on ? formatDateLabel(draft.occurred_on) : "hoje";
+  const date = dateLabel !== "hoje"
+    ? ` com data de ${dateLabel}`
     : "";
 
   return `${typeLabel} de ${toCurrency(draft.amount ?? 0)} ${connector} ${draft.description}${date}`;
@@ -2192,7 +2306,7 @@ async function safeGeminiInterpretation({
     }
 
     console.error("Agent Gemini interpretation failed", error);
-    throw new GeminiProviderError("Tive uma instabilidade agora para processar sua mensagem. Tente novamente em instantes.");
+    throw new GeminiProviderError(agentInstabilityReply);
   }
 }
 
@@ -2286,7 +2400,13 @@ function appendResumeHint(reply: string, state: AgentConversationState) {
   }
 
   if (state.pendingAction === "register_income" || state.pendingAction === "register_expense") {
-    return `${reply} Seu rascunho continua salvo para retomarmos depois.`;
+    const draftLabel = formatPendingMovementDraftResume(state);
+    const missingFields = state.missingFields ?? getPracticalMissingFields(state.draft ?? {});
+    const resumeQuestion = missingFields.length === 0
+      ? `Sobre ${draftLabel}, quer que eu salve ou deixo pra depois?`
+      : `Sobre ${draftLabel}, quer continuar agora ou deixo pra depois?`;
+
+    return `${reply}\n\n${resumeQuestion}`;
   }
 
   if (state.pendingAction === "register_movements_batch") {
@@ -2294,6 +2414,24 @@ function appendResumeHint(reply: string, state: AgentConversationState) {
   }
 
   return `${reply} A ação pendente continua salva para retomarmos depois.`;
+}
+
+function getAgentInstabilityReply(state: AgentConversationState) {
+  return `${agentInstabilityReply}${state.status !== "idle" ? " Seu rascunho continua salvo." : ""}`;
+}
+
+function formatPendingMovementDraftResume(state: AgentConversationState) {
+  const draft = state.draft ?? {};
+  const isIncome = state.pendingAction === "register_income" || draft.type === "entrada";
+  const typeLabel = isIncome ? "aquela entrada" : "aquele gasto";
+  const amount = draft.amount ? ` de ${toCurrency(draft.amount)}` : "";
+  const description = draft.description
+    ? isIncome
+      ? ` de ${draft.description}`
+      : ` com ${draft.description}`
+    : "";
+
+  return `${typeLabel}${amount}${description}`;
 }
 
 function makeActionTrace(

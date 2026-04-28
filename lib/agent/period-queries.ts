@@ -84,8 +84,8 @@ export function resolveQuickPeriodRange(query: Extract<AgentQuickPeriodQuery, { 
     const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     return {
       end: toDateInputValue(end),
-      label: "neste mes",
-      prefix: "Neste mes",
+      label: "neste mês",
+      prefix: "Neste mês",
       start: toDateInputValue(start),
     };
   }
@@ -96,8 +96,8 @@ export function resolveQuickPeriodRange(query: Extract<AgentQuickPeriodQuery, { 
 
   return {
     end,
-    label: `nos ultimos ${days} dias`,
-    prefix: `Nos ultimos ${days} dias`,
+    label: `nos últimos ${days} dias`,
+    prefix: `Nos últimos ${days} dias`,
     start: toDateInputValue(start),
   };
 }
@@ -152,7 +152,7 @@ export function buildQuickPeriodReply(query: Extract<AgentQuickPeriodQuery, { ty
 
   if (query.metric === "income") {
     if (totals.income <= 0) {
-      return `Nao encontrei entradas ${range.label}.`;
+      return `Não encontrei entradas ${range.label}.`;
     }
 
     return `${range.prefix} entraram ${toCurrency(totals.income)}.`;
@@ -160,18 +160,18 @@ export function buildQuickPeriodReply(query: Extract<AgentQuickPeriodQuery, { ty
 
   if (query.metric === "expense") {
     if (totals.expense <= 0) {
-      return `Nao encontrei despesas ${range.label}.`;
+      return `Não encontrei despesas ${range.label}.`;
     }
 
-    return `${range.prefix} sairam ${toCurrency(totals.expense)}.`;
+    return `${range.prefix} saíram ${toCurrency(totals.expense)}.`;
   }
 
   if (rangeRows.length === 0) {
-    return `Nao encontrei movimentacoes ${range.label}.`;
+    return `Não encontrei movimentações ${range.label}.`;
   }
 
   if (query.metric === "balance") {
-    return `${range.prefix} entraram ${toCurrency(totals.income)}, sairam ${toCurrency(totals.expense)} e o saldo ficou em ${toCurrency(balance)}.`;
+    return `${range.prefix} entraram ${toCurrency(totals.income)}, saíram ${toCurrency(totals.expense)} e o saldo ficou em ${toCurrency(balance)}.`;
   }
 
   return `${range.prefix}: entradas ${toCurrency(totals.income)}, despesas ${toCurrency(totals.expense)} e saldo ${toCurrency(balance)}.`;
@@ -183,8 +183,8 @@ export function buildWeeklyExtremeReply(query: Extract<AgentQuickPeriodQuery, { 
 
   if (matchingRows.length === 0) {
     return query.metric === "income"
-      ? "Nao encontrei entradas neste mes para comparar por semana."
-      : "Nao encontrei despesas neste mes para comparar por semana.";
+      ? "Não encontrei entradas neste mês para comparar por semana."
+      : "Não encontrei despesas neste mês para comparar por semana.";
   }
 
   const rankedWeeks = weeks.map((week) => {
@@ -196,13 +196,13 @@ export function buildWeeklyExtremeReply(query: Extract<AgentQuickPeriodQuery, { 
 
   if (!best || best.total <= 0) {
     return query.metric === "income"
-      ? "Nao encontrei entradas neste mes para comparar por semana."
-      : "Nao encontrei despesas neste mes para comparar por semana.";
+      ? "Não encontrei entradas neste mês para comparar por semana."
+      : "Não encontrei despesas neste mês para comparar por semana.";
   }
 
   return query.metric === "income"
-    ? `A semana com mais entradas neste mes foi de ${best.week.label}, com ${toCurrency(best.total)}.`
-    : `A semana em que voce mais gastou neste mes foi de ${best.week.label}, com ${toCurrency(best.total)} em despesas.`;
+    ? `A semana com mais entradas neste mês foi de ${best.week.label}, com ${toCurrency(best.total)}.`
+    : `A semana em que você mais gastou neste mês foi de ${best.week.label}, com ${toCurrency(best.total)} em despesas.`;
 }
 
 function parseWeeklyExtremeQuery(normalized: string): AgentQuickPeriodQuery | null {

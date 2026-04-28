@@ -59,8 +59,23 @@ const hundreds = new Map([
   ["novecentas", 900],
 ]);
 
-const currencyTokens = new Set(["reais", "real", "conto", "contos"]);
+const informalNumbers = new Map([
+  ["cemzao", 100],
+  ["cinquentinha", 50],
+  ["duzentao", 200],
+  ["quinhentao", 500],
+  ["milao", 1000],
+]);
+
+const currencyTokens = new Set(["reais", "real", "conto", "contos", "pila", "pilas"]);
 const ignoredTokens = new Set(["e", "de", ...currencyTokens]);
+
+const compactInformalAmountPattern =
+  /(^|[\s([{])(?:duzent[aã]o|cemz[aã]o|cinquentinha|quinhent[aã]o|mil[aã]o)(?=$|[\s)\]},.!?;:])/giu;
+const spokenMilAmountPattern =
+  /(^|[\s([{])(?:um|uma|dois|duas|tr[eê]s|quatro|cinco|seis|sete|oito|nove)\s+mil(?=$|[\s)\]},.!?;:])/giu;
+const spokenHundredsAmountPattern =
+  /(^|[\s([{])(?:cem|cento|duzentos|duzentas|trezentos|trezentas|quatrocentos|quatrocentas|quinhentos|quinhentas|seiscentos|seiscentas|setecentos|setecentas|oitocentos|oitocentas|novecentos|novecentas)(?:\s+(?:reais|real|conto|contos|pila|pilas))?(?=$|[\s)\]},.!?;:])/giu;
 
 export function parseSpokenNumberPtBr(message: string) {
   const normalized = normalizeNumberText(message);
@@ -96,6 +111,12 @@ function parseNumberTokens(tokens: string[]) {
   let consumed = 0;
 
   for (const token of meaningful) {
+    if (informalNumbers.has(token)) {
+      current += informalNumbers.get(token)!;
+      consumed += 1;
+      continue;
+    }
+
     if (hundreds.has(token)) {
       current += hundreds.get(token)!;
       consumed += 1;
@@ -144,6 +165,15 @@ function parseNumberTokens(tokens: string[]) {
     length: tokens.length,
     value,
   };
+}
+
+export function stripSpokenNumberPtBr(message: string) {
+  return message
+    .replace(compactInformalAmountPattern, (_match, leading: string) => `${leading} `)
+    .replace(spokenMilAmountPattern, (_match, leading: string) => `${leading} `)
+    .replace(spokenHundredsAmountPattern, (_match, leading: string) => `${leading} `)
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function normalizeNumberText(value: string) {

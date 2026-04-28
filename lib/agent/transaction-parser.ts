@@ -2,7 +2,7 @@ import type { AgentMovementDraft, MovementField, MovementType } from "@/lib/agen
 import { getReliableMovementMissingFields, isUsefulMovementDescription } from "@/lib/agent/draft-sufficiency";
 import { extractMoneyAmount, stripMoneyExpressions } from "@/lib/agent/money";
 import { inferSemanticTransactionType } from "@/lib/agent/transaction-semantics";
-import { parseSpokenNumberPtBr } from "@/lib/agent/spoken-number";
+import { parseSpokenNumberPtBr, stripSpokenNumberPtBr } from "@/lib/agent/spoken-number";
 import { normalizeSpokenAgentMessage } from "@/lib/agent/spoken-text";
 import { toDateInputValue } from "@/lib/agent/utils";
 
@@ -204,7 +204,7 @@ const expenseVerbs = [
   "gasto",
   "comprei",
   "debito",
-  "dÃ©bito",
+  "débito",
   "desembolsei",
   "saiu",
   "foi",
@@ -218,7 +218,7 @@ const expenseVerbs = [
 
 const incomeVerbs = [
   "credito",
-  "crÃ©dito",
+  "crédito",
   "entrou",
   "recebi",
   "caiu",
@@ -232,19 +232,21 @@ const incomeVerbs = [
   "entrada",
   "pix recebido",
   "transferencia recebida",
-  "transferÃªncia recebida",
+  "transferência recebida",
   "cliente pagou",
   "reembolso recebido",
 ];
 
 const operationalPhrasePatterns = [
   /\b(?:me ajuda|ajuda)\b/gi,
+  /\b(?:na verdade|verdade|quis dizer|não era|nao era|era para ser|era pra ser)\b/gi,
+  /\b(?:corrige|corrigir|corrija|mude|muda|troca|troque)\b(?:\s+(?:para|pra|por))?/gi,
   /\b(?:e\s+)?(?:deu|ficou|totalizou)\b/gi,
   /\badiciona\s+a[ií]\b/gi,
   /\b(?:agora|adicione|adiciona|adicionar|bota|botar|registre|registra|resgitra|registrar|lança|lanca|lançar|lancar|lance|coloca|colocar|cadastra|cadastre|cadastrar|faz|fazer|fa[çc]a|cria|crie|criar)\b/gi,
   /\b(?:por favor|porfavor|pra mim|para mim)\b/gi,
   /\b(?:que\s+)?(?:eu\s+)?(?:recebi|paguei|gastei|comprei)\b/gi,
-  /\b(?:pagar|pago|pagamento|gasto|compra|comprado|lancei|lancado|lanÃ§ado|registrei|registrado)\b/gi,
+  /\b(?:pagar|pago|pagamento|gasto|compra|comprado|lancei|lancado|lançado|registrei|registrado)\b/gi,
   /\bque\s+(?:entrou|saiu|caiu|foi)\b/gi,
   /\b(?:tive|entrou|caiu|veio|saiu|foi|custou|descontou|boleto|despesa|entrada|vendi|faturei|faturou|ganhei|peguei)\b/gi,
   /\bcomo\s+(?:entrada|despesa)\b/gi,
@@ -337,11 +339,19 @@ export function parseTransactionMessage(message: string, forcedType?: MovementTy
   const amount = extractMoneyPtBr(spokenMessage);
   const sourceEntity = extractSourceEntity(spokenMessage, type);
   const description = sourceEntity?.description ?? cleanTransactionDescription(spokenMessage, type);
-  const category = description
+  let category = description
     ? sourceEntity?.category
       ? { category: sourceEntity.category, confidence: sourceEntity.confidence, matchKind: "alias" as const }
       : decideCategoryWithConfidence(description, { allowFallback: false })
     : null;
+
+  if (!category && type === "entrada" && description && /\bpix\b/.test(normalizeAgentInput(description))) {
+    category = {
+      category: "Venda",
+      confidence: "medium",
+      matchKind: "fallback",
+    };
+  }
   const draft: AgentMovementDraft = {
     type,
     occurred_on: extractSimpleDate(spokenMessage),
@@ -660,6 +670,24 @@ export function extractExplicitDatePtBr(message: string) {
     return toDateInputValue(date);
   }
 
+  if (normalized.includes("amanha")) {
+    const date = new Date();
+    date.setDate(date.getDate() + 1);
+    return toDateInputValue(date);
+  }
+
+  if (normalized.includes("semana que vem")) {
+    const date = new Date();
+    date.setDate(date.getDate() + 7);
+    return toDateInputValue(date);
+  }
+
+  if (normalized.includes("semana passada")) {
+    const date = new Date();
+    date.setDate(date.getDate() - 7);
+    return toDateInputValue(date);
+  }
+
   if (dateMatch) {
     const day = Number(dateMatch[1]);
     const month = Number(dateMatch[2]);
@@ -736,7 +764,7 @@ function calculateConfidence({
 }
 
 function stripMoneyPhrase(message: string) {
-  return stripMoneyExpressions(message);
+  return stripMoneyExpressions(stripSpokenNumberPtBr(message));
 }
 
 function stripOperationalPhrases(message: string) {
@@ -751,7 +779,8 @@ function stripOperationalPhrases(message: string) {
 
 function stripDescriptionDateNoise(message: string) {
   return message
-    .replace(/\b(?:hoje|ontem)\b/gi, " ")
+    .replace(/\b(?:hoje|hj|ontem|amanhã|amanha)\b/gi, " ")
+    .replace(/\bsemana\s+(?:que\s+vem|passada)\b/gi, " ")
     .replace(/\b(?:dia|no dia|na data)\s+\d{1,2}(?:\/\d{1,2}(?:\/\d{2,4})?)?\b/gi, " ");
 }
 

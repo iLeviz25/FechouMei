@@ -6,10 +6,13 @@ type MoneyCandidate = {
 };
 
 const moneyExpressionPattern =
-  /(^|[^\p{L}\p{N}/])((?:(?:r\$|brl)\s*)?[+-]?(?:(?:\d{1,3}(?:[.,]\d{3})+)|\d+)(?:[.,]\d{1,2})?\s*(?:reais|real|brl|conto|contos)?)(?!\s*\/)/giu;
+  /(^|[^\p{L}\p{N}/])((?:(?:r\$|brl)\s*)?[+-]?(?:(?:\d{1,3}(?:[.,]\d{3})+)|\d+)(?:[.,]\d{1,2})?\s*(?:reais|real|brl|conto|contos|pila|pilas)?)(?!\s*\/)/giu;
 
 const standaloneMoneyWordsPattern =
-  /(^|[\s([{])(?:r\$|brl|reais|real|conto|contos)(?=$|[\s)\]},.!?;:])/giu;
+  /(^|[\s([{])(?:r\$|brl|reais|real|conto|contos|pila|pilas)(?=$|[\s)\]},.!?;:])/giu;
+
+const informalMoneyWordsPattern =
+  /(^|[\s([{])(?:duzent[aã]o|cemz[aã]o|cinquentinha|quinhent[aã]o|mil[aã]o)(?=$|[\s)\]},.!?;:])/giu;
 
 export function extractMoneyAmount(message: string) {
   const candidates = findMoneyCandidates(message);
@@ -31,6 +34,7 @@ export function stripMoneyExpressions(message: string) {
   return message
     .replace(moneyExpressionPattern, (_match, leading: string) => `${leading} `)
     .replace(standaloneMoneyWordsPattern, (_match, leading: string) => `${leading} `)
+    .replace(informalMoneyWordsPattern, (_match, leading: string) => `${leading} `)
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -55,7 +59,7 @@ function findMoneyCandidates(message: string): MoneyCandidate[] {
 
     candidates.push({
       amount,
-      hasCurrencyMarker: /\b(?:r\$|brl|reais|real|conto|contos)\b/i.test(raw) || /r\$/i.test(raw),
+      hasCurrencyMarker: /\b(?:r\$|brl|reais|real|conto|contos|pila|pilas)\b/i.test(raw) || /r\$/i.test(raw),
       index: (match.index ?? 0) + leading.length,
       raw,
     });

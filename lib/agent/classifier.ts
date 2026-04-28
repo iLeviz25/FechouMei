@@ -48,6 +48,7 @@ export function classifyDeterministically(
 ): DeterministicClassification | null {
   const spokenMessage = normalizeSpokenAgentMessage(message);
   const normalized = normalizeText(spokenMessage);
+  const rawNormalized = normalizeText(message);
   const confirmation = detectConfirmation(spokenMessage);
 
   if (state.status !== "idle" && isCorrection(normalized)) {
@@ -104,7 +105,7 @@ export function classifyDeterministically(
     ) {
       return {
         kind: "unsupported_or_unknown",
-        reply: "Qual categoria vocÃª quer consultar?",
+        reply: "Qual categoria você quer consultar?",
       };
     }
 
@@ -123,11 +124,20 @@ export function classifyDeterministically(
     };
   }
 
-  if (isCapabilitiesQuestion(normalized)) {
+  if (isCapabilitiesQuestion(rawNormalized) || isCapabilitiesQuestion(normalized)) {
     return { kind: "capabilities" };
   }
 
-  const identityReply = getAssistantIdentityReply(normalized);
+  const safetyReply = getSafetyFiscalReply(rawNormalized);
+
+  if (safetyReply) {
+    return {
+      kind: "product_question",
+      reply: appendPendingContext(safetyReply, state),
+    };
+  }
+
+  const identityReply = getAssistantIdentityReply(rawNormalized) ?? getAssistantIdentityReply(normalized);
 
   if (identityReply) {
     return {
@@ -249,17 +259,17 @@ export function classifyDeterministically(
     };
   }
 
-  if (state.status === "idle" && confirmation !== "unclear") {
-    return { kind: "confirmation" };
-  }
-
-  const conversationalReply = getConversationalReply(normalized);
+  const conversationalReply = getConversationalReply(rawNormalized) ?? getConversationalReply(normalized);
 
   if (conversationalReply) {
     return {
-      kind: normalized.includes("gosta") || normalized.includes("prefere") ? "small_talk" : "greeting",
+      kind: rawNormalized.includes("gosta") || rawNormalized.includes("prefere") ? "small_talk" : "greeting",
       reply: appendPendingContext(conversationalReply, state),
     };
+  }
+
+  if (state.status === "idle" && confirmation !== "unclear") {
+    return { kind: "confirmation" };
   }
 
   return null;
@@ -346,7 +356,6 @@ export function inferPartialFieldAnswer({
 
 export function inferCorrectionFields(message: string): Partial<AgentMovementDraft> {
   const trimmed = stripCorrectionPrefix(message.trim());
-  const normalized = normalizeText(trimmed);
   const replacement = inferDescriptionReplacement(message);
   const occurredOn = extractExplicitDatePtBr(message);
   const inferred = inferPartialFieldAnswer({
@@ -369,12 +378,24 @@ export function inferCorrectionFields(message: string): Partial<AgentMovementDra
     inferred.occurred_on = occurredOn;
   }
 
-  if (!inferred.type && /\b(despesa|gasto|saida|saída|saiu)\b/.test(normalized)) {
-    inferred.type = "despesa";
+  if (!inferred.type) {
+    inferred.type = inferMovementTypeFromText(trimmed) ?? inferMovementTypeFromText(message) ?? undefined;
   }
 
-  if (!inferred.type && /\b(entrada|receita|recebimento|entrou)\b/.test(normalized)) {
-    inferred.type = "entrada";
+  const parsedCorrection = parseCorrectionTransaction(message, inferred.type);
+
+  if (parsedCorrection && !occurredOn) {
+    if (parsedCorrection.draft.amount) {
+      inferred.amount = parsedCorrection.draft.amount;
+    }
+
+    if (parsedCorrection.draft.description) {
+      inferred.description = parsedCorrection.draft.description;
+    }
+
+    if (parsedCorrection.draft.category) {
+      inferred.category = parsedCorrection.draft.category;
+    }
   }
 
   if (!inferred.category) {
@@ -385,7 +406,7 @@ export function inferCorrectionFields(message: string): Partial<AgentMovementDra
     }
   }
 
-  if (!inferred.amount && !inferred.category && !inferred.description && !inferred.type && trimmed.length >= 2) {
+  if (!inferred.amount && !inferred.category && !inferred.description && !inferred.type && !inferred.occurred_on && trimmed.length >= 2) {
     inferred.description = trimmed;
   }
 
@@ -446,9 +467,20 @@ export function inferTransactionEditCorrection(
 }
 
 export function inferDescriptionReplacement(message: string) {
+  const positiveThenNegativeReplacement = message
+    .trim()
+    .match(/(?:na verdade\s+)?(?:foi|era|e|eh|é)\s+(.+?),?\s+n[aã]o\s+(.+)$/i);
+
+  if (positiveThenNegativeReplacement?.[1] && positiveThenNegativeReplacement[2]) {
+    return {
+      from: cleanupCorrectionValue(positiveThenNegativeReplacement[2]),
+      to: cleanupCorrectionValue(positiveThenNegativeReplacement[1]),
+    };
+  }
+
   const repeatedConnectorReplacement = message
     .trim()
-    .match(/(?:n.o|nao)\s+(\S+)\s+(.+?),?\s+\1\s+(.+)$/i);
+    .match(/(?:n[aã]o|nao)\s+(\S+)\s+(.+?),?\s+\1\s+(.+)$/i);
 
   if (
     repeatedConnectorReplacement?.[1] &&
@@ -464,7 +496,7 @@ export function inferDescriptionReplacement(message: string) {
 
   const localNegativeReplacement = message
     .trim()
-    .match(/(?:n.o|nao)\s+(?:foi|era|e|eh|é)\s+(.+?),?\s+(?:foi|era|e|eh|é)\s+(.+)$/i);
+    .match(/(?:n[aã]o|nao)\s+(?:foi|era|e|eh|é)\s+(.+?),?\s+(?:foi|era|e|eh|é)\s+(.+)$/i);
 
   if (localNegativeReplacement?.[1] && localNegativeReplacement[2]) {
     return {
@@ -689,7 +721,7 @@ function getReadAction(normalized: string): AgentActionId | null {
     return "dashboard_overview";
   }
 
-  if (/(meu mes|meu mês|resumo|saldo|como esta|como está|como foi meu mes|como foi meu mês|entradas.*despesas|movimentacao do mes|movimentação do mês|movimentacoes do mes|movimentações do mês|minha movimentacao do mes|minha movimentação do mês|o que eu movimentei.*mes|o que eu movimentei.*mês)/.test(normalized)) {
+  if (/(meu mes|meu mês|resumo|saldo|como esta|como está|como ta|como tá|quanto.*(?:gastei|gasto|gastos|despesa|despesas|entrou|entrada|entradas|recebi)|como foi meu mes|como foi meu mês|entradas.*despesas|movimentacao do mes|movimentação do mês|movimentacoes do mes|movimentações do mês|minha movimentacao do mes|minha movimentação do mês|o que eu movimentei.*mes|o que eu movimentei.*mês)/.test(normalized)) {
     return "monthly_summary";
   }
 
@@ -709,7 +741,7 @@ function getInlineReadAction(normalized: string): AgentActionId | null {
     return "recent_transactions";
   }
 
-  if (/(como esta|como esta meu mes|como ta|como ta meu mes|como foi meu mes|resumo|saldo|movimentacao do mes|movimentacoes do mes|minha movimentacao do mes|o que eu movimentei.*mes)/.test(normalized)) {
+  if (/(como esta|como esta meu mes|como ta|como ta meu mes|quanto.*(?:gastei|gasto|gastos|despesa|despesas|entrou|entrada|entradas|recebi)|como foi meu mes|resumo|saldo|movimentacao do mes|movimentacoes do mes|minha movimentacao do mes|o que eu movimentei.*mes)/.test(normalized)) {
     return "monthly_summary";
   }
 
@@ -735,7 +767,7 @@ function getReadActions(normalized: string): AgentActionId[] {
     findReadMatch(normalized, "obligations_status", /(obrigac|pendencia|pendente|das|dasn|tarefas|o que falta fazer|falta fazer)/),
     findReadMatch(normalized, "recent_transactions", /(ultim|recent|registros|movimentacoes recentes|movimentações recentes|minhas movimentacoes|minhas movimentações|me fala minhas movimentacoes|me fala minhas movimentações|me mostra minhas movimentacoes|me mostra minhas movimentações)/),
     findReadMatch(normalized, "dashboard_overview", /(dashboard|visao geral|visão geral|painel)/),
-    findReadMatch(normalized, "monthly_summary", /(meu mes|meu mês|resumo|saldo|como esta|como está|como foi meu mes|como foi meu mês|entradas.*despesas|movimentacao do mes|movimentação do mês|movimentacoes do mes|movimentações do mês|minha movimentacao do mes|minha movimentação do mês|o que eu movimentei.*mes|o que eu movimentei.*mês)/),
+    findReadMatch(normalized, "monthly_summary", /(meu mes|meu mês|resumo|saldo|como esta|como está|como ta|como tá|quanto.*(?:gastei|gasto|gastos|despesa|despesas|entrou|entrada|entradas|recebi)|como foi meu mes|como foi meu mês|entradas.*despesas|movimentacao do mes|movimentação do mês|movimentacoes do mes|movimentações do mês|minha movimentacao do mes|minha movimentação do mês|o que eu movimentei.*mes|o que eu movimentei.*mês)/),
   ].filter((match): match is { action: AgentActionId; index: number } => Boolean(match));
 
   const uniqueActions = new Set<AgentActionId>();
@@ -789,21 +821,77 @@ function getAssistantIdentityReply(normalized: string) {
   return null;
 }
 
+function getSafetyFiscalReply(normalized: string) {
+  if (/(escond|ocult|omitir|sonegar|fraudar|maquiar).*(faturamento|receita|nota|fiscal|imposto|das|mei)/.test(normalized)) {
+    return "Não posso te ajudar a esconder informação fiscal. Posso te ajudar a organizar seus registros corretamente para você acompanhar seu MEI com mais segurança.";
+  }
+
+  if (
+    /(voce|vc).*(substitui|substituir|dispensa|troca).*(contador|contadora)/.test(normalized) ||
+    /(posso|da pra|dá pra|preciso).*(ficar sem|sem).*(contador|contadora)/.test(normalized)
+  ) {
+    return "Não substituo contador. Eu te ajudo a organizar entradas, despesas, obrigações e relatórios para você ter mais controle e conversar melhor com seu contador.";
+  }
+
+  return null;
+}
+
 function getConversationalReply(normalized: string) {
+  const plain = normalized
+    .replace(/[^\p{Letter}\p{Number}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (/(melhor que planilha|menos pior que planilha|adeus planilha)/.test(plain)) {
+    return "Haha, aí sim 😄 Minha missão é justamente te livrar da bagunça da planilha. Quer registrar ou consultar alguma coisa agora?";
+  }
+
+  if (/(me salvou|salvou demais|voce me ajudou|você me ajudou)/.test(plain)) {
+    return "Boa! Fico feliz em ajudar. Quando quiser, é só me mandar as entradas e gastos do seu jeito.";
+  }
+
+  if (/(nao entendi nada|não entendi nada|confuso|confusa|to perdido|tô perdido|estou perdido|aff|que saco)/.test(plain)) {
+    return "Poxa, desculpa se compliquei. Vamos no simples: você pode me mandar algo como 'vendi 150 no pix' ou 'gastei 40 no mercado' que eu organizo pra você.";
+  }
+
+  if (/(nao quero preencher nada|não quero preencher nada|so resolve|só resolve|resolve pra mim|resolve para mim)/.test(plain)) {
+    return "Fechado. Me manda do seu jeito, tipo 'recebi 200 de um cliente' ou 'gastei 50 com internet', que eu transformo isso em registro pra você confirmar.";
+  }
+
+  if (/(to com pressa|tô com pressa|estou com pressa|rapidinho|rapidao|rapidão)/.test(plain)) {
+    return "Beleza, vou ser direta. Me manda o valor e o motivo que eu registro rapidinho.";
+  }
+
+  if (/(faz|manda|conta).*(piada|graca|graça)/.test(plain)) {
+    return "Posso tentar uma rapidinha: planilha boa é aquela que não te faz sofrer no fim do mês 😄 Agora, quer que eu te ajude com algum registro?";
+  }
+
+  if (/(quem ganhou|placar|jogo ontem|resultado do jogo|futebol|campeonato)/.test(plain)) {
+    return "Essa eu não consigo acompanhar por aqui. Mas se quiser saber como ficou seu mês, seus gastos ou suas obrigações, eu te ajudo rapidinho.";
+  }
+
+  if (/(sentido da vida|qual a vida|universo)/.test(plain)) {
+    return "Essa é grande demais para mim. No FechouMEI eu resolvo melhor entradas, gastos, resumo do mês e obrigações.";
+  }
+
+  if (plain === "voce" || plain === "vc" || /(voce|vc).*(ai|aqui|online|por aqui)/.test(plain)) {
+    return "Tô sim. Me manda o que você quer registrar ou consultar.";
+  }
+
   if (/^bom dia\b/.test(normalized)) {
-    return "Bom dia! Quer registrar alguma movimentacao ou dar uma olhada no seu mes?";
+    return "Bom dia! Quer registrar alguma movimentação ou dar uma olhada no seu mês?";
   }
 
   if (/^boa tarde\b/.test(normalized)) {
-    return "Boa tarde! Posso te ajudar com entradas, despesas, resumo do mes e pendencias.";
+    return "Boa tarde! Posso te ajudar com entradas, despesas, resumo do mês e pendências.";
   }
 
   if (/^boa noite\b/.test(normalized)) {
-    return "Boa noite! Posso te ajudar com registros rapidos, resumo do mes e obrigacoes.";
+    return "Boa noite! Posso te ajudar com registros rápidos, resumo do mês e obrigações.";
   }
 
   if (/^(oi|ola|ol.|e ai|e a.)\b/.test(normalized)) {
-    return "Oi! Me manda o que voce precisa registrar ou consultar.";
+    return "Oi! Me manda o que você precisa registrar ou consultar.";
   }
 
   if (/^(oi|ola|olá|e ai|e aí|bom dia|boa tarde|boa noite)\b/.test(normalized)) {
@@ -819,7 +907,7 @@ function getConversationalReply(normalized: string) {
   }
 
   if (/(obrigad|valeu|show|boa)/.test(normalized)) {
-    return "De nada. Quando quiser, seguimos com seu financeiro.";
+    return "Boa! Quando quiser, é só me mandar as entradas e gastos do seu jeito.";
   }
 
   return null;
@@ -830,16 +918,18 @@ function getCategoryCatalogReply(normalized: string) {
     return null;
   }
 
-  if (!/(quais|qual|existem|existe|tem|lista|mostrar|mostra|me fala|sao|sÃ£o)/.test(normalized)) {
+  if (!/(quais|qual|existem|existe|tem|lista|mostrar|mostra|me fala|sao|são)/.test(normalized)) {
     return null;
   }
 
   const categories = getOfficialMovementCategories().map((category) => category.toLocaleUpperCase("pt-BR"));
-  return `As categorias do app sÃ£o: ${categories.join(", ")}. Use OUTRO sÃ³ quando nÃ£o encaixar em nenhuma delas.`;
+  return `As categorias do app são: ${categories.join(", ")}. Use OUTRO só quando não encaixar em nenhuma delas.`;
 }
 
 function isCapabilitiesQuestion(normalized: string) {
   return (
+    /^(me ajuda|ajuda|me ajuda aqui|me ajuda ai|me ajuda aí)(?:\b|$)/.test(normalized) ||
+    /(como uso isso|como usar isso|como funciona isso)/.test(normalized) ||
     /(o que|que).*(voce|vc|helena).*(pode|consegue|faz|sabe fazer)/.test(normalized) ||
     /(como).*(voce|vc|helena).*(pode me ajudar|funciona|me ajuda)/.test(normalized) ||
     /(me da|manda|mostra|me fala).*(exemplo|exemplos)/.test(normalized) ||
@@ -869,15 +959,19 @@ function isCorrection(normalized: string) {
     return false;
   }
 
-  if (/^(?:nao|nÃ£o|n)\s+(?:foi|era|e|eh|dia)\b.+\b(?:foi|era|e|eh)\b.+/.test(normalized)) {
+  if (/^(?:nao|não|n)\s+(?:foi|era|e|eh|dia)\b.+\b(?:foi|era|e|eh)\b.+/.test(normalized)) {
     return true;
   }
 
-  if (/^(?:nao|nÃ£o|n),?\s*era\b.+/.test(normalized)) {
+  if (/^(?:nao|não|n),?\s*era\b.+/.test(normalized)) {
     return true;
   }
 
   if (/^(e\s+)?foi\s+(ontem|hoje|\d{1,2}\/\d{1,2})\b/.test(normalized)) {
+    return true;
+  }
+
+  if (/^(?:coloca|bota|poe|passa|deixa|joga)\s+(?:pra|para)\s+(?:ontem|hoje|amanha|semana que vem|semana passada)\b/.test(normalized)) {
     return true;
   }
 
@@ -912,7 +1006,7 @@ function readExplicitValue(message: string, labels: string[]) {
 
 function cleanupCorrectionValue(value: string) {
   return value
-    .replace(/\b(?:o|a|os|as|meu|minha|cliente|do|da|de|para|pra|por)\b/gi, " ")
+    .replace(/\b(?:o|a|os|as|meu|minha|do|da|de|para|pra|por)\b/gi, " ")
     .replace(/[,.!?]+$/g, "")
     .replace(/\s+/g, " ")
     .trim();
@@ -920,16 +1014,41 @@ function cleanupCorrectionValue(value: string) {
 
 function inferMovementTypeFromText(value: string): AgentMovementDraft["type"] | null {
   const normalized = normalizeText(value);
+  const hasExpenseActionCue = /\b(despesa|gasto|gastei|paguei|comprei|saida|saiu|boleto|custou|fornecedor)\b/.test(normalized);
+  const hasExpenseContextCue = /\b(mercado|almoco|jantar|lanche|internet|material)\b/.test(normalized);
+  const hasIncomeActionCue = /\b(entrada|receita|recebimento|recebi|entrou|caiu|ganhei|vendi|faturei|faturou|cliente pagou|pix recebido)\b/.test(normalized);
+  const hasExpenseCue = hasExpenseActionCue || (!hasIncomeActionCue && hasExpenseContextCue);
+  const hasIncomeCue = hasIncomeActionCue;
 
-  if (/\b(despesa|gasto|saida|saiu)\b/.test(normalized)) {
+  if (hasExpenseCue && hasIncomeCue) {
+    if (/\b(?:foi|era|e|eh|ser)\s+(entrada|receita|recebimento)\b/.test(normalized) || /\bnao\s+(despesa|gasto|saida)\b/.test(normalized)) {
+      return "entrada";
+    }
+
+    if (/\b(?:foi|era|e|eh|ser)\s+(despesa|gasto|saida)\b/.test(normalized) || /\bnao\s+(entrada|receita|recebimento)\b/.test(normalized)) {
+      return "despesa";
+    }
+  }
+
+  if (hasExpenseCue && !hasIncomeCue) {
     return "despesa";
   }
 
-  if (/\b(entrada|receita|recebimento|entrou)\b/.test(normalized)) {
+  if (hasIncomeCue && !hasExpenseCue) {
     return "entrada";
   }
 
   return null;
+}
+
+function parseCorrectionTransaction(message: string, type?: AgentMovementDraft["type"]) {
+  const parsed = parseTransactionMessage(message, type);
+
+  if (!parsed?.draft.amount) {
+    return null;
+  }
+
+  return parsed;
 }
 
 function isShortFieldAnswer(normalized: string) {
@@ -941,6 +1060,7 @@ function stripCorrectionPrefix(message: string) {
     .replace(/^\s*(?:não|nao|n),?\s*/i, "")
     .replace(/^\s*(?:na verdade|quis dizer|era|era para ser|era pra ser)\s+/i, "")
     .replace(/^\s*(?:era|era para ser|era pra ser)\s+/i, "")
+    .replace(/^\s*(?:coloca|bota|põe|poe|passa|deixa|joga)\s+(?:para|pra)?\s*/i, "")
     .replace(/^\s*(?:muda|mude|troca|troque|corrige|corrija)\s+(?:para|pra)?\s*/i, "")
     .trim();
 }

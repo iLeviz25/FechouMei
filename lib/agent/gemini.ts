@@ -28,6 +28,7 @@ type InterpretMessageInput = {
 };
 
 const defaultModel = "gemini-2.5-flash";
+const friendlyProviderFallback = "Tive uma instabilidade agora para entender sua mensagem. Pode tentar de novo em instantes?";
 
 export class GeminiConfigurationError extends Error {
   constructor(message: string) {
@@ -53,24 +54,24 @@ export type AgentPromptTemplate = {
 export function getAgentPromptTemplates(): AgentPromptTemplate[] {
   return [
     {
-      description: "Prompt principal usado para classificar intencao, acao e campos extraidos antes da Helena responder.",
+      description: "Prompt principal usado para classificar intenção, ação e campos extraídos antes da Helena responder.",
       id: "helena.interpretation",
       promptText: buildInterpretationPrompt({
         message: "{{mensagem_do_usuario}}",
         state: emptyAgentState(),
       }),
-      title: "Interpretacao de mensagens",
+      title: "Interpretação de mensagens",
     },
     {
-      description: "Instrucao usada na transcricao de audio do WhatsApp antes de enviar o texto para a Helena.",
+      description: "Instrução usada na transcrição de áudio antes de enviar o texto para a Helena.",
       id: "helena.audio_transcription",
       promptText: [
-        "Transcreva o audio em portugues do Brasil.",
+        "Transcreva o áudio em português do Brasil.",
         "Retorne somente o texto transcrito.",
-        "Nao resuma, nao explique e nao adicione comentarios.",
-        "Se uma parte estiver inaudivel, seja conservador e nao invente.",
+        "Não resuma, não explique e não adicione comentários.",
+        "Se uma parte estiver inaudível, seja conservador e não invente.",
       ].join(" "),
-      title: "Transcricao de audio",
+      title: "Transcrição de áudio",
     },
   ];
 }
@@ -165,7 +166,7 @@ export async function interpretMessageWithGemini({
 
     if (!text) {
       console.error("Gemini empty interpretation", { payload });
-      throw new GeminiProviderError("Tive uma instabilidade agora para processar sua mensagem. Tente novamente em instantes.");
+      throw new GeminiProviderError(friendlyProviderFallback);
     }
 
     const interpretation = parseInterpretation(text);
@@ -214,7 +215,7 @@ export async function interpretMessageWithGemini({
       status: "error",
       trace,
     });
-    throw new GeminiProviderError("Tive uma instabilidade agora para processar sua mensagem. Tente novamente em instantes.");
+    throw new GeminiProviderError(friendlyProviderFallback);
   }
 }
 
@@ -225,7 +226,10 @@ export function buildInterpretationPrompt({ message, state }: Omit<InterpretMess
     "O nome da assistente é Helena, a assistente financeira do FechouMEI.",
     "Não execute ações. Apenas identifique intenção e campos extraídos.",
     "Classifique kind como greeting, small_talk, capabilities, product_question, read_query, write_action, confirmation, cancelation, correction, unsupported_or_unknown ou interruption.",
-    "Use capabilities quando o usuÃ¡rio perguntar o que o agente pode fazer, como funciona ou pedir exemplos.",
+    "Use capabilities quando o usuário perguntar o que o agente pode fazer, como funciona ou pedir exemplos.",
+    "Se houver rascunho pendente e o usuário corrigir valor, tipo, descrição, categoria ou data, use kind correction.",
+    "Se houver rascunho pendente e o usuário fizer uma consulta, use kind interruption e a ação de leitura adequada.",
+    "Para dúvidas, frustração ou fora de escopo, mantenha intenção curta e segura; a resposta final será controlada pelo app.",
     "Se a mensagem for confirmação de uma ação pendente, preencha confirmation.",
     "Use datas no formato YYYY-MM-DD apenas quando a mensagem trouxer data explícita. Se não trouxer data, não invente.",
     "Campos de movimentação: type, amount, description, category, occurred_on.",
@@ -287,7 +291,7 @@ function parseInterpretation(text: string): AgentModelInterpretation {
     parsed = JSON.parse(cleaned) as AgentModelInterpretation;
   } catch (error) {
     console.error("Gemini parsing error", { error, text });
-    throw new GeminiProviderError("Tive uma instabilidade agora para processar sua mensagem. Tente novamente em instantes.");
+    throw new GeminiProviderError(friendlyProviderFallback);
   }
 
   return {
@@ -301,12 +305,12 @@ function parseInterpretation(text: string): AgentModelInterpretation {
 
 function getFriendlyProviderError(status: number) {
   if (status === 429) {
-    return "A inteligência do agente atingiu o limite de uso agora. Tente novamente em instantes.";
+    return friendlyProviderFallback;
   }
 
   if (status >= 500 || status === 408) {
-    return "Tive uma instabilidade agora para processar sua mensagem. Tente novamente em instantes.";
+    return friendlyProviderFallback;
   }
 
-  return "Não consegui processar sua mensagem agora. Tente novamente em instantes.";
+  return friendlyProviderFallback;
 }
