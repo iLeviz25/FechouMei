@@ -1,13 +1,15 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
-import { runAgentTurn } from "@/lib/agent/orchestrator";
+import { runAgentTurn, runAgentTurnForContext } from "@/lib/agent/orchestrator";
 import {
   clearAgentConversationSnapshot,
   isAgentPersistenceSetupError,
   loadAgentConversationSnapshot,
   persistAgentTurn,
 } from "@/lib/agent/persistence";
+import { agentTurnQueueBusyReply, runQueuedAgentTurn } from "@/lib/agent/turn-queue";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import {
@@ -94,10 +96,37 @@ export async function sendAgentMessage({
   transientState?: AgentConversationState;
 }): Promise<AgentTurnPersistedResult> {
   const context = await getAgentContext();
-  let snapshot: AgentConversationSnapshot;
 
   try {
-    snapshot = await loadAgentConversationSnapshot(context);
+    return await runQueuedAgentTurn({
+      context: {
+        ...context,
+        channel: "playground",
+      },
+      onTimeout: () => getQueuedFallbackSnapshot(context, message),
+      work: async () => {
+        const snapshot = await loadAgentConversationSnapshot(context);
+        const result = await runAgentTurnForContext({
+          channel: "playground",
+          context,
+          message,
+          state: snapshot.state,
+        });
+        const updatedSnapshot = await persistAgentTurn({
+          actionTrace: result.actionTrace,
+          context,
+          conversationId: snapshot.conversationId,
+          nextState: result.state,
+          reply: result.reply,
+          userMessage: message,
+        });
+
+        return {
+          ...updatedSnapshot,
+          reply: result.reply,
+        };
+      },
+    });
   } catch (error) {
     if (!isAgentPersistenceSetupError(error)) {
       throw error;
@@ -113,24 +142,6 @@ export async function sendAgentMessage({
       reply: result.reply,
     };
   }
-
-  const result = await runAgentTurn({
-    message,
-    state: snapshot.state,
-  });
-  const updatedSnapshot = await persistAgentTurn({
-    actionTrace: result.actionTrace,
-    context,
-    conversationId: snapshot.conversationId,
-    nextState: result.state,
-    reply: result.reply,
-    userMessage: message,
-  });
-
-  return {
-    ...updatedSnapshot,
-    reply: result.reply,
-  };
 }
 
 export async function clearAgentConversation(): Promise<AgentConversationSnapshot> {
@@ -153,5 +164,33 @@ function getTransientSnapshot(state: AgentConversationState = emptyAgentState())
     isPersistent: false,
     messages: [],
     state,
+  };
+}
+
+async function getQueuedFallbackSnapshot(
+  context: Awaited<ReturnType<typeof getAgentContext>>,
+  message: string,
+): Promise<AgentTurnPersistedResult> {
+  const snapshot = await loadAgentConversationSnapshot(context);
+  const createdAt = new Date().toISOString();
+
+  return {
+    ...snapshot,
+    messages: [
+      ...snapshot.messages,
+      {
+        id: randomUUID(),
+        content: message,
+        created_at: createdAt,
+        role: "user",
+      },
+      {
+        id: randomUUID(),
+        content: agentTurnQueueBusyReply,
+        created_at: createdAt,
+        role: "agent",
+      },
+    ],
+    reply: agentTurnQueueBusyReply,
   };
 }

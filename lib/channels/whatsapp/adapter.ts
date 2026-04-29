@@ -11,6 +11,7 @@ import {
   loadAgentConversationSnapshot,
   persistAgentTurn,
 } from "@/lib/agent/persistence";
+import { agentTurnQueueBusyReply, runQueuedAgentTurn } from "@/lib/agent/turn-queue";
 import {
   WhatsAppMediaDownloadError,
   WhatsAppUnsupportedAudioError,
@@ -849,70 +850,97 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
 
   try {
     trace.mark("orchestration_started");
-    const snapshot = await loadAgentConversationSnapshot(persistenceContext);
-    conversationId = snapshot.conversationId;
-
-    if (audioWasTranscribed) {
-      audioStage = "agent_turn_started";
-      await logInboundStage({
-        conversationId,
-        externalMessageId,
-        instance: normalized.instance,
-        messageText: agentInputText,
-        metadata: `preview=${summarizeReplyForChannelLog(agentInputText)}`,
-        remoteId: normalized.remoteJid,
-        stage: audioStage,
-        userId: resolvedUserId,
-      });
-    }
-
-    trace.mark("action_execution_started", {
-      conversationId,
-    });
-    const result = await runAgentTurnForContext({
-      channel: "whatsapp",
-      context: executionContext,
-      message: agentInputText,
-      state: snapshot.state,
-    });
-    trace.mark("action_execution_finished", {
-      replyCharacters: result.reply.length,
-    });
-
-    trace.mark("response_build_started", {
-      source: "agent_result",
-    });
-    agentReply = result.reply;
-    trace.mark("response_build_finished", {
-      characters: agentReply.length,
-    });
-
-    if (audioWasTranscribed) {
-      audioStage = "agent_turn_finished";
-      await logInboundStage({
-        conversationId,
-        externalMessageId,
-        instance: normalized.instance,
-        messageText: agentInputText,
-        metadata: `reply=${summarizeReplyForChannelLog(result.reply)}`,
-        remoteId: normalized.remoteJid,
-        stage: audioStage,
-        userId: resolvedUserId,
-      });
-    }
-
-    const updatedSnapshot = await persistAgentTurn({
-      actionTrace: result.actionTrace,
+    const queuedTurn = await runQueuedAgentTurn({
       context: persistenceContext,
-      conversationId: snapshot.conversationId,
-      nextState: result.state,
-      reply: result.reply,
-      userMessage: agentInputText,
+      onTimeout: async () => {
+        trace.mark("response_build_started", {
+          fallback: "conversation_locked",
+        });
+        agentReply = agentTurnQueueBusyReply;
+        trace.mark("response_build_finished", {
+          characters: agentReply.length,
+          fallback: "conversation_locked",
+        });
+
+        return {
+          reply: agentReply,
+          queuedTimeout: true,
+        };
+      },
+      work: async () => {
+        const snapshot = await loadAgentConversationSnapshot(persistenceContext);
+        conversationId = snapshot.conversationId;
+
+        if (audioWasTranscribed) {
+          audioStage = "agent_turn_started";
+          await logInboundStage({
+            conversationId,
+            externalMessageId,
+            instance: normalized.instance,
+            messageText: agentInputText,
+            metadata: `preview=${summarizeReplyForChannelLog(agentInputText)}`,
+            remoteId: normalized.remoteJid,
+            stage: audioStage,
+            userId: resolvedUserId,
+          });
+        }
+
+        trace.mark("action_execution_started", {
+          conversationId,
+        });
+        const result = await runAgentTurnForContext({
+          channel: "whatsapp",
+          context: executionContext,
+          message: agentInputText,
+          state: snapshot.state,
+        });
+        trace.mark("action_execution_finished", {
+          replyCharacters: result.reply.length,
+        });
+
+        trace.mark("response_build_started", {
+          source: "agent_result",
+        });
+        agentReply = result.reply;
+        trace.mark("response_build_finished", {
+          characters: agentReply.length,
+        });
+
+        if (audioWasTranscribed) {
+          audioStage = "agent_turn_finished";
+          await logInboundStage({
+            conversationId,
+            externalMessageId,
+            instance: normalized.instance,
+            messageText: agentInputText,
+            metadata: `reply=${summarizeReplyForChannelLog(result.reply)}`,
+            remoteId: normalized.remoteJid,
+            stage: audioStage,
+            userId: resolvedUserId,
+          });
+        }
+
+        const updatedSnapshot = await persistAgentTurn({
+          actionTrace: result.actionTrace,
+          context: persistenceContext,
+          conversationId: snapshot.conversationId,
+          nextState: result.state,
+          reply: result.reply,
+          userMessage: agentInputText,
+        });
+
+        conversationId = updatedSnapshot.conversationId;
+
+        return {
+          reply: result.reply,
+          queuedTimeout: false,
+        };
+      },
     });
 
-    conversationId = updatedSnapshot.conversationId;
     trace.mark("orchestration_finished", {
       conversationId,
+      queuedTimeout: queuedTurn.queuedTimeout,
     });
 
     trace.mark("response_send_started");
@@ -923,7 +951,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
     await sendWhatsAppTextReply({
       config,
       remoteNumber,
-      reply: result.reply,
+      reply: queuedTurn.reply,
     });
     trace.mark("provider_send_request_finished", {
       channel: "whatsapp",
@@ -938,7 +966,9 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
       messageText: agentInputText,
       remoteId: normalized.remoteJid,
       status: "processed",
-      summary: getProcessedSummary(result.reply, audioWasTranscribed, agentInputText),
+      summary: queuedTurn.queuedTimeout
+        ? "Mensagem aguardou uma conversa ainda em processamento e recebeu fallback de fila."
+        : getProcessedSummary(queuedTurn.reply, audioWasTranscribed, agentInputText),
       userId: resolvedUserId,
     });
 

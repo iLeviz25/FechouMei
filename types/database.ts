@@ -325,6 +325,98 @@ export type Database = {
           },
         ];
       };
+      agent_turn_queue: {
+        Row: {
+          id: string;
+          user_id: string;
+          channel: "playground" | "whatsapp";
+          status: "waiting" | "processing" | "completed" | "failed" | "abandoned" | "expired";
+          position: number;
+          lock_token: string | null;
+          enqueued_at: string;
+          started_at: string | null;
+          finished_at: string | null;
+          expires_at: string;
+          error: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          channel: "playground" | "whatsapp";
+          status?: "waiting" | "processing" | "completed" | "failed" | "abandoned" | "expired";
+          position?: number;
+          lock_token?: string | null;
+          enqueued_at?: string;
+          started_at?: string | null;
+          finished_at?: string | null;
+          expires_at?: string;
+          error?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          channel?: "playground" | "whatsapp";
+          status?: "waiting" | "processing" | "completed" | "failed" | "abandoned" | "expired";
+          position?: number;
+          lock_token?: string | null;
+          enqueued_at?: string;
+          started_at?: string | null;
+          finished_at?: string | null;
+          expires_at?: string;
+          error?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_turn_queue_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      agent_conversation_locks: {
+        Row: {
+          user_id: string;
+          channel: "playground" | "whatsapp";
+          queue_item_id: string | null;
+          lock_token: string;
+          acquired_at: string;
+          expires_at: string;
+        };
+        Insert: {
+          user_id: string;
+          channel: "playground" | "whatsapp";
+          queue_item_id?: string | null;
+          lock_token: string;
+          acquired_at?: string;
+          expires_at: string;
+        };
+        Update: {
+          user_id?: string;
+          channel?: "playground" | "whatsapp";
+          queue_item_id?: string | null;
+          lock_token?: string;
+          acquired_at?: string;
+          expires_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agent_conversation_locks_queue_item_id_fkey";
+            columns: ["queue_item_id"];
+            isOneToOne: false;
+            referencedRelation: "agent_turn_queue";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agent_conversation_locks_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       app_settings: {
         Row: {
           key: string;
@@ -677,6 +769,45 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      abandon_agent_turn: {
+        Args: {
+          queue_item_id: string;
+          error_text?: string | null;
+        };
+        Returns: boolean;
+      };
+      claim_agent_turn: {
+        Args: {
+          queue_item_id: string;
+          lock_ttl_seconds?: number | null;
+        };
+        Returns: Json;
+      };
+      enqueue_agent_turn: {
+        Args: {
+          target_user_id: string;
+          target_channel: "playground" | "whatsapp";
+          turn_ttl_seconds?: number | null;
+        };
+        Returns: Json;
+      };
+      extend_agent_turn_lock: {
+        Args: {
+          queue_item_id: string;
+          provided_lock_token: string;
+          lock_ttl_seconds?: number | null;
+        };
+        Returns: boolean;
+      };
+      finish_agent_turn: {
+        Args: {
+          queue_item_id: string;
+          provided_lock_token: string;
+          final_status?: "completed" | "failed" | null;
+          error_text?: string | null;
+        };
+        Returns: boolean;
+      };
       get_admin_overview_metrics: {
         Args: Record<PropertyKey, never>;
         Returns: Json;

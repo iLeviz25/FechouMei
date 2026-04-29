@@ -29,6 +29,7 @@ WHATSAPP_CHANNEL_ENABLED=true
 WHATSAPP_TEST_USER_ID=seu-user-id-real-no-supabase
 WHATSAPP_TEST_REMOTE_NUMBER=5511999999999
 WHATSAPP_MAX_REPLY_LENGTH=900
+WHATSAPP_WEBHOOK_SECRET=change-this-webhook-secret
 EVOLUTION_API_BASE_URL=http://127.0.0.1:8080
 EVOLUTION_API_KEY=change-me
 EVOLUTION_API_INSTANCE=fechoumei-local
@@ -84,11 +85,18 @@ Invoke-RestMethod `
 
 ## 5. Apontar o webhook para o app
 
-Com o app rodando localmente em `http://localhost:3000`:
+Com o app rodando localmente em `http://localhost:3000`, configure o webhook com o mesmo segredo salvo em `WHATSAPP_WEBHOOK_SECRET`.
+
+Formato recomendado quando a Evolution aceitar headers customizados:
+
+- header: `x-fechoumei-webhook-secret`
+- valor: o mesmo valor de `WHATSAPP_WEBHOOK_SECRET`
+
+Formato compativel com instalacoes que configuram apenas a URL do webhook:
 
 ```powershell
 $webhookBody = @{
-  url = "http://host.docker.internal:3000/api/channels/whatsapp/evolution"
+  url = "http://host.docker.internal:3000/api/channels/whatsapp/evolution?webhook_secret=change-this-webhook-secret"
   events = @("MESSAGES_UPSERT")
   webhook_by_events = $false
   webhook_base64 = $false
@@ -126,12 +134,13 @@ O esperado é o estado `open`.
 ## 7. Fluxo esperado do canal
 
 1. Evolution envia `MESSAGES_UPSERT` para `app/api/channels/whatsapp/evolution/route.ts`
-2. O adapter normaliza a mensagem
-3. O número de teste é validado contra `WHATSAPP_TEST_REMOTE_NUMBER`
-4. A conversa do agente é carregada no canal `whatsapp`
-5. O agente atual processa a mensagem usando o mesmo orquestrador
-6. A resposta é enviada de volta pela Evolution em texto simples
-7. O evento inbound fica registrado para deduplicação e rastreabilidade mínima
+2. A rota valida `WHATSAPP_WEBHOOK_SECRET` via `Authorization: Bearer`, `x-fechoumei-webhook-secret`, `x-webhook-secret` ou query `webhook_secret`
+3. O adapter normaliza a mensagem
+4. O número de teste é validado contra `WHATSAPP_TEST_REMOTE_NUMBER`
+5. A conversa do agente é carregada no canal `whatsapp`
+6. O agente atual processa a mensagem usando o mesmo orquestrador
+7. A resposta é enviada de volta pela Evolution em texto simples
+8. O evento inbound fica registrado para deduplicação e rastreabilidade mínima
 
 ## 8. Escopo do webhook nesta rodada
 
