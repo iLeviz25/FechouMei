@@ -1,11 +1,33 @@
-import { AlertTriangle, Bot, CheckCircle2, MessageCircle, Phone, UsersRound, type LucideIcon } from "lucide-react";
+import {
+  AlertCircle,
+  AlertTriangle,
+  Bot,
+  CheckCircle2,
+  Clock3,
+  Cpu,
+  ListChecks,
+  LockKeyhole,
+  MessageCircle,
+  Phone,
+  ShieldCheck,
+  UsersRound,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { AdminHelenaActivityPanel } from "@/components/admin/admin-helena-activity-panel";
 import { AdminHelenaPromptsPanel } from "@/components/admin/admin-helena-prompts-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getAdminHelenaDashboard, getAdminHelenaPrompts, type AdminHelenaConnection, type AdminHelenaEvent } from "@/lib/admin/helena";
+import {
+  getAdminHelenaDashboard,
+  getAdminHelenaPrompts,
+  getAdminHelenaTechnicalHealth,
+  type AdminHelenaConnection,
+  type AdminHelenaEvent,
+  type AdminHelenaTechnicalHealth,
+  type AdminHelenaTechnicalHealthCard,
+} from "@/lib/admin/helena";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -81,6 +103,100 @@ function MetricCard({
   );
 }
 
+const technicalHealthIcons: LucideIcon[] = [
+  ShieldCheck,
+  ListChecks,
+  LockKeyhole,
+  Clock3,
+  AlertCircle,
+  Cpu,
+];
+
+function technicalHealthBadgeVariant(status: AdminHelenaTechnicalHealthCard["status"]) {
+  if (status === "ok") {
+    return "success";
+  }
+
+  if (status === "warning") {
+    return "warning";
+  }
+
+  return "secondary";
+}
+
+function technicalHealthStatusLabel(status: AdminHelenaTechnicalHealthCard["status"]) {
+  if (status === "ok") {
+    return "Ok";
+  }
+
+  if (status === "warning") {
+    return "Atencao";
+  }
+
+  return "Nao configurado";
+}
+
+function TechnicalHealthCard({
+  card,
+  icon: Icon,
+}: {
+  card: AdminHelenaTechnicalHealthCard;
+  icon: LucideIcon;
+}) {
+  return (
+    <Card className="overflow-hidden rounded-[22px]">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{card.label}</p>
+            <p className="mt-2 truncate text-xl font-extrabold tracking-tight text-foreground">{card.value}</p>
+          </div>
+          <div
+            className={cn(
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
+              card.status === "ok" && "bg-primary-soft text-primary",
+              card.status === "warning" && "bg-secondary-soft/85 text-secondary-foreground",
+              card.status === "unavailable" && "bg-muted text-muted-foreground",
+            )}
+          >
+            <Icon className="h-4 w-4" />
+          </div>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Badge variant={technicalHealthBadgeVariant(card.status)}>
+            {technicalHealthStatusLabel(card.status)}
+          </Badge>
+        </div>
+        <p className="mt-3 text-xs font-semibold leading-5 text-muted-foreground">{card.detail}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TechnicalHealthSection({ health }: { health: AdminHelenaTechnicalHealth }) {
+  return (
+    <section className="space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Operacao</p>
+          <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Saude tecnica</h2>
+        </div>
+        <ShieldCheck className="h-5 w-5 text-primary" />
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {health.cards.map((card, index) => (
+          <TechnicalHealthCard
+            card={card}
+            icon={technicalHealthIcons[index] ?? CheckCircle2}
+            key={card.label}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function ConnectionMobileCard({ connection }: { connection: AdminHelenaConnection }) {
   return (
     <Card className="overflow-hidden rounded-[24px] lg:hidden">
@@ -153,9 +269,10 @@ function RecentEvents({ events }: { events: AdminHelenaEvent[] }) {
 }
 
 export default async function AdminHelenaPage() {
-  const [dashboard, prompts] = await Promise.all([
+  const [dashboard, prompts, technicalHealth] = await Promise.all([
     getAdminHelenaDashboard(),
     getAdminHelenaPrompts(),
+    getAdminHelenaTechnicalHealth(),
   ]);
 
   return (
@@ -192,6 +309,8 @@ export default async function AdminHelenaPage() {
         <MetricCard detail="Mensagens registradas nas tabelas da Helena." icon={MessageCircle} label="Mensagens Helena" tone="green" value={formatCount(dashboard.stats.totalMessages)} />
         <MetricCard detail="Falhas nos ultimos 7 dias." icon={AlertTriangle} label="Erros recentes" tone={dashboard.stats.recentErrors > 0 ? "red" : "slate"} value={formatCount(dashboard.stats.recentErrors)} />
       </div>
+
+      <TechnicalHealthSection health={technicalHealth} />
 
       <Card className="overflow-hidden rounded-[26px]">
         <CardContent className="p-5">

@@ -1,5 +1,7 @@
+import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { getAgentPromptTemplates, type AgentPromptTemplate } from "@/lib/agent/gemini";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
 import type { Json } from "@/types/database";
 
 export type AdminHelenaConnection = {
@@ -40,6 +42,19 @@ export type AdminHelenaDashboard = {
   events: AdminHelenaEvent[];
 };
 
+export type AdminHelenaTechnicalHealthStatus = "ok" | "warning" | "unavailable";
+
+export type AdminHelenaTechnicalHealthCard = {
+  detail: string;
+  label: string;
+  status: AdminHelenaTechnicalHealthStatus;
+  value: string;
+};
+
+export type AdminHelenaTechnicalHealth = {
+  cards: AdminHelenaTechnicalHealthCard[];
+};
+
 export type AdminHelenaPromptTrace = {
   actionName: string | null;
   channel: string;
@@ -65,6 +80,8 @@ export type AdminHelenaPromptsResult = {
   traces: AdminHelenaPromptTrace[];
   total: number;
 };
+
+const countFormatter = new Intl.NumberFormat("pt-BR");
 
 function asRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -93,6 +110,28 @@ function asNumber(value: unknown): number {
 
 function asStatus(value: unknown): AdminHelenaPromptTrace["status"] {
   return value === "error" || value === "skipped" ? value : "success";
+}
+
+function isMissingDatabaseObject(error: { code?: string; message?: string } | null) {
+  if (!error) {
+    return false;
+  }
+
+  const message = (error.message ?? "").toLowerCase();
+
+  return (
+    error.code === "42P01" ||
+    error.code === "42883" ||
+    error.code === "PGRST202" ||
+    error.code === "PGRST205" ||
+    message.includes("does not exist") ||
+    message.includes("could not find the table") ||
+    message.includes("could not find the function")
+  );
+}
+
+function countValue(count: number | null) {
+  return typeof count === "number" && Number.isFinite(count) ? count : 0;
 }
 
 function createUnavailableDashboard(error: string | null): AdminHelenaDashboard {
@@ -196,6 +235,137 @@ export async function getAdminHelenaDashboard(): Promise<AdminHelenaDashboard> {
   };
 }
 
+export async function getAdminHelenaTechnicalHealth(): Promise<AdminHelenaTechnicalHealth> {
+  const webhookSecretConfigured = Boolean(process.env.WHATSAPP_WEBHOOK_SECRET?.trim());
+  const webhookCard: AdminHelenaTechnicalHealthCard = webhookSecretConfigured
+    ? {
+        detail: "WHATSAPP_WEBHOOK_SECRET configurado no servidor.",
+        label: "Webhook WhatsApp",
+        status: "ok",
+        value: "Protegido",
+      }
+    : {
+        detail: "Configure WHATSAPP_WEBHOOK_SECRET para bloquear POSTs sem token.",
+        label: "Webhook WhatsApp",
+        status: "warning",
+        value: "Atenção",
+      };
+
+  let admin: ReturnType<typeof createServiceRoleClient>;
+
+  try {
+    admin = createServiceRoleClient();
+  } catch (error) {
+    console.error("[admin-helena] Failed to initialize technical health client", error);
+    return {
+      cards: [
+        webhookCard,
+        createUnavailableHealthCard("Fila da Helena", "Admin client indisponivel para checar fila."),
+        createUnavailableHealthCard("Locks ativos", "Admin client indisponivel para contar locks."),
+        createUnavailableHealthCard("Turnos pendentes", "Admin client indisponivel para contar turnos."),
+        createUnavailableHealthCard("Falhas 24h", "Admin client indisponivel para contar falhas."),
+        createUnavailableHealthCard("Instabilidades Gemini/Helena 24h", "Admin client indisponivel para contar traces."),
+      ],
+    };
+  }
+
+  const nowIso = new Date().toISOString();
+  const last24HoursIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const [
+    queueTableCheck,
+    lockTableCheck,
+    rpcCheck,
+    activeLocks,
+    pendingTurns,
+    failedTurns,
+    helenaInstabilities,
+  ] = await Promise.all([
+    admin.from("agent_turn_queue").select("id", { count: "exact", head: true }),
+    admin.from("agent_conversation_locks").select("user_id", { count: "exact", head: true }),
+    admin.rpc("claim_agent_turn", {
+      lock_ttl_seconds: 30,
+      queue_item_id: randomUUID(),
+    }),
+    admin
+      .from("agent_conversation_locks")
+      .select("user_id", { count: "exact", head: true })
+      .gt("expires_at", nowIso),
+    admin
+      .from("agent_turn_queue")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "waiting")
+      .gt("expires_at", nowIso),
+    admin
+      .from("agent_turn_queue")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["failed", "expired", "abandoned"])
+      .gte("finished_at", last24HoursIso),
+    admin
+      .from("agent_prompt_traces")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "error")
+      .gte("created_at", last24HoursIso),
+  ]);
+
+  const queueMissing =
+    isMissingDatabaseObject(queueTableCheck.error) ||
+    isMissingDatabaseObject(lockTableCheck.error) ||
+    isMissingDatabaseObject(rpcCheck.error);
+  const rpcPayload = asRecord(rpcCheck.data);
+  const queueActive =
+    !queueMissing &&
+    !queueTableCheck.error &&
+    !lockTableCheck.error &&
+    !rpcCheck.error &&
+    rpcPayload.claimed === false &&
+    rpcPayload.reason === "missing_queue_item";
+
+  return {
+    cards: [
+      webhookCard,
+      queueActive
+        ? {
+            detail: "Tabelas e RPC claim_agent_turn responderam sem ambiguidade.",
+            label: "Fila da Helena",
+            status: "ok",
+            value: "Ativa",
+          }
+        : createUnavailableHealthCard(
+            "Fila da Helena",
+            queueMissing ? "Tabelas ou RPCs da fila ainda nao existem." : "A checagem da fila nao respondeu como esperado.",
+          ),
+      createCountHealthCard({
+        count: activeLocks.count,
+        detail: "Locks nao expirados em agent_conversation_locks.",
+        error: activeLocks.error,
+        label: "Locks ativos",
+        warningWhenPositive: true,
+      }),
+      createCountHealthCard({
+        count: pendingTurns.count,
+        detail: "Turnos waiting ainda dentro do TTL.",
+        error: pendingTurns.error,
+        label: "Turnos pendentes",
+        warningWhenPositive: true,
+      }),
+      createCountHealthCard({
+        count: failedTurns.count,
+        detail: "Turnos failed, expired ou abandoned finalizados nas ultimas 24h.",
+        error: failedTurns.error,
+        label: "Falhas 24h",
+        warningWhenPositive: true,
+      }),
+      createCountHealthCard({
+        count: helenaInstabilities.count,
+        detail: "Fonte: agent_prompt_traces com status error nas ultimas 24h.",
+        error: helenaInstabilities.error,
+        label: "Instabilidades Gemini/Helena 24h",
+        warningWhenPositive: true,
+      }),
+    ],
+  };
+}
+
 export async function getAdminHelenaPrompts(): Promise<AdminHelenaPromptsResult> {
   const templates = getAgentPromptTemplates();
   const supabase = await createClient();
@@ -226,6 +396,45 @@ export async function getAdminHelenaPrompts(): Promise<AdminHelenaPromptsResult>
     templates,
     total: asNumber(payload.total),
     traces: parsePromptTraces(payload.prompts),
+  };
+}
+
+function createUnavailableHealthCard(label: string, detail: string): AdminHelenaTechnicalHealthCard {
+  return {
+    detail,
+    label,
+    status: "unavailable",
+    value: "Nao configurado",
+  };
+}
+
+function createCountHealthCard({
+  count,
+  detail,
+  error,
+  label,
+  warningWhenPositive,
+}: {
+  count: number | null;
+  detail: string;
+  error: { code?: string; message?: string } | null;
+  label: string;
+  warningWhenPositive: boolean;
+}): AdminHelenaTechnicalHealthCard {
+  if (error) {
+    return createUnavailableHealthCard(
+      label,
+      isMissingDatabaseObject(error) ? "Tabela ainda nao configurada." : "Nao foi possivel carregar este indicador.",
+    );
+  }
+
+  const safeCount = countValue(count);
+
+  return {
+    detail,
+    label,
+    status: warningWhenPositive && safeCount > 0 ? "warning" : "ok",
+    value: countFormatter.format(safeCount),
   };
 }
 
