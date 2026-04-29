@@ -1,14 +1,25 @@
 import { createClient } from "@/lib/supabase/server";
+import {
+  normalizeSubscriptionPlan,
+  normalizeSubscriptionStatus,
+  type SubscriptionPlan,
+  type SubscriptionStatus,
+} from "@/lib/subscription/access";
 
 export type AdminRole = "user" | "admin";
+export type AdminSubscriptionPlan = SubscriptionPlan;
+export type AdminSubscriptionStatus = SubscriptionStatus;
 export type AdminUserRoleFilter = "all" | AdminRole;
 export type AdminWhatsappFilter = "all" | "linked" | "unlinked";
+type ServerSupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
 export type AdminUserListItem = {
   id: string;
   fullName: string | null;
   email: string | null;
   role: AdminRole;
+  subscriptionPlan: AdminSubscriptionPlan;
+  subscriptionStatus: AdminSubscriptionStatus;
   createdAt: string | null;
   updatedAt: string | null;
   lastSignInAt: string | null;
@@ -43,6 +54,8 @@ export type AdminUserDetail = {
   fullName: string | null;
   email: string | null;
   role: AdminRole;
+  subscriptionPlan: AdminSubscriptionPlan;
+  subscriptionStatus: AdminSubscriptionStatus;
   createdAt: string | null;
   updatedAt: string | null;
   lastSignInAt: string | null;
@@ -149,6 +162,8 @@ function parseUsers(value: unknown): AdminUserListItem[] {
         fullName: asString(record.fullName),
         email: asString(record.email),
         role: parseRole(record.role),
+        subscriptionPlan: normalizeSubscriptionPlan(record.subscriptionPlan),
+        subscriptionStatus: normalizeSubscriptionStatus(record.subscriptionStatus),
         createdAt: asString(record.createdAt),
         updatedAt: asString(record.updatedAt),
         lastSignInAt: asString(record.lastSignInAt),
@@ -173,6 +188,47 @@ function emptyUsersResult(page: number, error: string | null): AdminUsersResult 
     totalPages: 1,
     users: [],
   };
+}
+
+async function enrichUsersWithSubscriptions(
+  supabase: ServerSupabaseClient,
+  users: AdminUserListItem[],
+): Promise<AdminUserListItem[]> {
+  const ids = users.map((user) => user.id);
+
+  if (ids.length === 0) {
+    return users;
+  }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, subscription_plan, subscription_status")
+    .in("id", ids);
+
+  if (error) {
+    console.error("[admin-users] Failed to enrich subscriptions", error);
+    return users;
+  }
+
+  const subscriptionByUserId = new Map(
+    (data ?? []).map((profile) => [
+      profile.id,
+      {
+        plan: normalizeSubscriptionPlan(profile.subscription_plan),
+        status: normalizeSubscriptionStatus(profile.subscription_status),
+      },
+    ]),
+  );
+
+  return users.map((user) => {
+    const subscription = subscriptionByUserId.get(user.id);
+
+    return {
+      ...user,
+      subscriptionPlan: subscription?.plan ?? user.subscriptionPlan,
+      subscriptionStatus: subscription?.status ?? user.subscriptionStatus,
+    };
+  });
 }
 
 export async function listAdminUsers(filters: {
@@ -210,7 +266,7 @@ export async function listAdminUsers(filters: {
     pageSize: parsedPageSize,
     total,
     totalPages,
-    users: parseUsers(payload.users),
+    users: await enrichUsersWithSubscriptions(supabase, parseUsers(payload.users)),
   };
 }
 
@@ -256,6 +312,8 @@ function parseUserDetail(value: unknown): AdminUserDetail | null {
     fullName: asString(record.fullName),
     email: asString(record.email),
     role: parseRole(record.role),
+    subscriptionPlan: normalizeSubscriptionPlan(record.subscriptionPlan),
+    subscriptionStatus: normalizeSubscriptionStatus(record.subscriptionStatus),
     createdAt: asString(record.createdAt),
     updatedAt: asString(record.updatedAt),
     lastSignInAt: asString(record.lastSignInAt),
@@ -280,6 +338,32 @@ function parseUserDetail(value: unknown): AdminUserDetail | null {
   };
 }
 
+async function enrichUserDetailWithSubscription(
+  supabase: ServerSupabaseClient,
+  user: AdminUserDetail | null,
+): Promise<AdminUserDetail | null> {
+  if (!user) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("subscription_plan, subscription_status")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[admin-users] Failed to enrich user subscription", error);
+    return user;
+  }
+
+  return {
+    ...user,
+    subscriptionPlan: normalizeSubscriptionPlan(data?.subscription_plan),
+    subscriptionStatus: normalizeSubscriptionStatus(data?.subscription_status),
+  };
+}
+
 export async function getAdminUserDetail(userId: string): Promise<AdminUserDetailResult> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("get_admin_user_detail", {
@@ -298,7 +382,7 @@ export async function getAdminUserDetail(userId: string): Promise<AdminUserDetai
   return {
     available: true,
     error: null,
-    user: parseUserDetail(data),
+    user: await enrichUserDetailWithSubscription(supabase, parseUserDetail(data)),
   };
 }
 
@@ -330,6 +414,32 @@ export async function updateAdminUserRole(targetUserId: string, newRole: AdminRo
 
   if (error) {
     console.error("[admin-users] Failed to update role", error);
+    return {
+      error: error.message,
+      ok: false,
+    };
+  }
+
+  return {
+    error: null,
+    ok: true,
+  };
+}
+
+export async function updateAdminUserSubscription(
+  targetUserId: string,
+  newPlan: AdminSubscriptionPlan,
+  newStatus: AdminSubscriptionStatus,
+) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_user_subscription", {
+    new_plan: newPlan,
+    new_status: newStatus,
+    target_user_id: targetUserId,
+  });
+
+  if (error) {
+    console.error("[admin-users] Failed to update subscription", error);
     return {
       error: error.message,
       ok: false,

@@ -46,8 +46,15 @@ import {
   cancelWhatsAppImportSession,
   confirmWhatsAppImportSession,
   createImportReviewSessionFromFile,
+  findLatestWhatsAppImportSession,
 } from "@/lib/import/sessions";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import {
+  consumeHelenaDailyMessage,
+  getSubscriptionBlockedReply,
+  getUserSubscriptionAccess,
+  helenaProFeatureReply,
+} from "@/lib/subscription/access";
 
 const genericFallbackReply = "Tive uma instabilidade agora para processar isso. Tente novamente em instantes.";
 const audioFallbackReply = "Tive uma instabilidade para entender esse audio agora. Pode repetir o audio ou me mandar em texto?";
@@ -483,7 +490,87 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
     trace,
   });
 
+  const subscriptionAccess = await getUserSubscriptionAccess({
+    supabase: admin,
+    userId: resolvedUserId,
+  });
+
+  if (!subscriptionAccess.canAccessApp) {
+    const reason = `subscription_${subscriptionAccess.status}`;
+    await replyAndFinishWhatsAppTurn({
+      config,
+      externalMessageId,
+      instance: normalized.instance,
+      messageText: normalized.text,
+      presenceController,
+      reason,
+      remoteId: normalized.remoteJid,
+      remoteNumber,
+      reply: getSubscriptionBlockedReply(subscriptionAccess.status),
+      status: "discarded",
+      summary: `WhatsApp bloqueado por assinatura: ${subscriptionAccess.status}.`,
+      trace,
+      userId: resolvedUserId,
+    });
+
+    return {
+      body: { ok: true, reason },
+      status: 200,
+    };
+  }
+
+  const usage = await consumeHelenaDailyMessage({
+    supabase: admin,
+    userId: resolvedUserId,
+  });
+
+  if (!usage.allowed) {
+    await replyAndFinishWhatsAppTurn({
+      config,
+      externalMessageId,
+      instance: normalized.instance,
+      messageText: normalized.text,
+      presenceController,
+      reason: usage.reason === "daily_limit_reached" ? "helena_daily_limit_reached" : `subscription_${usage.status}`,
+      remoteId: normalized.remoteJid,
+      remoteNumber,
+      reply: usage.reply,
+      status: "discarded",
+      summary: `WhatsApp bloqueado por limite/status da Helena: ${usage.reason}.`,
+      trace,
+      userId: resolvedUserId,
+    });
+
+    return {
+      body: { ok: true, reason: usage.reason },
+      status: 200,
+    };
+  }
+
   if (normalized.document) {
+    if (!subscriptionAccess.canUseAdvancedHelena) {
+      await replyAndFinishWhatsAppTurn({
+        config,
+        externalMessageId,
+        instance: normalized.instance,
+        messageText: normalized.text,
+        presenceController,
+        reason: "whatsapp_import_document_requires_pro",
+        remoteId: normalized.remoteJid,
+        remoteNumber,
+        reply: helenaProFeatureReply,
+        status: "discarded",
+        summary: "Importacao por arquivo via WhatsApp bloqueada para plano Essencial.",
+        trace,
+        userId: resolvedUserId,
+      });
+
+      return {
+        body: { ok: true, reason: "whatsapp_import_document_requires_pro" },
+        status: 200,
+      };
+    }
+
     try {
       trace.mark("media_download_started", {
         documentFileName: normalized.document.fileName,
@@ -576,6 +663,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
   }
 
   const exportTextReply = await handleWhatsAppExportTextIntent({
+    canUseAdvancedHelena: subscriptionAccess.canUseAdvancedHelena,
     config,
     messageText: normalized.text,
     remoteNumber,
@@ -607,6 +695,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
   }
 
   const importTextReply = await handleWhatsAppImportTextIntent({
+    canUseAdvancedHelena: subscriptionAccess.canUseAdvancedHelena,
     messageText: normalized.text,
     remoteId: normalized.remoteJid,
     supabase: admin,
@@ -1086,12 +1175,14 @@ function getInboundReceivedSummary(normalized: ReturnType<typeof normalizeEvolut
 }
 
 async function handleWhatsAppExportTextIntent({
+  canUseAdvancedHelena,
   config,
   messageText,
   remoteNumber,
   supabase,
   userId,
 }: {
+  canUseAdvancedHelena: boolean;
   config: ReturnType<typeof getWhatsAppChannelConfig>;
   messageText?: string | null;
   remoteNumber: string;
@@ -1124,6 +1215,15 @@ async function handleWhatsAppExportTextIntent({
       reply: "Por enquanto envio CSV pelo WhatsApp. Voce pode abrir esse arquivo no Excel ou Google Sheets.",
       status: "processed",
       summary: "Usuario solicitou exportacao em XLSX pelo WhatsApp; formato ainda nao suportado.",
+    };
+  }
+
+  if (!canUseAdvancedHelena) {
+    return {
+      reason: "whatsapp_export_requires_pro",
+      reply: helenaProFeatureReply,
+      status: "discarded",
+      summary: "Exportacao CSV pelo WhatsApp bloqueada para plano Essencial.",
     };
   }
 
@@ -1181,11 +1281,13 @@ async function handleWhatsAppExportTextIntent({
 }
 
 async function handleWhatsAppImportTextIntent({
+  canUseAdvancedHelena,
   messageText,
   remoteId,
   supabase,
   userId,
 }: {
+  canUseAdvancedHelena: boolean;
   messageText?: string | null;
   remoteId?: string | null;
   supabase: ReturnType<typeof createServiceRoleClient>;
@@ -1200,6 +1302,15 @@ async function handleWhatsAppImportTextIntent({
 
   if (!intent) {
     return null;
+  }
+
+  if (intent === "request_file" && !canUseAdvancedHelena) {
+    return {
+      reason: "whatsapp_import_requires_pro",
+      reply: helenaProFeatureReply,
+      status: "discarded",
+      summary: "Fluxo de importacao por WhatsApp bloqueado para plano Essencial.",
+    };
   }
 
   if (intent === "request_file") {
@@ -1224,6 +1335,26 @@ async function handleWhatsAppImportTextIntent({
         reply: result.message,
         status: result.ok ? "processed" : "discarded",
         summary: result.ok ? "Sessao de importacao cancelada pelo WhatsApp." : "Cancelamento de importacao sem sessao pendente.",
+      };
+    }
+
+    if (!canUseAdvancedHelena) {
+      const latestSession = await findLatestWhatsAppImportSession({
+        channelRemoteId: remoteId,
+        supabase,
+        userId,
+      });
+      const normalizedText = normalizeIntentText(messageText);
+
+      if (!latestSession && normalizedText === "sim") {
+        return null;
+      }
+
+      return {
+        reason: "whatsapp_import_confirm_requires_pro",
+        reply: helenaProFeatureReply,
+        status: "discarded",
+        summary: "Confirmacao de importacao por WhatsApp bloqueada para plano Essencial.",
       };
     }
 

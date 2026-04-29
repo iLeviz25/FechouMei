@@ -13,10 +13,17 @@ import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getAdminUserDetail, type AdminRole, type AdminUserDetail } from "@/lib/admin/users";
+import { Select } from "@/components/ui/select";
+import {
+  getAdminUserDetail,
+  type AdminRole,
+  type AdminSubscriptionPlan,
+  type AdminSubscriptionStatus,
+  type AdminUserDetail,
+} from "@/lib/admin/users";
 import { getCurrentUserProfile } from "@/lib/auth/admin";
 import { cn } from "@/lib/utils";
-import { changeAdminUserRoleAction } from "./actions";
+import { changeAdminUserRoleAction, changeAdminUserSubscriptionAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +63,31 @@ function roleBadge(role: AdminRole) {
   return <Badge variant={role === "admin" ? "success" : "secondary"}>{role}</Badge>;
 }
 
+function subscriptionPlanLabel(plan: AdminSubscriptionPlan) {
+  return plan === "pro" ? "Pro" : "Essencial";
+}
+
+function subscriptionStatusLabel(status: AdminSubscriptionStatus) {
+  const labels: Record<AdminSubscriptionStatus, string> = {
+    active: "Ativa",
+    canceled: "Cancelada",
+    past_due: "Pendente",
+    pending_payment: "Aguardando pagamento",
+  };
+
+  return labels[status];
+}
+
+function planBadge(plan: AdminSubscriptionPlan) {
+  return <Badge variant={plan === "pro" ? "success" : "secondary"}>{subscriptionPlanLabel(plan)}</Badge>;
+}
+
+function subscriptionStatusBadge(status: AdminSubscriptionStatus) {
+  const variant = status === "active" ? "success" : status === "pending_payment" ? "secondary" : "danger";
+
+  return <Badge variant={variant}>{subscriptionStatusLabel(status)}</Badge>;
+}
+
 function whatsappLabel(status: string) {
   const labels: Record<string, string> = {
     expired: "Expirado",
@@ -75,6 +107,21 @@ function roleErrorMessage(error: string | null) {
 
   const messages: Record<string, string> = {
     "invalid-role": "Role invalida.",
+    "invalid-user": "Usuario invalido.",
+    "missing-confirmation": "Confirme visualmente a alteracao antes de continuar.",
+  };
+
+  return messages[error] ?? error;
+}
+
+function subscriptionErrorMessage(error: string | null) {
+  if (!error) {
+    return null;
+  }
+
+  const messages: Record<string, string> = {
+    "invalid-plan": "Plano invalido.",
+    "invalid-status": "Status invalido.",
     "invalid-user": "Usuario invalido.",
     "missing-confirmation": "Confirme visualmente a alteracao antes de continuar.",
   };
@@ -121,6 +168,54 @@ function MetricCard({
             <Icon className="h-5 w-5" />
           </div>
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SubscriptionManagement({ user }: { user: AdminUserDetail }) {
+  return (
+    <Card className="overflow-hidden rounded-[26px]">
+      <CardContent className="space-y-4 p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Assinatura</p>
+            <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Plano e status</h2>
+          </div>
+          <div className="flex flex-wrap justify-end gap-1.5">
+            {planBadge(user.subscriptionPlan)}
+            {subscriptionStatusBadge(user.subscriptionStatus)}
+          </div>
+        </div>
+
+        <form action={changeAdminUserSubscriptionAction} className="space-y-4">
+          <input name="userId" type="hidden" value={user.id} />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="space-y-2 text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
+              Plano
+              <Select defaultValue={user.subscriptionPlan} name="subscriptionPlan">
+                <option value="essential">Essencial</option>
+                <option value="pro">Pro</option>
+              </Select>
+            </label>
+            <label className="space-y-2 text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
+              Status
+              <Select defaultValue={user.subscriptionStatus} name="subscriptionStatus">
+                <option value="active">Ativa</option>
+                <option value="pending_payment">Aguardando pagamento</option>
+                <option value="past_due">Pagamento pendente</option>
+                <option value="canceled">Cancelada</option>
+              </Select>
+            </label>
+          </div>
+          <label className="flex gap-3 rounded-2xl border border-border/70 bg-background p-4 text-sm font-semibold leading-6 text-muted-foreground">
+            <input className="mt-1 h-4 w-4 shrink-0 accent-primary" name="confirmSubscriptionChange" required type="checkbox" value="confirm" />
+            <span>
+              Confirmo a alteracao manual de plano/status deste usuario.
+            </span>
+          </label>
+          <Button type="submit">Salvar assinatura</Button>
+        </form>
       </CardContent>
     </Card>
   );
@@ -189,6 +284,8 @@ export default async function AdminUsuarioDetalhePage({
   ]);
   const roleUpdated = getSingle(resolvedSearchParams.roleUpdated);
   const roleError = roleErrorMessage(getSingle(resolvedSearchParams.roleError) ?? null);
+  const subscriptionUpdated = getSingle(resolvedSearchParams.subscriptionUpdated);
+  const subscriptionError = subscriptionErrorMessage(getSingle(resolvedSearchParams.subscriptionError) ?? null);
 
   if (detailResult.available && !detailResult.user) {
     notFound();
@@ -241,6 +338,8 @@ export default async function AdminUsuarioDetalhePage({
         </div>
         <div className="flex flex-wrap gap-2">
           {roleBadge(user.role)}
+          {planBadge(user.subscriptionPlan)}
+          {subscriptionStatusBadge(user.subscriptionStatus)}
           <Badge variant={user.whatsapp.status === "linked" ? "success" : "secondary"}>
             WhatsApp {whatsappLabel(user.whatsapp.status)}
           </Badge>
@@ -256,6 +355,18 @@ export default async function AdminUsuarioDetalhePage({
       {roleError ? (
         <div className="rounded-[22px] border border-destructive/15 bg-destructive/5 p-4 text-sm font-semibold text-destructive">
           {roleError}
+        </div>
+      ) : null}
+
+      {subscriptionUpdated ? (
+        <div className="rounded-[22px] border border-primary/15 bg-primary-soft/55 p-4 text-sm font-semibold text-primary">
+          Assinatura atualizada com sucesso.
+        </div>
+      ) : null}
+
+      {subscriptionError ? (
+        <div className="rounded-[22px] border border-destructive/15 bg-destructive/5 p-4 text-sm font-semibold text-destructive">
+          {subscriptionError}
         </div>
       ) : null}
 
@@ -280,6 +391,8 @@ export default async function AdminUsuarioDetalhePage({
             <InfoRow label="Atualizado em" value={formatDateTime(user.updatedAt)} />
             <InfoRow label="Ultimo login" value={formatDateTime(user.lastSignInAt)} />
             <InfoRow label="Atividade recente" value={formatDateTime(user.metrics.lastActivityAt)} />
+            <InfoRow label="Plano" value={subscriptionPlanLabel(user.subscriptionPlan)} />
+            <InfoRow label="Status assinatura" value={subscriptionStatusLabel(user.subscriptionStatus)} />
             <InfoRow label="Onboarding" value={user.onboardingCompleted ? "Concluido" : "Pendente"} />
             <InfoRow label="Atuacao" value={user.workType ?? "Nao informado"} />
             <InfoRow label="Tipo de trabalho" value={user.businessMode ?? "Nao informado"} />
@@ -289,6 +402,8 @@ export default async function AdminUsuarioDetalhePage({
         </Card>
 
         <div className="space-y-4">
+          <SubscriptionManagement user={user} />
+
           <Card className="overflow-hidden rounded-[26px]">
             <CardContent className="p-5">
               <div className="mb-3 flex items-start justify-between gap-3">

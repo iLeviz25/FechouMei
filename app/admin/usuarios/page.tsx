@@ -18,6 +18,8 @@ import {
   listAdminUsers,
   normalizeAdminUserFilters,
   type AdminRole,
+  type AdminSubscriptionPlan,
+  type AdminSubscriptionStatus,
   type AdminUserListItem,
 } from "@/lib/admin/users";
 import { cn } from "@/lib/utils";
@@ -48,6 +50,23 @@ function formatDate(value: string | null) {
 
 function roleBadge(role: AdminRole) {
   return <Badge variant={role === "admin" ? "success" : "secondary"}>{role}</Badge>;
+}
+
+function planBadge(plan: AdminSubscriptionPlan) {
+  return <Badge variant={plan === "pro" ? "success" : "secondary"}>{plan === "pro" ? "Pro" : "Essencial"}</Badge>;
+}
+
+function subscriptionStatusBadge(status: AdminSubscriptionStatus) {
+  const labels: Record<AdminSubscriptionStatus, string> = {
+    active: "Ativa",
+    canceled: "Cancelada",
+    past_due: "Pendente",
+    pending_payment: "Aguardando",
+  };
+
+  const variant = status === "active" ? "success" : status === "pending_payment" ? "secondary" : "danger";
+
+  return <Badge variant={variant}>{labels[status]}</Badge>;
 }
 
 function whatsappBadge(status: string) {
@@ -99,6 +118,13 @@ function UserMobileCard({ user }: { user: AdminUserListItem }) {
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-xs font-semibold text-muted-foreground">
+          <div className="rounded-2xl bg-muted/50 p-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.1em]">Assinatura</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {planBadge(user.subscriptionPlan)}
+              {subscriptionStatusBadge(user.subscriptionStatus)}
+            </div>
+          </div>
           <div className="rounded-2xl bg-muted/50 p-3">
             <p className="text-[10px] font-bold uppercase tracking-[0.1em]">WhatsApp</p>
             <div className="mt-2">{whatsappBadge(user.whatsappStatus)}</div>
@@ -218,11 +244,12 @@ export default async function AdminUsuariosPage({
           <Card className="hidden overflow-hidden rounded-[26px] lg:block">
             <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[960px] text-left">
+                <table className="w-full min-w-[1060px] text-left">
                   <thead className="border-b border-border/70 bg-muted/45 text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
                     <tr>
                       <th className="px-5 py-4">Usuario</th>
                       <th className="px-5 py-4">Role</th>
+                      <th className="px-5 py-4">Assinatura</th>
                       <th className="px-5 py-4">Cadastro</th>
                       <th className="px-5 py-4">Ultima atividade</th>
                       <th className="px-5 py-4">WhatsApp</th>
@@ -243,6 +270,12 @@ export default async function AdminUsuariosPage({
                           </div>
                         </td>
                         <td className="px-5 py-4">{roleBadge(user.role)}</td>
+                        <td className="px-5 py-4">
+                          <div className="flex flex-wrap gap-1.5">
+                            {planBadge(user.subscriptionPlan)}
+                            {subscriptionStatusBadge(user.subscriptionStatus)}
+                          </div>
+                        </td>
                         <td className="px-5 py-4 text-sm font-semibold text-muted-foreground">{formatDate(user.createdAt)}</td>
                         <td className="px-5 py-4 text-sm font-semibold text-muted-foreground">{formatDate(user.lastActivityAt)}</td>
                         <td className="px-5 py-4">{whatsappBadge(user.whatsappStatus)}</td>

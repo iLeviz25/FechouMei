@@ -417,6 +417,38 @@ export type Database = {
           },
         ];
       };
+      helena_daily_usage: {
+        Row: {
+          user_id: string;
+          usage_date: string;
+          message_count: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          usage_date: string;
+          message_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          usage_date?: string;
+          message_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "helena_daily_usage_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       app_settings: {
         Row: {
           key: string;
@@ -725,6 +757,8 @@ export type Database = {
           onboarding_completed: boolean;
           onboarding_tour_completed_at: string | null;
           role: "user" | "admin";
+          subscription_plan: "essential" | "pro";
+          subscription_status: "active" | "pending_payment" | "past_due" | "canceled";
           created_at: string;
           updated_at: string;
         };
@@ -739,6 +773,8 @@ export type Database = {
           onboarding_completed?: boolean;
           onboarding_tour_completed_at?: string | null;
           role?: "user" | "admin";
+          subscription_plan?: "essential" | "pro";
+          subscription_status?: "active" | "pending_payment" | "past_due" | "canceled";
           created_at?: string;
           updated_at?: string;
         };
@@ -753,6 +789,8 @@ export type Database = {
           onboarding_completed?: boolean;
           onboarding_tour_completed_at?: string | null;
           role?: "user" | "admin";
+          subscription_plan?: "essential" | "pro";
+          subscription_status?: "active" | "pending_payment" | "past_due" | "canceled";
           created_at?: string;
           updated_at?: string;
         };
@@ -780,6 +818,13 @@ export type Database = {
         Args: {
           queue_item_id: string;
           lock_ttl_seconds?: number | null;
+        };
+        Returns: Json;
+      };
+      consume_helena_daily_message: {
+        Args: {
+          target_user_id: string;
+          usage_date?: string | null;
         };
         Returns: Json;
       };
@@ -877,6 +922,14 @@ export type Database = {
         Args: {
           target_user_id: string;
           new_role: "user" | "admin";
+        };
+        Returns: void;
+      };
+      set_user_subscription: {
+        Args: {
+          target_user_id: string;
+          new_plan: "essential" | "pro";
+          new_status: "active" | "pending_payment" | "past_due" | "canceled";
         };
         Returns: void;
       };

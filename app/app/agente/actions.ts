@@ -12,6 +12,7 @@ import {
 import { agentTurnQueueBusyReply, runQueuedAgentTurn } from "@/lib/agent/turn-queue";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
+import { consumeHelenaDailyMessage } from "@/lib/subscription/access";
 import {
   getWhatsAppAssistantActivationSnapshot,
   startWhatsAppAssistantActivation,
@@ -106,6 +107,15 @@ export async function sendAgentMessage({
       onTimeout: () => getQueuedFallbackSnapshot(context, message),
       work: async () => {
         const snapshot = await loadAgentConversationSnapshot(context);
+        const usage = await consumeHelenaDailyMessage({
+          supabase: context.supabase,
+          userId: context.userId,
+        });
+
+        if (!usage.allowed) {
+          return getTransientReplySnapshot(snapshot, message, usage.reply);
+        }
+
         const result = await runAgentTurnForContext({
           channel: "playground",
           context,
@@ -172,6 +182,15 @@ async function getQueuedFallbackSnapshot(
   message: string,
 ): Promise<AgentTurnPersistedResult> {
   const snapshot = await loadAgentConversationSnapshot(context);
+
+  return getTransientReplySnapshot(snapshot, message, agentTurnQueueBusyReply);
+}
+
+function getTransientReplySnapshot(
+  snapshot: AgentConversationSnapshot,
+  message: string,
+  reply: string,
+): AgentTurnPersistedResult {
   const createdAt = new Date().toISOString();
 
   return {
@@ -186,11 +205,11 @@ async function getQueuedFallbackSnapshot(
       },
       {
         id: randomUUID(),
-        content: agentTurnQueueBusyReply,
+        content: reply,
         created_at: createdAt,
         role: "agent",
       },
     ],
-    reply: agentTurnQueueBusyReply,
+    reply,
   };
 }
