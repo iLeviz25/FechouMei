@@ -1,9 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  buildOccurredAtFromDateInput,
+  normalizeMovementCategory,
+  normalizeMovementDescription,
+} from "@/lib/movements/normalization";
 import { createClient } from "@/lib/supabase/server";
 
 export type MovementActionResult = {
+  deletedCount?: number;
   ok: boolean;
   message: string;
 };
@@ -13,6 +19,7 @@ type MovementInput = {
   description: string;
   amount: number;
   occurred_on: string;
+  occurred_at: string;
   category: string;
 };
 
@@ -49,7 +56,14 @@ function readMovementInput(formData: FormData): MovementInput {
     throw new Error("Informe uma categoria.");
   }
 
-  return { type, description, amount, occurred_on, category };
+  return {
+    type,
+    description: normalizeMovementDescription(description),
+    amount,
+    occurred_on,
+    occurred_at: buildOccurredAtFromDateInput(occurred_on),
+    category: normalizeMovementCategory(category),
+  };
 }
 
 async function getUserId() {
@@ -82,6 +96,7 @@ export async function createMovimentacao(formData: FormData): Promise<MovementAc
 
     revalidatePath("/app/movimentacoes");
     revalidatePath("/app/dashboard");
+    revalidatePath("/app/fechamento-mensal");
     return { ok: true, message: "Movimentação criada." };
   } catch (error) {
     return {
@@ -111,6 +126,7 @@ export async function updateMovimentacao(
 
     revalidatePath("/app/movimentacoes");
     revalidatePath("/app/dashboard");
+    revalidatePath("/app/fechamento-mensal");
     return { ok: true, message: "Movimentação atualizada." };
   } catch (error) {
     return {
@@ -132,11 +148,56 @@ export async function deleteMovimentacao(id: string): Promise<MovementActionResu
 
     revalidatePath("/app/movimentacoes");
     revalidatePath("/app/dashboard");
+    revalidatePath("/app/fechamento-mensal");
     return { ok: true, message: "Movimentação excluída." };
   } catch (error) {
     return {
       ok: false,
       message: error instanceof Error ? error.message : "Não foi possível excluir a movimentação.",
+    };
+  }
+}
+
+export async function deleteMovimentacoes(ids: string[]): Promise<MovementActionResult> {
+  try {
+    const uniqueIds = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean)));
+
+    if (uniqueIds.length === 0) {
+      throw new Error("Selecione pelo menos uma movimentação.");
+    }
+
+    const { supabase, userId } = await getUserId();
+
+    const { data, error } = await supabase
+      .from("movimentacoes")
+      .delete()
+      .eq("user_id", userId)
+      .in("id", uniqueIds)
+      .select("id");
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const deletedCount = data?.length ?? 0;
+
+    if (deletedCount === 0) {
+      throw new Error("Não encontrei movimentações para excluir.");
+    }
+
+    revalidatePath("/app/movimentacoes");
+    revalidatePath("/app/dashboard");
+    revalidatePath("/app/fechamento-mensal");
+
+    return {
+      deletedCount,
+      ok: true,
+      message: deletedCount === 1 ? "Movimentação excluída." : `${deletedCount} movimentações excluídas.`,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Não foi possível excluir as movimentações.",
     };
   }
 }

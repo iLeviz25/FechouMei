@@ -1,11 +1,16 @@
 "use server";
-
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
 export type ChecklistActionResult = {
   ok: boolean;
   message: string;
+};
+
+export type ReminderPreferencesInput = {
+  das_monthly_enabled: boolean;
+  dasn_annual_enabled: boolean;
+  monthly_review_enabled: boolean;
+  receipts_enabled: boolean;
 };
 
 async function getUserId() {
@@ -55,12 +60,40 @@ export async function toggleChecklistItem({
       throw new Error(error.message);
     }
 
-    revalidatePath("/app/obrigacoes");
     return { ok: true, message: "Checklist atualizado." };
   } catch (error) {
     return {
       ok: false,
       message: error instanceof Error ? error.message : "Não foi possível atualizar o checklist.",
+    };
+  }
+}
+
+export async function updateReminderPreferences(
+  preferences: ReminderPreferencesInput,
+): Promise<ChecklistActionResult> {
+  try {
+    const { supabase, userId } = await getUserId();
+    const { error } = await supabase.from("reminder_preferences").upsert(
+      {
+        user_id: userId,
+        das_monthly_enabled: Boolean(preferences.das_monthly_enabled),
+        dasn_annual_enabled: Boolean(preferences.dasn_annual_enabled),
+        monthly_review_enabled: Boolean(preferences.monthly_review_enabled),
+        receipts_enabled: Boolean(preferences.receipts_enabled),
+      },
+      { onConflict: "user_id" },
+    );
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return { ok: true, message: "Preferências salvas no app." };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Não foi possível salvar os lembretes.",
     };
   }
 }

@@ -1,17 +1,10 @@
-import { redirect } from "next/navigation";
+"use client";
+
+import { useProfile } from "@/components/app/profile-provider";
 import { ConfiguracoesForm } from "@/components/configuracoes/configuracoes-form";
-import { getCurrentUserProfile } from "@/lib/profile";
 
-export default async function ConfiguracoesPage() {
-  const { profile, profileError, user } = await getCurrentUserProfile();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  if (profileError) {
-    throw new Error(`Erro ao carregar configurações: ${profileError.message}`);
-  }
+export default function ConfiguracoesPage() {
+  const profile = useProfile();
 
   return <ConfiguracoesForm profile={profile ?? null} />;
 }
