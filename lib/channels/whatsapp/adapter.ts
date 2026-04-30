@@ -11,7 +11,11 @@ import {
   loadAgentConversationSnapshot,
   persistAgentTurn,
 } from "@/lib/agent/persistence";
-import { agentTurnQueueBusyReply, runQueuedAgentTurn } from "@/lib/agent/turn-queue";
+import {
+  type AgentTurnQueueStage,
+  agentTurnQueueBusyReply,
+  runQueuedAgentTurn,
+} from "@/lib/agent/turn-queue";
 import type { AgentConversationState } from "@/lib/agent/types";
 import {
   WhatsAppMediaDownloadError,
@@ -60,6 +64,7 @@ import {
 const genericFallbackReply = "Tive uma instabilidade agora para processar isso. Tente novamente em instantes.";
 const audioFallbackReply = "Tive uma instabilidade para entender esse audio agora. Pode repetir o audio ou me mandar em texto?";
 const audioTranscriptionCooldownMs = 45000;
+const whatsappAudioTypingInitialDelayMs = 1500;
 const whatsappTypingPresenceDelayMs = 4000;
 const whatsappTypingKeepaliveIntervalMs = 2500;
 const whatsappTypingKeepaliveMaxMs = 28000;
@@ -78,6 +83,7 @@ type WhatsAppAudioPipelineStage =
   | "media_download_failed"
   | "media_decoded"
   | AudioTranscriptionStage
+  | "audio_normalization"
   | "transcript_parse_started"
   | "transcript_parse_failed"
   | "agent_turn_started"
@@ -85,7 +91,18 @@ type WhatsAppAudioPipelineStage =
 
 type WhatsAppLatencyStage =
   | "webhook_received"
+  | "deduplication_started"
+  | "deduplication_finished"
+  | "runtime_settings_started"
+  | "runtime_settings_finished"
+  | "user_resolution_started"
+  | "user_resolution_finished"
+  | "subscription_access_started"
+  | "subscription_access_finished"
+  | "usage_limit_started"
+  | "usage_limit_finished"
   | AudioTranscriptionStage
+  | AgentTurnQueueStage
   | "typing_indicator_dispatch_started"
   | "typing_indicator_request_started"
   | "typing_indicator_response_received"
@@ -100,6 +117,9 @@ type WhatsAppLatencyStage =
   | "media_download_finished"
   | "transcription_started"
   | "transcription_finished"
+  | "audio_normalization"
+  | "agent_turn_started"
+  | "agent_turn_finished"
   | "audio_fallback_response_started"
   | "audio_fallback_response_finished"
   | "audio_error_handled_without_rethrow"
@@ -132,6 +152,7 @@ function createWhatsAppLatencyTrace({
 }) {
   const startedAt = Date.now();
   let lastMarkAt = startedAt;
+  const remoteRef = maskWhatsAppRemoteId(remoteId);
 
   const mark = (stage: WhatsAppLatencyStage, metadata?: Record<string, unknown>) => {
     const now = Date.now();
@@ -145,7 +166,7 @@ function createWhatsAppLatencyTrace({
       externalMessageId,
       messageType,
       provider: getEvolutionProviderName(),
-      remoteId,
+      remoteId: remoteRef,
       stage,
       ...(metadata ?? {}),
     });
@@ -178,6 +199,7 @@ function startWhatsAppPresenceKeepalive({
 }) {
   let stopped = false;
   let consecutiveFailures = 0;
+  let initialTypingTimeout: ReturnType<typeof setTimeout> | null = null;
   let interval: ReturnType<typeof setInterval> | null = null;
   let maxDurationTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -189,6 +211,10 @@ function startWhatsAppPresenceKeepalive({
     stopped = true;
     if (interval) {
       clearInterval(interval);
+    }
+
+    if (initialTypingTimeout) {
+      clearTimeout(initialTypingTimeout);
     }
 
     if (maxDurationTimeout) {
@@ -252,11 +278,18 @@ function startWhatsAppPresenceKeepalive({
   };
 
   trace.mark("typing_keepalive_started", {
+    initialDelayMs: normalized.audio ? whatsappAudioTypingInitialDelayMs : 0,
     intervalMs: whatsappTypingKeepaliveIntervalMs,
     maxMs: whatsappTypingKeepaliveMaxMs,
   });
 
-  dispatchTyping("initial");
+  if (normalized.audio) {
+    initialTypingTimeout = setTimeout(() => {
+      dispatchTyping("initial");
+    }, whatsappAudioTypingInitialDelayMs);
+  } else {
+    dispatchTyping("initial");
+  }
 
   interval = setInterval(() => {
     trace.mark("typing_keepalive_tick");
@@ -330,6 +363,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
   const admin = createServiceRoleClient();
   let resolvedUserId: string | null = null;
 
+  trace.mark("deduplication_started");
   const createdEvent = await createInboundWhatsAppEvent(
     { supabase: admin },
     {
@@ -342,6 +376,9 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
       userId: null,
     },
   );
+  trace.mark("deduplication_finished", {
+    duplicate: createdEvent.duplicate,
+  });
 
   if (createdEvent.duplicate) {
     trace.finish("duplicate", {
@@ -397,7 +434,12 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
     return discard("missing_remote_number", "Mensagem ignorada sem remetente identificável");
   }
 
+  trace.mark("runtime_settings_started");
   const runtimeSettings = await getAgentRuntimeSettings(admin);
+  trace.mark("runtime_settings_finished", {
+    maintenanceMode: runtimeSettings.maintenanceMode,
+    whatsappEnabled: runtimeSettings.whatsappEnabled,
+  });
 
   if (runtimeSettings.maintenanceMode || !runtimeSettings.helenaEnabled || !runtimeSettings.whatsappEnabled) {
     const reason = runtimeSettings.maintenanceMode
@@ -433,11 +475,15 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
     };
   }
 
+  trace.mark("user_resolution_started");
   const userResolution = await resolveWhatsAppInboundUser({
     context: { supabase: admin },
     messageText: normalized.text,
     remoteJid: normalized.remoteJid,
     remoteNumber,
+  });
+  trace.mark("user_resolution_finished", {
+    kind: userResolution.kind,
   });
 
   if (userResolution.kind === "activated") {
@@ -493,9 +539,16 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
     trace,
   });
 
+  trace.mark("subscription_access_started");
   const subscriptionAccess = await getUserSubscriptionAccess({
     supabase: admin,
     userId: resolvedUserId,
+  });
+  trace.mark("subscription_access_finished", {
+    canAccessApp: subscriptionAccess.canAccessApp,
+    canUseAdvancedHelena: subscriptionAccess.canUseAdvancedHelena,
+    plan: subscriptionAccess.plan,
+    status: subscriptionAccess.status,
   });
 
   if (!subscriptionAccess.canAccessApp) {
@@ -522,9 +575,15 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
     };
   }
 
+  trace.mark("usage_limit_started");
   const usage = await consumeHelenaDailyMessage({
     supabase: admin,
     userId: resolvedUserId,
+  });
+  trace.mark("usage_limit_finished", {
+    allowed: usage.allowed,
+    reason: usage.reason,
+    remaining: usage.remaining,
   });
 
   if (!usage.allowed) {
@@ -749,7 +808,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
     const audioPipelineStartedAt = Date.now();
 
     try {
-      await logInboundStage({
+      void logInboundStage({
         externalMessageId,
         instance: normalized.instance,
         messageText: agentInputText,
@@ -763,7 +822,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
       trace.mark("media_download_started", {
         audioMimeType: normalized.audio.mimeType,
       });
-      await logInboundStage({
+      void logInboundStage({
         externalMessageId,
         instance: normalized.instance,
         messageText: agentInputText,
@@ -783,7 +842,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
         bytes: downloadedAudio.buffer.length,
         mimeType: downloadedAudio.mimeType,
       });
-      await logInboundStage({
+      void logInboundStage({
         externalMessageId,
         instance: normalized.instance,
         messageText: agentInputText,
@@ -795,7 +854,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
 
       const cooldownKey = getAudioCooldownKey(config.instanceName, remoteNumber);
       trace.mark("transcription_started", {
-        cooldownKey,
+        cooldownKey: maskAudioCooldownKey(cooldownKey),
       });
       agentInputText = await enqueueAudioTranscription(cooldownKey, async () => {
         await waitForAudioCooldowns({
@@ -813,7 +872,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
         return transcribeAudioWithGemini({
           audio: downloadedAudio.buffer,
           mimeType: downloadedAudio.mimeType,
-          onStage: async (event) => {
+          onStage: (event) => {
             audioStage = event.stage;
             markTranscriptionLatencyStage(trace, event);
             if (event.status === 429) {
@@ -821,7 +880,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
               setAudioCooldown(globalAudioTranscriptionCooldownKey, "global");
             }
 
-            await logInboundStage({
+            void logInboundStage({
               error: event.error,
               externalMessageId,
               instance: normalized.instance,
@@ -838,13 +897,21 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
       trace.mark("transcription_finished", {
         characters: agentInputText.length,
       });
+
+      const rawAudioTranscript = agentInputText;
+      agentInputText = normalizeAudioTranscriptForAgent(rawAudioTranscript);
+      audioStage = "audio_normalization";
+      trace.mark("audio_normalization", {
+        changed: rawAudioTranscript !== agentInputText,
+        characters: agentInputText.length,
+      });
       trace.mark("total_audio_pipeline_elapsed_ms", {
         status: "transcribed",
         totalAudioPipelineElapsedMs: Date.now() - audioPipelineStartedAt,
       });
 
       audioStage = "transcript_parse_started";
-      await logInboundStage({
+      void logInboundStage({
         externalMessageId,
         instance: normalized.instance,
         messageText: agentInputText,
@@ -945,6 +1012,9 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
     trace.mark("orchestration_started");
     const queuedTurn = await runQueuedAgentTurn({
       context: persistenceContext,
+      onStage: (stage, metadata) => {
+        trace.mark(stage, metadata);
+      },
       onTimeout: async () => {
         trace.mark("response_build_started", {
           fallback: "conversation_locked",
@@ -962,12 +1032,18 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
         };
       },
       work: async () => {
-        const snapshot = await loadAgentConversationSnapshot(persistenceContext);
+        if (audioWasTranscribed) {
+          trace.mark("agent_turn_started");
+        }
+
+        const snapshot = await loadAgentConversationSnapshot(persistenceContext, {
+          includeMessages: false,
+        });
         conversationId = snapshot.conversationId;
 
         if (audioWasTranscribed) {
           audioStage = "agent_turn_started";
-          await logInboundStage({
+          void logInboundStage({
             conversationId,
             externalMessageId,
             instance: normalized.instance,
@@ -1007,6 +1083,24 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
             source: importControlReply.reason,
           });
 
+          if (audioWasTranscribed) {
+            audioStage = "agent_turn_finished";
+            trace.mark("agent_turn_finished", {
+              replyCharacters: importControlReply.reply.length,
+              source: importControlReply.reason,
+            });
+            void logInboundStage({
+              conversationId,
+              externalMessageId,
+              instance: normalized.instance,
+              messageText: agentInputText,
+              metadata: `reply=${summarizeReplyForChannelLog(importControlReply.reply)}`,
+              remoteId: normalized.remoteJid,
+              stage: audioStage,
+              userId: resolvedUserId,
+            });
+          }
+
           return {
             reply: importControlReply.reply,
             queuedTimeout: false,
@@ -1021,6 +1115,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
           channel: "whatsapp",
           context: executionContext,
           message: agentInputText,
+          runtimeSettings,
           state: snapshot.state,
         });
         trace.mark("action_execution_finished", {
@@ -1035,9 +1130,24 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
           characters: agentReply.length,
         });
 
+        const updatedSnapshot = await persistAgentTurn({
+          actionTrace: result.actionTrace,
+          context: persistenceContext,
+          conversationId: snapshot.conversationId,
+          nextState: result.state,
+          reloadSnapshot: false,
+          reply: result.reply,
+          userMessage: agentInputText,
+        });
+
+        conversationId = updatedSnapshot.conversationId;
+
         if (audioWasTranscribed) {
           audioStage = "agent_turn_finished";
-          await logInboundStage({
+          trace.mark("agent_turn_finished", {
+            replyCharacters: result.reply.length,
+          });
+          void logInboundStage({
             conversationId,
             externalMessageId,
             instance: normalized.instance,
@@ -1048,17 +1158,6 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
             userId: resolvedUserId,
           });
         }
-
-        const updatedSnapshot = await persistAgentTurn({
-          actionTrace: result.actionTrace,
-          context: persistenceContext,
-          conversationId: snapshot.conversationId,
-          nextState: result.state,
-          reply: result.reply,
-          userMessage: agentInputText,
-        });
-
-        conversationId = updatedSnapshot.conversationId;
 
         return {
           reply: result.reply,
@@ -1374,6 +1473,11 @@ async function handleWhatsAppImportTextIntent({
 
   try {
     const shouldUsePendingImportSession = intent === "cancel" || intent === "confirm";
+
+    if (shouldUsePendingImportSession && shouldPrioritizeAgentDraftForImportControl(agentState, messageText)) {
+      return null;
+    }
+
     const latestSession = shouldUsePendingImportSession
       ? await findLatestWhatsAppImportSession({
         channelRemoteId: remoteId,
@@ -1386,10 +1490,6 @@ async function handleWhatsAppImportTextIntent({
       const hasPendingImportSession = isPendingWhatsAppImportSession(latestSession?.session.status);
 
       if (!hasPendingImportSession) {
-        return null;
-      }
-
-      if (shouldPrioritizeAgentDraftForImportControl(agentState, messageText)) {
         return null;
       }
     }
@@ -1972,8 +2072,48 @@ function summarizeReplyForChannelLog(reply: string) {
   return reply.trim().replace(/\s+/g, " ").slice(0, 180);
 }
 
+function normalizeAudioTranscriptForAgent(transcript: string) {
+  return transcript.trim().replace(/^["']|["']$/g, "").replace(/\s+/g, " ").trim();
+}
+
 function summarizeError(error: unknown) {
   return error instanceof Error ? error.message.slice(0, 240) : "Erro inesperado no canal do WhatsApp.";
+}
+
+function maskWhatsAppRemoteId(remoteId?: string | null) {
+  if (!remoteId) {
+    return null;
+  }
+
+  const [numberPart, suffix] = remoteId.split("@");
+  const digits = numberPart?.replace(/\D/g, "") ?? "";
+  const lastDigits = digits.slice(-4);
+  const maskedNumber = lastDigits ? `***${lastDigits}` : "***";
+
+  return suffix ? `${maskedNumber}@${suffix}` : maskedNumber;
+}
+
+function maskAudioCooldownKey(key: string) {
+  const [instance, remoteNumber] = key.split(":");
+
+  if (!remoteNumber) {
+    return key === globalAudioTranscriptionCooldownKey ? key : "***";
+  }
+
+  const lastDigits = remoteNumber.replace(/\D/g, "").slice(-4);
+
+  return `${instance}:***${lastDigits || "****"}`;
+}
+
+function sanitizeWhatsAppStageLogText(value?: string | null) {
+  if (!value) {
+    return value ?? null;
+  }
+
+  return value
+    .replace(/((?:preview|reply|resposta|transcript|summary)=)[^;|]*/gi, "$1[redacted]")
+    .replace(/\b(?:\+?55)?\d[\d\s().-]{7,}\d\b/g, "[number]")
+    .slice(0, 240);
 }
 
 function summarizeAudioError(error: unknown, stage: WhatsAppAudioPipelineStage | null) {
@@ -2002,17 +2142,22 @@ function getAudioMetadataSummary(audio: NonNullable<ReturnType<typeof normalizeE
   ].filter(Boolean).join("; ");
 }
 
-function formatTranscriptionStageMetadata(event: {
-  attempt: number;
-  apiKeySource?: "dedicated" | "fallback";
-  durationMs?: number;
-  error?: string;
-  model?: string;
-  nextRetryMs?: number;
-  retry?: boolean;
-  status?: number;
-  summary?: string;
-}) {
+function getSafeTranscriptionStageSummary(event: AudioTranscriptionStageEvent) {
+  if (!event.summary) {
+    return undefined;
+  }
+
+  if (event.stage === "transcription_succeeded") {
+    return "[transcript_redacted]";
+  }
+
+  return sanitizeWhatsAppStageLogText(event.summary) ?? undefined;
+}
+
+function formatTranscriptionStageMetadata(event: AudioTranscriptionStageEvent) {
+  const safeSummary = getSafeTranscriptionStageSummary(event);
+  const safeError = sanitizeWhatsAppStageLogText(event.error) ?? undefined;
+
   return [
     `attempt=${event.attempt}`,
     event.apiKeySource ? `apiKeySource=${event.apiKeySource}` : null,
@@ -2021,8 +2166,8 @@ function formatTranscriptionStageMetadata(event: {
     typeof event.retry === "boolean" ? `retry=${event.retry}` : null,
     typeof event.nextRetryMs === "number" ? `nextRetryMs=${event.nextRetryMs}` : null,
     typeof event.durationMs === "number" ? `durationMs=${event.durationMs}` : null,
-    event.summary ? `summary=${event.summary}` : null,
-    event.error ? `error=${event.error}` : null,
+    safeSummary ? `summary=${safeSummary}` : null,
+    safeError ? `error=${safeError}` : null,
   ].filter(Boolean).join("; ");
 }
 
@@ -2030,12 +2175,12 @@ function markTranscriptionLatencyStage(trace: WhatsAppLatencyTrace, event: Audio
   trace.mark(event.stage, {
     attempt: event.attempt,
     durationMs: event.durationMs,
-    error: event.error,
+    error: sanitizeWhatsAppStageLogText(event.error) ?? undefined,
     model: event.model,
     nextRetryMs: event.nextRetryMs,
     retry: event.retry,
     status: event.status,
-    summary: event.summary,
+    summary: getSafeTranscriptionStageSummary(event),
   });
 }
 
@@ -2060,14 +2205,19 @@ async function logInboundStage({
   stage: WhatsAppAudioPipelineStage;
   userId?: string | null;
 }) {
-  const summary = `stage=${stage}${metadata ? ` | ${metadata}` : ""}`;
+  const safeMetadata = sanitizeWhatsAppStageLogText(metadata);
+  const summary = `stage=${stage}${safeMetadata ? ` | ${safeMetadata}` : ""}`;
   console.info("WhatsApp audio pipeline stage", {
     conversationId,
     externalMessageId,
-    metadata,
+    metadata: safeMetadata,
     provider: getEvolutionProviderName(),
     stage,
   });
+
+  if (process.env.FECHOUMEI_WHATSAPP_AUDIO_STAGE_DB_LOGS !== "1") {
+    return;
+  }
 
   await safeUpdateInboundEvent({
     conversationId,
@@ -2140,7 +2290,7 @@ async function waitForAudioCooldowns({
 
   for (const cooldown of cooldowns) {
     onStage("audio_cooldown_wait_started");
-    await logInboundStage({
+    void logInboundStage({
       externalMessageId,
       instance,
       messageText,
@@ -2150,17 +2300,9 @@ async function waitForAudioCooldowns({
       userId,
     });
 
-    await wait(cooldown.waitMs);
-
-    onStage("audio_cooldown_wait_finished");
-    await logInboundStage({
-      externalMessageId,
-      instance,
-      messageText,
-      metadata: `scope=${cooldown.label}; waitMs=${cooldown.waitMs}`,
-      remoteId,
-      stage: "audio_cooldown_wait_finished",
-      userId,
+    throw new AudioTranscriptionError("Transcricao de audio temporariamente em cooldown.", {
+      stage: "transcription_stage_failed",
+      transient: true,
     });
   }
 }
@@ -2180,7 +2322,7 @@ function getAudioCooldownWaitMs(key: string) {
 function setAudioCooldown(key: string, scope: "global" | "user") {
   audioTranscriptionCooldowns.set(key, Date.now() + audioTranscriptionCooldownMs);
   console.warn("[FECHOUMEI_AUDIO_COOLDOWN_SET]", {
-    key,
+    key: maskAudioCooldownKey(key),
     scope,
     waitMs: audioTranscriptionCooldownMs,
   });

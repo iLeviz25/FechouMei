@@ -4,6 +4,7 @@ import type { WhatsAppAudioMessage, WhatsAppChannelConfig, WhatsAppDocumentMessa
 const maxAudioDurationSeconds = 120;
 const maxAudioSizeBytes = 8 * 1024 * 1024;
 const maxDocumentSizeBytes = 5 * 1024 * 1024;
+const defaultAudioMediaDownloadTimeoutMs = 8000;
 const mediaDownloadTimeoutMs = 15000;
 const supportedAudioMimeTypes = new Set([
   "audio/aac",
@@ -79,7 +80,7 @@ export async function downloadWhatsAppAudio({
       apikey: config.evolutionApiKey,
     },
     method: "POST",
-    signal: AbortSignal.timeout(mediaDownloadTimeoutMs),
+    signal: AbortSignal.timeout(getAudioMediaDownloadTimeoutMs()),
   });
 
   if (!response.ok) {
@@ -202,6 +203,19 @@ function validateDownloadedAudioSize(buffer: Buffer) {
   if (buffer.length > maxAudioSizeBytes) {
     throw new WhatsAppUnsupportedAudioError(`Audio baixado acima do limite de ${maxAudioSizeBytes} bytes.`);
   }
+}
+
+function getAudioMediaDownloadTimeoutMs() {
+  const configuredTimeout = Number.parseInt(
+    process.env.WHATSAPP_AUDIO_DOWNLOAD_TIMEOUT_MS?.trim() ??
+      process.env.WHATSAPP_MEDIA_DOWNLOAD_TIMEOUT_MS?.trim() ??
+      "",
+    10,
+  );
+
+  return Number.isFinite(configuredTimeout) && configuredTimeout >= 3000
+    ? configuredTimeout
+    : defaultAudioMediaDownloadTimeoutMs;
 }
 
 function validateWhatsAppDocument(document: WhatsAppDocumentMessage) {

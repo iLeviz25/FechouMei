@@ -171,7 +171,7 @@ export async function resolveWhatsAppInboundUser({
     const linked = await getLinkedLinkByPhone(context, normalizedRemoteNumber);
 
     if (linked) {
-      await touchLinkedInbound(context, linked.id);
+      void touchLinkedInbound(context, linked.id);
       return {
         kind: "linked",
         linkId: linked.id,

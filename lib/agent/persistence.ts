@@ -48,9 +48,12 @@ export function isAgentPersistenceSetupError(error: unknown) {
 
 export async function loadAgentConversationSnapshot(
   context: AgentPersistenceContext,
+  options: { includeMessages?: boolean } = {},
 ): Promise<AgentConversationSnapshot> {
   const conversation = await getOrCreateAgentConversation(context);
-  const messages = await getAgentMessages(context, conversation.id);
+  const messages = options.includeMessages === false
+    ? []
+    : await getAgentMessages(context, conversation.id);
 
   return {
     channel: getChannel(context),
@@ -106,26 +109,63 @@ export async function persistAgentTurn({
   nextState,
   reply,
   userMessage,
+  reloadSnapshot = true,
 }: {
   actionTrace?: AgentActionTrace;
   context: AgentPersistenceContext;
   conversationId: string;
   nextState: AgentConversationState;
+  reloadSnapshot?: boolean;
   reply: string;
   userMessage: string;
 }) {
-  await appendAgentMessage(context, conversationId, {
-    content: userMessage,
-    role: "user",
-  });
-  await appendAgentMessage(context, conversationId, {
-    content: reply,
-    role: "agent",
-  });
-  await appendAgentActionEvent(context, conversationId, actionTrace);
-  await updateAgentConversationState(context, conversationId, nextState);
+  await appendAgentMessages(context, conversationId, [
+    {
+      content: userMessage,
+      role: "user",
+    },
+    {
+      content: reply,
+      role: "agent",
+    },
+  ]);
+  await Promise.all([
+    appendAgentActionEvent(context, conversationId, actionTrace),
+    updateAgentConversationState(context, conversationId, nextState),
+  ]);
+
+  if (!reloadSnapshot) {
+    return {
+      channel: getChannel(context),
+      conversationId,
+      isPersistent: true,
+      messages: [],
+      state: nextState,
+    };
+  }
 
   return loadAgentConversationSnapshot(context);
+}
+
+async function appendAgentMessages(
+  context: AgentPersistenceContext,
+  conversationId: string,
+  messages: Array<Pick<AgentMessage, "content" | "role">>,
+) {
+  const baseTime = Date.now();
+  const { error } = await context.supabase.from("agent_messages").insert(
+    messages.map((message, index) => ({
+      content: message.content,
+      conversation_id: conversationId,
+      created_at: new Date(baseTime + index).toISOString(),
+      role: message.role,
+      user_id: context.userId,
+    })),
+  );
+
+  if (error) {
+    throwPersistenceError(error.message);
+  }
 }
 
 async function appendAgentActionEvent(

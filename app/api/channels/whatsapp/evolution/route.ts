@@ -6,7 +6,13 @@ import { timingSafeEqual } from "crypto";
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  const routeStartedAt = Date.now();
+  markWebhookRouteLatency(routeStartedAt, "webhook_received");
   const authResult = validateWhatsAppWebhookRequest(request);
+  markWebhookRouteLatency(routeStartedAt, "webhook_secret_validation_finished", {
+    ok: authResult.ok,
+    status: authResult.ok ? 200 : authResult.status,
+  });
 
   if (!authResult.ok) {
     return NextResponse.json(
@@ -17,7 +23,11 @@ export async function POST(request: Request) {
 
   try {
     const payload = await request.json();
+    markWebhookRouteLatency(routeStartedAt, "webhook_body_parse_finished");
     const result = await handleEvolutionWhatsAppWebhook(payload);
+    markWebhookRouteLatency(routeStartedAt, "webhook_handler_finished", {
+      status: result.status,
+    });
 
     return NextResponse.json(result.body, { status: result.status });
   } catch (error) {
@@ -42,6 +52,22 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+}
+
+function markWebhookRouteLatency(
+  startedAt: number,
+  stage: string,
+  metadata: Record<string, unknown> = {},
+) {
+  const elapsedMs = Date.now() - startedAt;
+
+  console.info("[FECHOUMEI_WHATSAPP_LATENCY]", {
+    elapsedMs,
+    provider: "evolution",
+    stage,
+    surface: "webhook_route",
+    ...metadata,
+  });
 }
 
 type WhatsAppWebhookAuthResult =

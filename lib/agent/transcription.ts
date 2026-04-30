@@ -1,19 +1,24 @@
 const defaultTranscriptionModel = "gemini-2.5-flash";
-const defaultUploadTimeoutMs = 8000;
-const defaultPollingRequestTimeoutMs = 5000;
-const defaultFileProcessingTimeoutMs = 10000;
-const defaultGenerateContentTimeoutMs = 18000;
-const defaultTranscriptionTotalBudgetMs = 34000;
-const minimumRetryBudgetMs = 5000;
+const defaultUploadTimeoutMs = 4500;
+const defaultPollingRequestTimeoutMs = 2500;
+const defaultFileProcessingTimeoutMs = 5000;
+const defaultPrimaryGenerateContentTimeoutMs = 5500;
+const defaultFallbackGenerateContentTimeoutMs = 6500;
+const defaultTranscriptionTotalBudgetMs = 14000;
+const minimumRetryBudgetMs = 3000;
 const filePollingAttempts = 8;
 const defaultFilePollingIntervalMs = 1000;
 const maxTranscriptionAttempts = 2;
-const defaultRetryBaseDelayMs = 1000;
-const generateContentRateLimitRetryBaseDelayMs = 8000;
-const retryJitterMs = 350;
-const generateContentRateLimitJitterMs = 2500;
+const defaultRetryBaseDelayMs = 300;
+const generateContentRateLimitRetryBaseDelayMs = 1200;
+const retryJitterMs = 150;
+const generateContentRateLimitJitterMs = 500;
+const defaultInlineAudioMaxBytes = 2 * 1024 * 1024;
 
 export type AudioTranscriptionStage =
+  | "primary_timeout"
+  | "fallback_started"
+  | "fallback_finished"
   | "transcription_primary_attempt_started"
   | "transcription_primary_attempt_finished"
   | "transcription_fallback_attempt_started"
@@ -72,6 +77,8 @@ type GeminiGenerateContentResponse = {
   };
 };
 
+type TranscriptionAttemptKind = "primary" | "fallback";
+
 export class AudioTranscriptionError extends Error {
   stage?: AudioTranscriptionStage;
   status?: number;
@@ -120,7 +127,7 @@ export async function transcribeAudioWithGemini({
   }
 
   let currentModel = transcriptionModels.primary;
-  let attemptKind: "primary" | "fallback" = "primary";
+  let attemptKind: TranscriptionAttemptKind = "primary";
 
   for (let attempt = 1; attempt <= maxTranscriptionAttempts; attempt += 1) {
     const attemptStartedAt = Date.now();
@@ -175,6 +182,7 @@ export async function transcribeAudioWithGemini({
         mimeType,
         model: currentModel,
         onStage,
+        attemptKind,
         transcriptionStartedAt: startedAt,
       });
 
@@ -188,6 +196,18 @@ export async function transcribeAudioWithGemini({
           : "transcription_fallback_attempt_finished",
         summary: "success",
       });
+
+      if (attemptKind === "fallback") {
+        await emitTranscriptionStage(onStage, {
+          attempt,
+          apiKeySource: credentials.source,
+          durationMs: Date.now() - attemptStartedAt,
+          model: currentModel,
+          retry: false,
+          stage: "fallback_finished",
+          summary: "success",
+        });
+      }
 
       await emitTranscriptionStage(onStage, {
         attempt,
@@ -231,6 +251,22 @@ export async function transcribeAudioWithGemini({
           stage: "transcription_attempt_aborted_timeout",
           status: transcriptionError.status,
         });
+
+        if (attemptKind === "primary") {
+          await emitTranscriptionStage(onStage, {
+            attempt,
+            apiKeySource: credentials.source,
+            durationMs: attemptedMs,
+            error: summarizeTranscriptionError(transcriptionError),
+            model: currentModel,
+            retry: retryPlan.shouldRetry,
+            stage: "primary_timeout",
+            status: transcriptionError.status,
+            summary: retryPlan.shouldRetry
+              ? `nextModel=${retryPlan.nextModel}`
+              : retryPlan.reason,
+          });
+        }
       }
 
       await emitTranscriptionStage(onStage, {
@@ -282,6 +318,20 @@ export async function transcribeAudioWithGemini({
         status: transcriptionError.status,
       });
 
+      if (attemptKind === "fallback") {
+        await emitTranscriptionStage(onStage, {
+          attempt,
+          apiKeySource: credentials.source,
+          durationMs: attemptedMs,
+          error: summarizeTranscriptionError(transcriptionError),
+          model: currentModel,
+          retry: retryPlan.shouldRetry,
+          stage: "fallback_finished",
+          status: transcriptionError.status,
+          summary: `failedStage=${transcriptionError.stage ?? "unknown"}`,
+        });
+      }
+
       if (!retryPlan.shouldRetry) {
         await emitTranscriptionStage(onStage, {
           attempt,
@@ -310,6 +360,18 @@ export async function transcribeAudioWithGemini({
         summary: retryPlan.reason,
       });
 
+      if (retryPlan.nextAttemptKind === "fallback") {
+        await emitTranscriptionStage(onStage, {
+          attempt,
+          apiKeySource: credentials.source,
+          durationMs: Date.now() - startedAt,
+          model: retryPlan.nextModel,
+          retry: true,
+          stage: "fallback_started",
+          summary: `fromModel=${currentModel}; reason=${retryPlan.reason}`,
+        });
+      }
+
       currentModel = retryPlan.nextModel;
       attemptKind = retryPlan.nextAttemptKind;
 
@@ -326,6 +388,7 @@ async function transcribeAudioOnce({
   apiKey,
   apiKeySource,
   attempt,
+  attemptKind,
   audio,
   mimeType,
   model,
@@ -335,6 +398,135 @@ async function transcribeAudioOnce({
   apiKey: string;
   apiKeySource: "dedicated" | "fallback";
   attempt: number;
+  attemptKind: TranscriptionAttemptKind;
+  audio: Buffer;
+  mimeType: string;
+  model: string;
+  onStage?: (event: AudioTranscriptionStageEvent) => Promise<void> | void;
+  transcriptionStartedAt: number;
+}) {
+  if (shouldUseInlineGeminiAudio(audio)) {
+    try {
+      return await transcribeInlineAudioOnce({
+        apiKey,
+        apiKeySource,
+        attempt,
+        attemptKind,
+        audio,
+        mimeType,
+        model,
+        onStage,
+        transcriptionStartedAt,
+      });
+    } catch (error) {
+      const transcriptionError = normalizeAudioTranscriptionError(error);
+
+      if (!shouldFallbackInlineAudioToFileUpload(transcriptionError)) {
+        throw error;
+      }
+
+      await emitTranscriptionStage(onStage, {
+        attempt,
+        apiKeySource,
+        durationMs: Date.now() - transcriptionStartedAt,
+        error: summarizeTranscriptionError(transcriptionError),
+        model,
+        retry: true,
+        stage: "transcription_stage_failed",
+        status: transcriptionError.status,
+        summary: "inline_audio_fallback_to_file_upload",
+      });
+    }
+  }
+
+  return transcribeFileAudioOnce({
+    apiKey,
+    apiKeySource,
+    attempt,
+    attemptKind,
+    audio,
+    mimeType,
+    model,
+    onStage,
+    transcriptionStartedAt,
+  });
+}
+
+async function transcribeInlineAudioOnce({
+  apiKey,
+  apiKeySource,
+  attempt,
+  attemptKind,
+  audio,
+  mimeType,
+  model,
+  onStage,
+  transcriptionStartedAt,
+}: {
+  apiKey: string;
+  apiKeySource: "dedicated" | "fallback";
+  attempt: number;
+  attemptKind: TranscriptionAttemptKind;
+  audio: Buffer;
+  mimeType: string;
+  model: string;
+  onStage?: (event: AudioTranscriptionStageEvent) => Promise<void> | void;
+  transcriptionStartedAt: number;
+}) {
+  await emitTranscriptionStage(onStage, {
+    attempt,
+    apiKeySource,
+    model,
+    stage: "generate_content_started",
+    summary: `inlineAudio=true; mime=${mimeType}; bytes=${audio.length}; model=${model}`,
+  });
+
+  const transcription = await requestGeminiTranscription({
+    apiKey,
+    attemptKind,
+    audioPart: {
+      inlineData: {
+        data: audio.toString("base64"),
+        mimeType,
+      },
+    },
+    model,
+  });
+
+  if (!transcription) {
+    throw new AudioTranscriptionError("A transcricao voltou vazia.", {
+      stage: "transcription_empty",
+      transient: false,
+    });
+  }
+
+  await emitTranscriptionStage(onStage, {
+    attempt,
+    apiKeySource,
+    durationMs: Date.now() - transcriptionStartedAt,
+    model,
+    stage: "transcription_succeeded",
+    summary: transcription.slice(0, 120),
+  });
+
+  return transcription;
+}
+
+async function transcribeFileAudioOnce({
+  apiKey,
+  apiKeySource,
+  attempt,
+  attemptKind,
+  audio,
+  mimeType,
+  model,
+  onStage,
+  transcriptionStartedAt,
+}: {
+  apiKey: string;
+  apiKeySource: "dedicated" | "fallback";
+  attempt: number;
+  attemptKind: TranscriptionAttemptKind;
   audio: Buffer;
   mimeType: string;
   model: string;
@@ -371,8 +563,13 @@ async function transcribeAudioOnce({
 
     const transcription = await requestGeminiTranscription({
       apiKey,
-      fileUri: activeFile.uri,
-      mimeType: activeFile.mimeType || mimeType,
+      attemptKind,
+      audioPart: {
+        fileData: {
+          fileUri: activeFile.uri,
+          mimeType: activeFile.mimeType || mimeType,
+        },
+      },
       model,
     });
 
@@ -394,7 +591,7 @@ async function transcribeAudioOnce({
 
     return transcription;
   } finally {
-    await deleteGeminiFile({ apiKey, name: uploadedFile.name });
+    void deleteGeminiFile({ apiKey, name: uploadedFile.name });
   }
 }
 
@@ -569,13 +766,25 @@ async function waitForGeminiFile({
 
 async function requestGeminiTranscription({
   apiKey,
-  fileUri,
-  mimeType,
+  attemptKind,
+  audioPart,
   model,
 }: {
   apiKey: string;
-  fileUri: string;
-  mimeType: string;
+  attemptKind: TranscriptionAttemptKind;
+  audioPart:
+    | {
+        fileData: {
+          fileUri: string;
+          mimeType: string;
+        };
+      }
+    | {
+        inlineData: {
+          data: string;
+          mimeType: string;
+        };
+      };
   model: string;
 }) {
   const response = await safeFetchTranscription(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
@@ -591,12 +800,7 @@ async function requestGeminiTranscription({
                 "Se uma parte estiver inaudivel, seja conservador e nao invente.",
               ].join(" "),
             },
-            {
-              fileData: {
-                fileUri,
-                mimeType,
-              },
-            },
+            audioPart,
           ],
         },
       ],
@@ -610,7 +814,7 @@ async function requestGeminiTranscription({
       "x-goog-api-key": apiKey,
     },
     method: "POST",
-    signal: AbortSignal.timeout(getGenerateContentTimeoutMs()),
+    signal: AbortSignal.timeout(getGenerateContentTimeoutMs(attemptKind)),
   }, "generate_content_failed");
 
   const payload = (await safeReadJson(response, "generate_content_failed")) as GeminiGenerateContentResponse;
@@ -642,7 +846,7 @@ async function deleteGeminiFile({
     await fetch(`https://generativelanguage.googleapis.com/v1beta/${name}?key=${apiKey}`, {
       cache: "no-store",
       method: "DELETE",
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(3000),
     });
   } catch (error) {
     console.error("Gemini audio file cleanup failed", error);
@@ -756,7 +960,7 @@ function getNextTranscriptionAttemptPlan({
   totalBudgetMs,
 }: {
   attempt: number;
-  attemptKind: "primary" | "fallback";
+  attemptKind: TranscriptionAttemptKind;
   currentModel: string;
   error: AudioTranscriptionError;
   fallbackModel: string | null;
@@ -779,6 +983,16 @@ function getNextTranscriptionAttemptPlan({
   const nextRetryMs = canUseFallbackModel
     ? getFallbackModelDelayMs(error)
     : getTranscriptionBackoffMs(attempt, error);
+
+  if (error.status === 429 && !canUseFallbackModel) {
+    return {
+      nextAttemptKind,
+      nextModel,
+      nextRetryMs: 0,
+      reason: "rate_limited_without_fallback_model",
+      shouldRetry: false,
+    };
+  }
 
   if (error.timedOut && !canUseFallbackModel) {
     return {
@@ -811,6 +1025,22 @@ function getFallbackModelDelayMs(error: AudioTranscriptionError) {
   }
 
   return 0;
+}
+
+function shouldUseInlineGeminiAudio(audio: Buffer) {
+  return audio.length <= getInlineAudioMaxBytes();
+}
+
+function shouldFallbackInlineAudioToFileUpload(error: AudioTranscriptionError) {
+  return error.stage === "generate_content_failed" && (error.status === 400 || error.status === 413);
+}
+
+function getInlineAudioMaxBytes() {
+  const configuredMaxBytes = Number.parseInt(process.env.GEMINI_TRANSCRIPTION_INLINE_MAX_BYTES?.trim() ?? "", 10);
+
+  return Number.isFinite(configuredMaxBytes) && configuredMaxBytes >= 0
+    ? configuredMaxBytes
+    : defaultInlineAudioMaxBytes;
 }
 
 function getFilePollingIntervalMs() {
@@ -855,9 +1085,14 @@ function getFileProcessingTimeoutMs() {
     : defaultFileProcessingTimeoutMs;
 }
 
-function getGenerateContentTimeoutMs() {
+function getGenerateContentTimeoutMs(attemptKind: TranscriptionAttemptKind) {
+  const attemptSpecificTimeout =
+    attemptKind === "primary"
+      ? process.env.GEMINI_TRANSCRIPTION_PRIMARY_TIMEOUT_MS?.trim()
+      : process.env.GEMINI_TRANSCRIPTION_FALLBACK_TIMEOUT_MS?.trim();
   const configuredTimeout = Number.parseInt(
-    process.env.GEMINI_TRANSCRIPTION_GENERATE_TIMEOUT_MS?.trim() ??
+    attemptSpecificTimeout ??
+      process.env.GEMINI_TRANSCRIPTION_GENERATE_TIMEOUT_MS?.trim() ??
       process.env.GEMINI_TRANSCRIPTION_REQUEST_TIMEOUT_MS?.trim() ??
       "",
     10,
@@ -865,7 +1100,9 @@ function getGenerateContentTimeoutMs() {
 
   return Number.isFinite(configuredTimeout) && configuredTimeout >= 5000
     ? configuredTimeout
-    : defaultGenerateContentTimeoutMs;
+    : attemptKind === "primary"
+      ? defaultPrimaryGenerateContentTimeoutMs
+      : defaultFallbackGenerateContentTimeoutMs;
 }
 
 function getTranscriptionTotalBudgetMs() {

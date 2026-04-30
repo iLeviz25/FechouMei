@@ -23,6 +23,7 @@ export type AgentAvailabilityResult =
 
 type AgentRuntimeContext = {
   channel?: AgentConversationChannel;
+  settings?: AgentRuntimeSettings;
   supabase: SupabaseClient<Database>;
   userId: string;
 };
@@ -59,7 +60,7 @@ export async function getAgentRuntimeSettings(
 export async function evaluateAgentAvailability(
   context: AgentRuntimeContext,
 ): Promise<AgentAvailabilityResult> {
-  const settings = await getAgentRuntimeSettings(context.supabase);
+  const settings = context.settings ?? await getAgentRuntimeSettings(context.supabase);
   const channel = context.channel ?? "playground";
 
   if (settings.maintenanceMode) {

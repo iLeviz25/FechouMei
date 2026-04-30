@@ -34,6 +34,7 @@ import {
 import {
   evaluateAgentAvailability,
   logAgentRuntimeBlock,
+  type AgentRuntimeSettings,
 } from "@/lib/agent/runtime-settings";
 import { recordAgentPromptTrace } from "@/lib/agent/prompt-tracing";
 import {
@@ -75,6 +76,7 @@ import {
 type RunAgentTurnInput = {
   channel?: AgentConversationChannel;
   message: string;
+  runtimeSettings?: AgentRuntimeSettings;
   state?: AgentConversationState | null;
 };
 
@@ -122,6 +124,7 @@ export async function runAgentTurn({ channel = "playground", message, state }: R
   const context: AgentExecutionContext = { supabase, userId: user.id };
   const availability = await evaluateAgentAvailability({
     channel,
+    settings: undefined,
     supabase,
     userId: user.id,
   });
@@ -218,6 +221,7 @@ export async function runAgentTurnForContext({
   channel = "playground",
   context,
   message,
+  runtimeSettings,
   state,
 }: RunAgentTurnInput & { context: AgentExecutionContext }): Promise<AgentTurnResult> {
   const trimmedMessage = message.trim();
@@ -232,6 +236,7 @@ export async function runAgentTurnForContext({
 
   const availability = await evaluateAgentAvailability({
     channel,
+    settings: runtimeSettings,
     supabase: context.supabase,
     userId: context.userId,
   });
@@ -341,7 +346,7 @@ async function handleDeterministicClassification({
   message: string;
   result: NonNullable<ReturnType<typeof classifyDeterministically>>;
 }): Promise<AgentTurnResult | null> {
-  await recordAgentPromptTrace({
+  const tracePromise = recordAgentPromptTrace({
     actionName: result.action ?? result.kind,
     channel,
     metadata: {
@@ -363,6 +368,12 @@ async function handleDeterministicClassification({
     userId: context.userId,
     userMessage: message,
   });
+
+  if (channel === "whatsapp") {
+    void tracePromise;
+  } else {
+    await tracePromise;
+  }
 
   if (currentState.expectedResponseKind === "choose_split_or_combined") {
     const splitChoice = detectSplitOrCombinedChoice(message);

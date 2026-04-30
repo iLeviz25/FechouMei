@@ -11,12 +11,26 @@ type AgentTurnQueueContext = {
 type RunQueuedAgentTurnInput<T> = {
   context: AgentTurnQueueContext;
   lockTtlSeconds?: number;
+  onStage?: (stage: AgentTurnQueueStage, metadata?: Record<string, unknown>) => void;
   onTimeout: () => Promise<T>;
   pollMs?: number;
   queueTtlSeconds?: number;
   waitMs?: number;
   work: () => Promise<T>;
 };
+
+export type AgentTurnQueueStage =
+  | "queue_enqueue_started"
+  | "queue_enqueue_finished"
+  | "queue_claim_started"
+  | "queue_claim_finished"
+  | "queue_wait_started"
+  | "queue_wait_finished"
+  | "queue_work_started"
+  | "queue_work_finished"
+  | "queue_finish_started"
+  | "queue_finish_finished"
+  | "queue_timeout";
 
 type ClaimResult = {
   claimed: boolean;
@@ -35,18 +49,27 @@ export const agentTurnQueueBusyReply =
 export async function runQueuedAgentTurn<T>({
   context,
   lockTtlSeconds = defaultLockTtlSeconds,
+  onStage,
   onTimeout,
   pollMs = defaultQueuePollMs,
   queueTtlSeconds = defaultQueueTtlSeconds,
   waitMs = defaultQueueWaitMs,
   work,
 }: RunQueuedAgentTurnInput<T>): Promise<T> {
+  onStage?.("queue_enqueue_started");
   const queueId = await enqueueAgentTurn(context, queueTtlSeconds);
+  onStage?.("queue_enqueue_finished", { queueId });
   const startedAt = Date.now();
   let lockToken: string | null = null;
 
   while (Date.now() - startedAt <= waitMs) {
+    onStage?.("queue_claim_started", { queueId });
     const claim = await claimAgentTurn(context.supabase, queueId, lockTtlSeconds);
+    onStage?.("queue_claim_finished", {
+      claimed: claim.claimed,
+      queueId,
+      reason: claim.reason,
+    });
 
     if (claim.claimed && claim.lockToken) {
       lockToken = claim.lockToken;
@@ -56,14 +79,28 @@ export async function runQueuedAgentTurn<T>({
     const remainingMs = waitMs - (Date.now() - startedAt);
 
     if (remainingMs <= 0 || isTerminalClaimReason(claim.reason)) {
+      onStage?.("queue_timeout", {
+        elapsedMs: Date.now() - startedAt,
+        queueId,
+        reason: claim.reason,
+      });
       await abandonAgentTurn(context.supabase, queueId, "Turn timed out before processing.");
       return onTimeout();
     }
 
+    onStage?.("queue_wait_started", {
+      queueId,
+      waitMs: Math.min(pollMs, remainingMs),
+    });
     await wait(Math.min(pollMs, remainingMs));
+    onStage?.("queue_wait_finished", { queueId });
   }
 
   if (!lockToken) {
+    onStage?.("queue_timeout", {
+      elapsedMs: Date.now() - startedAt,
+      queueId,
+    });
     await abandonAgentTurn(context.supabase, queueId, "Turn timed out before processing.");
     return onTimeout();
   }
@@ -71,13 +108,19 @@ export async function runQueuedAgentTurn<T>({
   const stopHeartbeat = startLockHeartbeat(context.supabase, queueId, lockToken, lockTtlSeconds);
 
   try {
+    onStage?.("queue_work_started", { queueId });
     const result = await work();
+    onStage?.("queue_work_finished", { queueId });
     stopHeartbeat();
+    onStage?.("queue_finish_started", { queueId });
     await finishAgentTurn(context.supabase, queueId, lockToken, "completed");
+    onStage?.("queue_finish_finished", { queueId, status: "completed" });
     return result;
   } catch (error) {
     stopHeartbeat();
+    onStage?.("queue_finish_started", { queueId, status: "failed" });
     await finishAgentTurn(context.supabase, queueId, lockToken, "failed", summarizeError(error));
+    onStage?.("queue_finish_finished", { queueId, status: "failed" });
     throw error;
   }
 }
