@@ -7,11 +7,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getAuthErrorMessage, normalizeAuthEmail } from "@/lib/auth/errors";
+import { buildClientAppUrl } from "@/lib/client-app-url";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 function getRecoveryRedirectUrl() {
-  const callbackUrl = new URL("/auth/callback", window.location.origin);
+  const callbackUrl = new URL(buildClientAppUrl("/auth/callback", window.location.origin));
   callbackUrl.searchParams.set("next", "/redefinir-senha");
   return callbackUrl.toString();
 }
