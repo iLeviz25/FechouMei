@@ -12,6 +12,7 @@ import {
   persistAgentTurn,
 } from "@/lib/agent/persistence";
 import { agentTurnQueueBusyReply, runQueuedAgentTurn } from "@/lib/agent/turn-queue";
+import type { AgentConversationState } from "@/lib/agent/types";
 import {
   WhatsAppMediaDownloadError,
   WhatsAppUnsupportedAudioError,
@@ -65,6 +66,8 @@ const whatsappTypingKeepaliveMaxMs = 28000;
 const globalAudioTranscriptionCooldownKey = "global";
 const audioTranscriptionCooldowns = new Map<string, number>();
 const audioTranscriptionQueues = new Map<string, Promise<unknown>>();
+
+type WhatsAppImportIntent = "cancel" | "confirm" | "request_file";
 
 type WhatsAppAudioPipelineStage =
   | "inbound_received"
@@ -695,6 +698,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
   }
 
   const importTextReply = await handleWhatsAppImportTextIntent({
+    allowedIntents: ["request_file"],
     canUseAdvancedHelena: subscriptionAccess.canUseAdvancedHelena,
     messageText: normalized.text,
     remoteId: normalized.remoteJid,
@@ -954,6 +958,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
         return {
           reply: agentReply,
           queuedTimeout: true,
+          summary: undefined,
         };
       },
       work: async () => {
@@ -972,6 +977,41 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
             stage: audioStage,
             userId: resolvedUserId,
           });
+        }
+
+        const importControlReply = await handleWhatsAppImportTextIntent({
+          agentState: snapshot.state,
+          allowedIntents: ["cancel", "confirm"],
+          canUseAdvancedHelena: subscriptionAccess.canUseAdvancedHelena,
+          messageText: agentInputText,
+          remoteId: normalized.remoteJid,
+          supabase: admin,
+          userId: resolvedUserId,
+        });
+
+        if (importControlReply) {
+          trace.mark("action_execution_started", {
+            conversationId,
+            source: importControlReply.reason,
+          });
+          trace.mark("action_execution_finished", {
+            replyCharacters: importControlReply.reply.length,
+            source: importControlReply.reason,
+          });
+          trace.mark("response_build_started", {
+            source: importControlReply.reason,
+          });
+          agentReply = importControlReply.reply;
+          trace.mark("response_build_finished", {
+            characters: agentReply.length,
+            source: importControlReply.reason,
+          });
+
+          return {
+            reply: importControlReply.reply,
+            queuedTimeout: false,
+            summary: importControlReply.summary,
+          };
         }
 
         trace.mark("action_execution_started", {
@@ -1057,6 +1097,8 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
       status: "processed",
       summary: queuedTurn.queuedTimeout
         ? "Mensagem aguardou uma conversa ainda em processamento e recebeu fallback de fila."
+        : queuedTurn.summary
+          ? queuedTurn.summary
         : getProcessedSummary(queuedTurn.reply, audioWasTranscribed, agentInputText),
       userId: resolvedUserId,
     });
@@ -1281,12 +1323,16 @@ async function handleWhatsAppExportTextIntent({
 }
 
 async function handleWhatsAppImportTextIntent({
+  agentState,
+  allowedIntents,
   canUseAdvancedHelena,
   messageText,
   remoteId,
   supabase,
   userId,
 }: {
+  agentState?: AgentConversationState | null;
+  allowedIntents?: WhatsAppImportIntent[];
   canUseAdvancedHelena: boolean;
   messageText?: string | null;
   remoteId?: string | null;
@@ -1301,6 +1347,10 @@ async function handleWhatsAppImportTextIntent({
   const intent = getWhatsAppImportIntent(messageText);
 
   if (!intent) {
+    return null;
+  }
+
+  if (allowedIntents && !allowedIntents.includes(intent)) {
     return null;
   }
 
@@ -1323,6 +1373,27 @@ async function handleWhatsAppImportTextIntent({
   }
 
   try {
+    const shouldUsePendingImportSession = intent === "cancel" || intent === "confirm";
+    const latestSession = shouldUsePendingImportSession
+      ? await findLatestWhatsAppImportSession({
+        channelRemoteId: remoteId,
+        supabase,
+        userId,
+      })
+      : null;
+
+    if (shouldUsePendingImportSession) {
+      const hasPendingImportSession = isPendingWhatsAppImportSession(latestSession?.session.status);
+
+      if (!hasPendingImportSession) {
+        return null;
+      }
+
+      if (shouldPrioritizeAgentDraftForImportControl(agentState, messageText)) {
+        return null;
+      }
+    }
+
     if (intent === "cancel") {
       const result = await cancelWhatsAppImportSession({
         channelRemoteId: remoteId,
@@ -1339,17 +1410,6 @@ async function handleWhatsAppImportTextIntent({
     }
 
     if (!canUseAdvancedHelena) {
-      const latestSession = await findLatestWhatsAppImportSession({
-        channelRemoteId: remoteId,
-        supabase,
-        userId,
-      });
-      const normalizedText = normalizeIntentText(messageText);
-
-      if (!latestSession && normalizedText === "sim") {
-        return null;
-      }
-
       return {
         reason: "whatsapp_import_confirm_requires_pro",
         reply: helenaProFeatureReply,
@@ -1363,11 +1423,6 @@ async function handleWhatsAppImportTextIntent({
       supabase,
       userId,
     });
-
-    const normalizedText = normalizeIntentText(messageText);
-    if (!result.ok && normalizedText === "sim" && result.message.startsWith("Nao encontrei")) {
-      return null;
-    }
 
     return {
       reason: result.ok ? "whatsapp_import_confirmed" : "whatsapp_import_confirm_blocked",
@@ -1513,19 +1568,61 @@ function getWhatsAppImportIntent(messageText?: string | null) {
     return null;
   }
 
-  if (/^(cancelar|cancela|descartar|nao importar|não importar)$/.test(normalized)) {
+  if (
+    /^(cancelar|cancela|descartar)(?:\s+(?:a\s+)?(?:importacao|planilha|arquivo|csv|xlsx|extrato))?$/.test(normalized) ||
+    /^(nao importar)$/.test(normalized)
+  ) {
     return "cancel" as const;
   }
 
-  if (/^(confirmar|confirma|pode importar|importar|salvar|sim|pode salvar)$/.test(normalized)) {
+  if (
+    /^(confirmar|confirma|pode importar|importar|salvar|sim|pode salvar)(?:\s+(?:a\s+)?(?:importacao|planilha|arquivo|csv|xlsx|extrato))?$/.test(normalized)
+  ) {
     return "confirm" as const;
   }
 
-  if (/\b(importa|importar|importacao|importação)\b/.test(normalized) && /\b(planilha|arquivo|csv|xlsx|extrato)\b/.test(normalized)) {
+  if (
+    /\b(importa|importar|importacao)\b/.test(normalized) &&
+    /\b(planilha|arquivo|csv|xlsx|extrato)\b/.test(normalized)
+  ) {
     return "request_file" as const;
   }
 
   return null;
+}
+
+function isPendingWhatsAppImportSession(status?: string | null) {
+  return status === "draft" || status === "reviewed";
+}
+
+function shouldPrioritizeAgentDraftForImportControl(
+  agentState?: AgentConversationState | null,
+  messageText?: string | null,
+) {
+  if (!agentState || agentState.status === "idle") {
+    return false;
+  }
+
+  if (isExplicitWhatsAppImportControl(messageText)) {
+    return false;
+  }
+
+  return Boolean(
+    agentState.pendingAction === "register_income" ||
+    agentState.pendingAction === "register_expense" ||
+    agentState.pendingAction === "register_movements_batch" ||
+    agentState.pendingAction === "edit_transaction" ||
+    agentState.pendingAction === "delete_transaction" ||
+    agentState.pendingAction === "set_initial_balance" ||
+    agentState.pendingAction === "mark_obligation" ||
+    agentState.pendingAction === "update_reminder_preferences",
+  );
+}
+
+function isExplicitWhatsAppImportControl(messageText?: string | null) {
+  const normalized = normalizeIntentText(messageText);
+
+  return /\b(importa|importar|importacao|planilha|arquivo|csv|xlsx|extrato)\b/.test(normalized);
 }
 
 function getWhatsAppExportIntent(messageText?: string | null) {

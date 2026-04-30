@@ -240,6 +240,7 @@ const incomeVerbs = [
 const operationalPhrasePatterns = [
   /\b(?:me ajuda|ajuda)\b/gi,
   /\b(?:na verdade|verdade|quis dizer|não era|nao era|era para ser|era pra ser)\b/gi,
+  /\b(?:eu\s+)?acabei\s+de\s+(?:receber|pagar|gastar|comprar|vender)\b/gi,
   /\b(?:corrige|corrigir|corrija|mude|muda|troca|troque)\b(?:\s+(?:para|pra|por))?/gi,
   /\b(?:e\s+)?(?:deu|ficou|totalizou)\b/gi,
   /\badiciona\s+a[ií]\b/gi,

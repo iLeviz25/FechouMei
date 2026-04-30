@@ -18,6 +18,7 @@ export function normalizeSpokenAgentMessage(message: string) {
   }
 
   return normalized
+    .replace(/\b(\d{1,6})\s+e\s+(\d{1,2})(?=\s+(?:com|de|do|da|em|no|na|por|reais?|brl|contos?|pilas?)\b)/gi, "$1,$2")
     .replace(/\b(?:tambem|também)\b/gi, " e ")
     .replace(/\b(?:alem disso|além disso|depois|junto com isso)\b/gi, " e ")
     .replace(/^[,\s]+/g, "")

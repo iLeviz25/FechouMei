@@ -32,13 +32,27 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import {
+  getSubscriptionAccessFromProfile,
+  type SubscriptionAccess,
+  type SubscriptionPlan,
+  type SubscriptionStatus,
+} from "@/lib/subscription/access";
 import { cn } from "@/lib/utils";
 import type { Profile } from "@/types/database";
 
 type ConfiguracoesFormProps = {
   profile: Pick<
     Profile,
-    "full_name" | "work_type" | "business_mode" | "main_category" | "main_goal" | "initial_balance"
+    | "business_mode"
+    | "full_name"
+    | "initial_balance"
+    | "main_category"
+    | "main_goal"
+    | "role"
+    | "subscription_plan"
+    | "subscription_status"
+    | "work_type"
   > | null;
 };
 
@@ -127,6 +141,7 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
   const resolvedGoal = values.mainGoal || "Nao informado";
   const businessModeLabel = getBusinessModeLabel(values.businessMode);
   const profileTag = `${businessModeLabel} - ${resolvedCategory}`;
+  const subscriptionAccess = getSubscriptionAccessFromProfile(profile);
 
   const profileSnapshotItems = [
     {
@@ -338,6 +353,8 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
             </div>
           </div>
         </div>
+
+        <SubscriptionSummaryCard access={subscriptionAccess} />
 
         <div className="grid gap-3 md:grid-cols-2">
           {profileSnapshotItems.map((item) => (
@@ -688,6 +705,48 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
   );
 }
 
+function SubscriptionSummaryCard({ access }: { access: SubscriptionAccess }) {
+  const planLabel = access.isAdmin ? "Admin" : getSubscriptionPlanLabel(access.plan);
+  const statusLabel = access.isAdmin ? "Admin" : getSubscriptionStatusLabel(access.status);
+  const description = access.isAdmin ? "Acesso administrativo completo." : getSubscriptionPlanDescription(access.plan);
+  const limitLabel = access.isAdmin ? "Sem limite bloqueante" : `${access.dailyHelenaLimit ?? 0} mensagens/dia`;
+
+  return (
+    <Card className="overflow-hidden rounded-[28px] border-primary/15 bg-primary-soft/30">
+      <CardContent className="space-y-4 p-4 sm:p-5">
+        <div className="flex flex-col gap-3 min-[430px]:flex-row min-[430px]:items-start min-[430px]:justify-between">
+          <div className="min-w-0 space-y-1">
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Plano da conta</p>
+            <h2 className="text-lg font-extrabold tracking-tight text-foreground">{planLabel}</h2>
+            <p className="text-sm leading-6 text-muted-foreground">{description}</p>
+          </div>
+          <div className="flex flex-wrap gap-2 min-[430px]:justify-end">
+            <Badge variant={access.isAdmin || access.plan === "pro" ? "success" : "secondary"}>{planLabel}</Badge>
+            <Badge variant={access.status === "active" || access.isAdmin ? "success" : access.status === "pending_payment" ? "secondary" : "danger"}>
+              {statusLabel}
+            </Badge>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <SubscriptionSummaryItem label="Plano atual" value={planLabel} />
+          <SubscriptionSummaryItem label="Status da assinatura" value={statusLabel} />
+          <SubscriptionSummaryItem label="Limite da Helena" value={limitLabel} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SubscriptionSummaryItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[22px] border border-border/70 bg-background/85 px-4 py-3">
+      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{label}</p>
+      <p className="mt-1 text-sm font-extrabold leading-6 text-foreground">{value}</p>
+    </div>
+  );
+}
+
 type Option = {
   label: string;
   value: string;
@@ -1002,6 +1061,27 @@ function OptionGroup({
 
 function getBusinessModeLabel(value: string) {
   return businessModeOptions.find((option) => option.value === value)?.label ?? value;
+}
+
+function getSubscriptionPlanLabel(plan: SubscriptionPlan) {
+  return plan === "pro" ? "Pro" : "Essencial";
+}
+
+function getSubscriptionPlanDescription(plan: SubscriptionPlan) {
+  return plan === "pro"
+    ? "Inclui recursos avancados da Helena, importacao e exportacao."
+    : "Ideal para organizar seu MEI no dia a dia.";
+}
+
+function getSubscriptionStatusLabel(status: SubscriptionStatus) {
+  const labels: Record<SubscriptionStatus, string> = {
+    active: "Ativo",
+    canceled: "Cancelado",
+    past_due: "Pagamento pendente",
+    pending_payment: "Aguardando pagamento",
+  };
+
+  return labels[status];
 }
 
 function getKnownOrOther(value: string | null | undefined, options: string[], fallback: string) {

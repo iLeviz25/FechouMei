@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { classifyDeterministically, inferCorrectionFields } from "../lib/agent/classifier";
 import { runAgentTurnForContext } from "../lib/agent/orchestrator";
-import { parseTransactionMessage } from "../lib/agent/transaction-parser";
+import { parseTransactionMessage, parseTransactionMessages } from "../lib/agent/transaction-parser";
 import type { MovementField, MovementType } from "../lib/agent/types";
 
 type ParserCase = {
   amount?: number;
+  category?: string;
   descriptions?: string[];
   message: string;
   missingFields?: MovementField[];
@@ -140,6 +141,27 @@ const cases: ParserCase[] = [
     type: "despesa",
   },
   {
+    amount: 33.39,
+    category: "alimentacao",
+    descriptions: ["lanche"],
+    message: "gastei 33,39 com lanche",
+    type: "despesa",
+  },
+  {
+    amount: 33.39,
+    category: "alimentacao",
+    descriptions: ["comida"],
+    message: "gastei 33,39 com comida",
+    type: "despesa",
+  },
+  {
+    amount: 33.39,
+    category: "alimentacao",
+    descriptions: ["lanche"],
+    message: "Eu acabei de gastar 33 e 39 com um lanche.",
+    type: "despesa",
+  },
+  {
     amount: 150,
     descriptions: ["cliente"],
     message: "recebi 150 de cliente",
@@ -155,6 +177,14 @@ for (const parserCase of cases) {
 
   if (parserCase.amount !== undefined) {
     assert.equal(parsed.draft.amount, parserCase.amount, parserCase.message);
+  }
+
+  if (parserCase.category) {
+    assert.equal(
+      normalizeDescription(parsed.draft.category ?? ""),
+      normalizeDescription(parserCase.category),
+      parserCase.message,
+    );
   }
 
   if (parserCase.descriptions) {
@@ -173,6 +203,17 @@ for (const parserCase of cases) {
   } else {
     assert.deepEqual(parsed.missingFields, [], `Unexpected missing fields for: ${parserCase.message}`);
   }
+}
+
+for (const message of [
+  "gastei 33,39 com lanche",
+  "gastei 33,39 com comida",
+  "Eu acabei de gastar 33 e 39 com um lanche.",
+]) {
+  const parsedMessages = parseTransactionMessages(message);
+
+  assert.equal(parsedMessages.length, 1, `Expected a single movement for: ${message}`);
+  assert.equal(parsedMessages[0]?.draft.amount, 33.39, message);
 }
 
 const pendingExpenseState = {
@@ -238,6 +279,76 @@ async function runConversationChecks() {
   });
 
   assert.match(firstExpense.reply, /Anotado: gasto de R\$\s*80,00 com mercado\. Posso salvar\?/);
+
+  const decimalSnackExpense = await runAgentTurnForContext({
+    channel: "whatsapp",
+    context: fakeContext,
+    message: "gastei 33,39 com lanche",
+  });
+
+  assert.equal(decimalSnackExpense.state.pendingAction, "register_expense");
+  assert.equal(decimalSnackExpense.state.draft?.amount, 33.39);
+  assert.equal(normalizeDescription(decimalSnackExpense.state.draft?.description ?? ""), "lanche");
+  assert.equal(normalizeDescription(decimalSnackExpense.state.draft?.category ?? ""), "alimentacao");
+  assert.match(decimalSnackExpense.reply, /Anotado: gasto de R\$\s*33,39 com lanche\. Posso salvar\?/);
+
+  const decimalFoodExpense = await runAgentTurnForContext({
+    channel: "whatsapp",
+    context: fakeContext,
+    message: "gastei 33,39 com comida",
+  });
+
+  assert.equal(decimalFoodExpense.state.pendingAction, "register_expense");
+  assert.equal(decimalFoodExpense.state.draft?.amount, 33.39);
+  assert.equal(normalizeDescription(decimalFoodExpense.state.draft?.description ?? ""), "comida");
+  assert.equal(normalizeDescription(decimalFoodExpense.state.draft?.category ?? ""), "alimentacao");
+  assert.match(decimalFoodExpense.reply, /Anotado: gasto de R\$\s*33,39 com comida\. Posso salvar\?/);
+
+  const cancelPendingExpense = await runAgentTurnForContext({
+    channel: "whatsapp",
+    context: fakeContext,
+    message: "cancelar",
+    state: decimalFoodExpense.state,
+  });
+
+  assert.equal(cancelPendingExpense.state.status, "idle");
+  assert.match(cancelPendingExpense.reply, /cancelei o rascunho pendente/);
+
+  const cancelPendingBatch = await runAgentTurnForContext({
+    channel: "whatsapp",
+    context: fakeContext,
+    message: "cancela",
+    state: {
+      expectedResponseKind: "missing_category",
+      missingFields: ["category"],
+      movementBatch: [
+        {
+          amount: 33,
+          description: "rascunho antigo",
+          occurred_on: "2026-04-29",
+          type: "despesa",
+        },
+      ],
+      pendingAction: "register_movements_batch",
+      status: "collecting",
+      updatedAt: new Date().toISOString(),
+    },
+  });
+
+  assert.equal(cancelPendingBatch.state.status, "idle");
+  assert.match(cancelPendingBatch.reply, /cancelei o rascunho pendente/);
+
+  const transcribedDecimalExpense = await runAgentTurnForContext({
+    channel: "whatsapp",
+    context: fakeContext,
+    message: "Eu acabei de gastar 33 e 39 com um lanche.",
+  });
+
+  assert.equal(transcribedDecimalExpense.state.pendingAction, "register_expense");
+  assert.equal(transcribedDecimalExpense.state.draft?.amount, 33.39);
+  assert.equal(normalizeDescription(transcribedDecimalExpense.state.draft?.description ?? ""), "lanche");
+  assert.equal(normalizeDescription(transcribedDecimalExpense.state.draft?.category ?? ""), "alimentacao");
+  assert.match(transcribedDecimalExpense.reply, /Anotado: gasto de R\$\s*33,39 com lanche\. Posso salvar\?/);
 
   const amountCorrection = await runAgentTurnForContext({
     context: fakeContext,
