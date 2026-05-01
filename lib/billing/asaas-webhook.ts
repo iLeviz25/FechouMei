@@ -1,5 +1,9 @@
 import { timingSafeEqual } from "crypto";
 import {
+  provisionAccessForPaidAsaasEvent,
+  shouldProvisionAccessForAsaasEvent,
+} from "@/lib/billing/access-provisioning";
+import {
   extractAsaasCheckout,
   extractAsaasCustomer,
   extractAsaasPayment,
@@ -272,6 +276,17 @@ async function processAsaasWebhookEventPayload(
   }
 
   if (primaryResourceProcessed) {
+    const provisioningResult = await maybeProvisionPaidAccess(supabase, event);
+    operations.push(...provisioningResult.operations);
+
+    if (provisioningResult.status === "pending") {
+      return {
+        status: "ignored",
+        operations,
+        reason: provisioningResult.reason,
+      };
+    }
+
     return {
       status: "processed",
       operations,
@@ -282,6 +297,40 @@ async function processAsaasWebhookEventPayload(
     status: "ignored",
     operations,
     reason: ignoredReasons[0] ?? "no_supported_resource_processed",
+  };
+}
+
+async function maybeProvisionPaidAccess(
+  supabase: ServiceRoleClient,
+  event: ParsedAsaasWebhookEvent,
+) {
+  if (!shouldProvisionAccessForAsaasEvent(event.event)) {
+    return {
+      status: "skipped" as const,
+      operations: [],
+    };
+  }
+
+  const result = await provisionAccessForPaidAsaasEvent(supabase, event);
+
+  if (result.status === "provisioned") {
+    return {
+      status: "provisioned" as const,
+      operations: result.operations,
+    };
+  }
+
+  if (result.status === "pending") {
+    return {
+      status: "pending" as const,
+      operations: result.operations,
+      reason: result.reason,
+    };
+  }
+
+  return {
+    status: "skipped" as const,
+    operations: result.operations,
   };
 }
 
