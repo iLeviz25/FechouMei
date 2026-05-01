@@ -103,7 +103,7 @@ const tourSteps: TourStep[] = [
     id: "importacao",
     targetSelectors: ['[data-tour-target="importacao-nav"]'],
     title: "Importe seus registros antigos",
-    text: "Se você já usa planilha, pode importar entradas e despesas por CSV ou XLSX, revisar os dados e salvar tudo com mais segurança.",
+    text: "No plano Pro, voce pode importar entradas e despesas por CSV ou XLSX, revisar os dados e salvar tudo com mais seguranca.",
   },
   {
     icon: ClipboardCheck,
@@ -131,14 +131,14 @@ const tourSteps: TourStep[] = [
     id: "helena",
     targetSelectors: ['[data-tour-target="helena-nav"]'],
     title: "Use a Helena pelo WhatsApp",
-    text: "A Helena ajuda você a registrar movimentações, importar arquivos, exportar dados e consultar informações sem precisar abrir o app toda hora.",
+    text: "A Helena ajuda voce a registrar movimentacoes e consultar informacoes. Importacao/exportacao por WhatsApp fica no plano Pro.",
   },
   {
     icon: Sparkles,
     id: "final",
     targetSelectors: [],
     title: "Pronto para começar",
-    text: "Agora você já sabe o básico. Comece registrando uma entrada ou despesa, importe seus dados antigos ou chame a Helena no WhatsApp.",
+    text: "Agora voce ja sabe o basico. Comece registrando uma entrada ou despesa, exporte seus dados pelo app ou chame a Helena no WhatsApp.",
   },
 ];
 

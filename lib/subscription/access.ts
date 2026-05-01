@@ -6,7 +6,10 @@ export type SubscriptionStatus = "active" | "pending_payment" | "past_due" | "ca
 
 export type SubscriptionAccess = {
   canAccessApp: boolean;
+  canUseAppExport: boolean;
+  canUseAppImport: boolean;
   canUseAdvancedHelena: boolean;
+  canUseHelenaImportExport: boolean;
   dailyHelenaLimit: number | null;
   isAdmin: boolean;
   plan: SubscriptionPlan;
@@ -26,11 +29,19 @@ export type HelenaDailyUsageResult = {
 
 type SubscriptionProfile = Pick<Profile, "role" | "subscription_plan" | "subscription_status"> | null;
 
+export const essentialHelenaDailyMessageLimit = 15;
+export const proHelenaDailyMessageLimit = 100;
+
 export const helenaDailyLimitReply =
   "Você atingiu o limite diário da Helena do seu plano. Tente novamente amanhã ou atualize seu plano.";
 
-export const helenaProFeatureReply =
-  "Esse recurso faz parte do plano Pro. No Essencial, você pode continuar registrando e consultando pela Helena, mas importação/exportação por WhatsApp fica no Pro.";
+export const appImportProFeatureReply =
+  "A importacao pelo app faz parte do plano Pro. No Essencial, a exportacao pelo app continua liberada.";
+
+export const helenaImportExportProFeatureReply =
+  "Importacao e exportacao pela Helena/WhatsApp fazem parte do plano Pro. No Essencial, voce pode continuar registrando e consultando pela Helena e exportando pelo app.";
+
+export const helenaProFeatureReply = helenaImportExportProFeatureReply;
 
 const subscriptionBlockedReplies: Record<SubscriptionStatus, string> = {
   active: "",
@@ -50,17 +61,22 @@ export function normalizeSubscriptionStatus(value: unknown): SubscriptionStatus 
 }
 
 export function getDailyHelenaLimit(plan: SubscriptionPlan) {
-  return plan === "pro" ? 100 : 30;
+  return plan === "pro" ? proHelenaDailyMessageLimit : essentialHelenaDailyMessageLimit;
 }
 
 export function getSubscriptionAccessFromProfile(profile: SubscriptionProfile): SubscriptionAccess {
   const isAdmin = profile?.role === "admin";
   const plan = isAdmin ? "pro" : normalizeSubscriptionPlan(profile?.subscription_plan);
   const status = isAdmin ? "active" : normalizeSubscriptionStatus(profile?.subscription_status);
+  const hasActiveAccess = isAdmin || status === "active";
+  const hasProFeatures = hasActiveAccess && (isAdmin || plan === "pro");
 
   return {
-    canAccessApp: isAdmin || status === "active",
-    canUseAdvancedHelena: isAdmin || plan === "pro",
+    canAccessApp: hasActiveAccess,
+    canUseAdvancedHelena: hasProFeatures,
+    canUseAppExport: hasActiveAccess,
+    canUseAppImport: hasProFeatures,
+    canUseHelenaImportExport: hasProFeatures,
     dailyHelenaLimit: isAdmin ? null : getDailyHelenaLimit(plan),
     isAdmin,
     plan,

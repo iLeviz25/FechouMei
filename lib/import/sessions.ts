@@ -4,6 +4,12 @@ import { getImportableRows } from "@/lib/import/normalize-import-row";
 import { getExistingImportDuplicateKeys, insertImportMovements } from "@/lib/import/persistence";
 import { processImportFileForPreview, resolveImportFileKind } from "@/lib/import/process-file";
 import { createClient } from "@/lib/supabase/server";
+import {
+  appImportProFeatureReply,
+  getSubscriptionBlockedReply,
+  getUserSubscriptionAccess,
+  helenaImportExportProFeatureReply,
+} from "@/lib/subscription/access";
 import type { Database, ImportSession, ImportSessionRow, Json } from "@/types/database";
 import type { ImportableMovement, ImportColumnMap, ImportParseResult, ImportPreviewRow, ImportSummary, RawImportRow } from "./types";
 
@@ -46,6 +52,8 @@ export async function createImportReviewSessionFromFile({
   supabase: ImportSessionClient;
   userId: string;
 }) {
+  await assertImportFeatureAccess({ source, supabase, userId });
+
   const fileKind = resolveImportFileKind({ fileName, fileType });
   const parseResult = await processImportFileForPreview({
     buffer,
@@ -154,6 +162,8 @@ export async function confirmImportReviewSession(sessionId: string): Promise<Imp
       throw new Error("Faca login para importar movimentacoes.");
     }
 
+    await assertImportFeatureAccess({ source: "upload", supabase, userId: user.id });
+
     const view = await getImportReviewSession({ sessionId, supabase, userId: user.id });
 
     if (!view) {
@@ -217,6 +227,8 @@ export async function confirmWhatsAppImportSession({
   supabase: ImportSessionClient;
   userId: string;
 }) {
+  await assertImportFeatureAccess({ source: "whatsapp", supabase, userId });
+
   const view = await findLatestWhatsAppImportSession({ channelRemoteId, supabase, userId });
 
   if (!view) {
@@ -583,6 +595,27 @@ function summarizeImportableRows(rows: ImportableMovement[]) {
 
 function isExpired(session: ImportSession) {
   return new Date(session.expires_at).getTime() < Date.now();
+}
+
+async function assertImportFeatureAccess({
+  source,
+  supabase,
+  userId,
+}: {
+  source: "upload" | "whatsapp";
+  supabase: ImportSessionClient;
+  userId: string;
+}) {
+  const access = await getUserSubscriptionAccess({ supabase, userId });
+  const allowed = source === "whatsapp" ? access.canUseHelenaImportExport : access.canUseAppImport;
+
+  if (!access.canAccessApp) {
+    throw new Error(getSubscriptionBlockedReply(access.status));
+  }
+
+  if (!allowed) {
+    throw new Error(source === "whatsapp" ? helenaImportExportProFeatureReply : appImportProFeatureReply);
+  }
 }
 
 function readNumber(value: unknown) {

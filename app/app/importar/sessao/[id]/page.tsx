@@ -9,11 +9,14 @@ import {
   FileSpreadsheet,
   MessageCircle,
 } from "lucide-react";
+import { ImportProRequired } from "@/components/importar/import-pro-required";
 import { ImportSessionActions } from "@/components/importar/import-session-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getImportReviewSessionForCurrentUser } from "@/lib/import/sessions";
+import { getCurrentUserProfile } from "@/lib/profile";
+import { getSubscriptionAccessFromProfile } from "@/lib/subscription/access";
 import { cn } from "@/lib/utils";
 import type { ImportPreviewRow } from "@/lib/import/types";
 
@@ -193,6 +196,18 @@ function PreviewCard({ row }: { row: ImportPreviewRow }) {
 
 export default async function ImportSessionPage({ params }: { params: Promise<SessionParams> }) {
   const { id } = await params;
+  const { profile, profileError } = await getCurrentUserProfile();
+
+  if (profileError) {
+    throw new Error(`Erro ao carregar plano: ${profileError.message}`);
+  }
+
+  const access = getSubscriptionAccessFromProfile(profile);
+
+  if (!access.canUseAppImport) {
+    return <ImportProRequired />;
+  }
+
   const view = await getImportReviewSessionForCurrentUser(id);
 
   if (!view) {

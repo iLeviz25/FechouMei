@@ -710,6 +710,9 @@ function SubscriptionSummaryCard({ access }: { access: SubscriptionAccess }) {
   const statusLabel = access.isAdmin ? "Admin" : getSubscriptionStatusLabel(access.status);
   const description = access.isAdmin ? "Acesso administrativo completo." : getSubscriptionPlanDescription(access.plan);
   const limitLabel = access.isAdmin ? "Sem limite bloqueante" : `${access.dailyHelenaLimit ?? 0} mensagens/dia`;
+  const appImportLabel = access.canUseAppImport ? "Liberada" : "Plano Pro";
+  const appExportLabel = access.canUseAppExport ? "Liberada" : "Bloqueada";
+  const helenaFilesLabel = access.canUseHelenaImportExport ? "Liberada" : "Plano Pro";
 
   return (
     <Card className="overflow-hidden rounded-[28px] border-primary/15 bg-primary-soft/30">
@@ -728,10 +731,13 @@ function SubscriptionSummaryCard({ access }: { access: SubscriptionAccess }) {
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <SubscriptionSummaryItem label="Plano atual" value={planLabel} />
           <SubscriptionSummaryItem label="Status da assinatura" value={statusLabel} />
           <SubscriptionSummaryItem label="Limite da Helena" value={limitLabel} />
+          <SubscriptionSummaryItem label="Importacao pelo app" value={appImportLabel} />
+          <SubscriptionSummaryItem label="Exportacao pelo app" value={appExportLabel} />
+          <SubscriptionSummaryItem label="Arquivos pela Helena" value={helenaFilesLabel} />
         </div>
       </CardContent>
     </Card>
@@ -1069,8 +1075,8 @@ function getSubscriptionPlanLabel(plan: SubscriptionPlan) {
 
 function getSubscriptionPlanDescription(plan: SubscriptionPlan) {
   return plan === "pro"
-    ? "Inclui recursos avancados da Helena, importacao e exportacao."
-    : "Ideal para organizar seu MEI no dia a dia.";
+    ? "Inclui 100 mensagens/dia, importacao/exportacao pelo app e importacao/exportacao pela Helena no WhatsApp."
+    : "Inclui 15 mensagens/dia, registros e consultas com a Helena e exportacao pelo app. Importacao fica no Pro.";
 }
 
 function getSubscriptionStatusLabel(status: SubscriptionStatus) {

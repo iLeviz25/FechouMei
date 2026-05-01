@@ -547,6 +547,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
   trace.mark("subscription_access_finished", {
     canAccessApp: subscriptionAccess.canAccessApp,
     canUseAdvancedHelena: subscriptionAccess.canUseAdvancedHelena,
+    canUseHelenaImportExport: subscriptionAccess.canUseHelenaImportExport,
     plan: subscriptionAccess.plan,
     status: subscriptionAccess.status,
   });
@@ -610,7 +611,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
   }
 
   if (normalized.document) {
-    if (!subscriptionAccess.canUseAdvancedHelena) {
+    if (!subscriptionAccess.canUseHelenaImportExport) {
       await replyAndFinishWhatsAppTurn({
         config,
         externalMessageId,
@@ -725,7 +726,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
   }
 
   const exportTextReply = await handleWhatsAppExportTextIntent({
-    canUseAdvancedHelena: subscriptionAccess.canUseAdvancedHelena,
+    canUseHelenaImportExport: subscriptionAccess.canUseHelenaImportExport,
     config,
     messageText: normalized.text,
     remoteNumber,
@@ -758,7 +759,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
 
   const importTextReply = await handleWhatsAppImportTextIntent({
     allowedIntents: ["request_file"],
-    canUseAdvancedHelena: subscriptionAccess.canUseAdvancedHelena,
+    canUseHelenaImportExport: subscriptionAccess.canUseHelenaImportExport,
     messageText: normalized.text,
     remoteId: normalized.remoteJid,
     supabase: admin,
@@ -1058,7 +1059,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
         const importControlReply = await handleWhatsAppImportTextIntent({
           agentState: snapshot.state,
           allowedIntents: ["cancel", "confirm"],
-          canUseAdvancedHelena: subscriptionAccess.canUseAdvancedHelena,
+          canUseHelenaImportExport: subscriptionAccess.canUseHelenaImportExport,
           messageText: agentInputText,
           remoteId: normalized.remoteJid,
           supabase: admin,
@@ -1316,14 +1317,14 @@ function getInboundReceivedSummary(normalized: ReturnType<typeof normalizeEvolut
 }
 
 async function handleWhatsAppExportTextIntent({
-  canUseAdvancedHelena,
+  canUseHelenaImportExport,
   config,
   messageText,
   remoteNumber,
   supabase,
   userId,
 }: {
-  canUseAdvancedHelena: boolean;
+  canUseHelenaImportExport: boolean;
   config: ReturnType<typeof getWhatsAppChannelConfig>;
   messageText?: string | null;
   remoteNumber: string;
@@ -1341,6 +1342,15 @@ async function handleWhatsAppExportTextIntent({
     return null;
   }
 
+  if (!canUseHelenaImportExport) {
+    return {
+      reason: "whatsapp_export_requires_pro",
+      reply: helenaProFeatureReply,
+      status: "discarded",
+      summary: "Exportacao pelo WhatsApp bloqueada para plano Essencial.",
+    };
+  }
+
   if (intent.kind === "unsupported_pdf") {
     return {
       reason: "whatsapp_export_pdf_requested",
@@ -1356,15 +1366,6 @@ async function handleWhatsAppExportTextIntent({
       reply: "Por enquanto envio CSV pelo WhatsApp. Voce pode abrir esse arquivo no Excel ou Google Sheets.",
       status: "processed",
       summary: "Usuario solicitou exportacao em XLSX pelo WhatsApp; formato ainda nao suportado.",
-    };
-  }
-
-  if (!canUseAdvancedHelena) {
-    return {
-      reason: "whatsapp_export_requires_pro",
-      reply: helenaProFeatureReply,
-      status: "discarded",
-      summary: "Exportacao CSV pelo WhatsApp bloqueada para plano Essencial.",
     };
   }
 
@@ -1424,7 +1425,7 @@ async function handleWhatsAppExportTextIntent({
 async function handleWhatsAppImportTextIntent({
   agentState,
   allowedIntents,
-  canUseAdvancedHelena,
+  canUseHelenaImportExport,
   messageText,
   remoteId,
   supabase,
@@ -1432,7 +1433,7 @@ async function handleWhatsAppImportTextIntent({
 }: {
   agentState?: AgentConversationState | null;
   allowedIntents?: WhatsAppImportIntent[];
-  canUseAdvancedHelena: boolean;
+  canUseHelenaImportExport: boolean;
   messageText?: string | null;
   remoteId?: string | null;
   supabase: ReturnType<typeof createServiceRoleClient>;
@@ -1453,7 +1454,7 @@ async function handleWhatsAppImportTextIntent({
     return null;
   }
 
-  if (intent === "request_file" && !canUseAdvancedHelena) {
+  if (intent === "request_file" && !canUseHelenaImportExport) {
     return {
       reason: "whatsapp_import_requires_pro",
       reply: helenaProFeatureReply,
@@ -1509,7 +1510,7 @@ async function handleWhatsAppImportTextIntent({
       };
     }
 
-    if (!canUseAdvancedHelena) {
+    if (!canUseHelenaImportExport) {
       return {
         reason: "whatsapp_import_confirm_requires_pro",
         reply: helenaProFeatureReply,
