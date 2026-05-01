@@ -103,7 +103,7 @@ const tourSteps: TourStep[] = [
     id: "importacao",
     targetSelectors: ['[data-tour-target="importacao-nav"]'],
     title: "Importe seus registros antigos",
-    text: "No plano Pro, voce pode importar entradas e despesas por CSV ou XLSX, revisar os dados e salvar tudo com mais seguranca.",
+    text: "Com o FechouMEI Completo, voce pode importar entradas e despesas por CSV ou XLSX, revisar os dados e salvar tudo com mais seguranca.",
   },
   {
     icon: ClipboardCheck,
@@ -131,7 +131,7 @@ const tourSteps: TourStep[] = [
     id: "helena",
     targetSelectors: ['[data-tour-target="helena-nav"]'],
     title: "Use a Helena pelo WhatsApp",
-    text: "A Helena ajuda voce a registrar movimentacoes e consultar informacoes. Importacao/exportacao por WhatsApp fica no plano Pro.",
+    text: "A Helena ajuda voce a registrar movimentacoes e consultar informacoes. Arquivos pelo WhatsApp fazem parte do acesso completo.",
   },
   {
     icon: Sparkles,

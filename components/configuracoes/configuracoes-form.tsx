@@ -710,16 +710,16 @@ function SubscriptionSummaryCard({ access }: { access: SubscriptionAccess }) {
   const statusLabel = access.isAdmin ? "Admin" : getSubscriptionStatusLabel(access.status);
   const description = access.isAdmin ? "Acesso administrativo completo." : getSubscriptionPlanDescription(access.plan);
   const limitLabel = access.isAdmin ? "Sem limite bloqueante" : `${access.dailyHelenaLimit ?? 0} mensagens/dia`;
-  const appImportLabel = access.canUseAppImport ? "Liberada" : "Plano Pro";
+  const appImportLabel = access.canUseAppImport ? "Liberada" : "Acesso completo";
   const appExportLabel = access.canUseAppExport ? "Liberada" : "Bloqueada";
-  const helenaFilesLabel = access.canUseHelenaImportExport ? "Liberada" : "Plano Pro";
+  const helenaFilesLabel = access.canUseHelenaImportExport ? "Liberada" : "Acesso completo";
 
   return (
     <Card className="overflow-hidden rounded-[28px] border-primary/15 bg-primary-soft/30">
       <CardContent className="space-y-4 p-4 sm:p-5">
         <div className="flex flex-col gap-3 min-[430px]:flex-row min-[430px]:items-start min-[430px]:justify-between">
           <div className="min-w-0 space-y-1">
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Plano da conta</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Assinatura</p>
             <h2 className="text-lg font-extrabold tracking-tight text-foreground">{planLabel}</h2>
             <p className="text-sm leading-6 text-muted-foreground">{description}</p>
           </div>
@@ -732,7 +732,7 @@ function SubscriptionSummaryCard({ access }: { access: SubscriptionAccess }) {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <SubscriptionSummaryItem label="Plano atual" value={planLabel} />
+          <SubscriptionSummaryItem label="Produto" value={planLabel} />
           <SubscriptionSummaryItem label="Status da assinatura" value={statusLabel} />
           <SubscriptionSummaryItem label="Limite da Helena" value={limitLabel} />
           <SubscriptionSummaryItem label="Importacao pelo app" value={appImportLabel} />
@@ -1070,19 +1070,19 @@ function getBusinessModeLabel(value: string) {
 }
 
 function getSubscriptionPlanLabel(plan: SubscriptionPlan) {
-  return plan === "pro" ? "Pro" : "Essencial";
+  return plan === "pro" ? "FechouMEI Completo" : "Plano ativo";
 }
 
 function getSubscriptionPlanDescription(plan: SubscriptionPlan) {
   return plan === "pro"
-    ? "Inclui 100 mensagens/dia, importacao/exportacao pelo app e importacao/exportacao pela Helena no WhatsApp."
-    : "Inclui 15 mensagens/dia, registros e consultas com a Helena e exportacao pelo app. Importacao fica no Pro.";
+    ? "Inclui 50 mensagens/dia, importacao/exportacao pelo app e arquivos pela Helena no WhatsApp."
+    : "Inclui registros, consultas com a Helena e exportacao pelo app. Importacao e arquivos pela Helena fazem parte do acesso completo.";
 }
 
 function getSubscriptionStatusLabel(status: SubscriptionStatus) {
   const labels: Record<SubscriptionStatus, string> = {
-    active: "Ativo",
-    canceled: "Cancelado",
+    active: "Assinatura ativa",
+    canceled: "Assinatura cancelada",
     past_due: "Pagamento pendente",
     pending_payment: "Aguardando pagamento",
   };

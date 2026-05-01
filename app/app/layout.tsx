@@ -74,7 +74,7 @@ function SubscriptionBlockedScreen({ access }: { access: SubscriptionAccess }) {
           </div>
           <p className="text-sm leading-6 text-muted-foreground">{reply}</p>
           <div className="rounded-2xl border border-border/70 bg-background p-4 text-sm font-semibold leading-6 text-muted-foreground">
-            Plano atual: <span className="font-extrabold text-foreground">{access.plan === "pro" ? "Pro" : "Essencial"}</span>
+            Assinatura: <span className="font-extrabold text-foreground">{access.status === "active" ? "Ativa" : title}</span>
           </div>
         </CardContent>
       </Card>

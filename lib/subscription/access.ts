@@ -30,13 +30,13 @@ export type HelenaDailyUsageResult = {
 type SubscriptionProfile = Pick<Profile, "role" | "subscription_plan" | "subscription_status"> | null;
 
 export const essentialHelenaDailyMessageLimit = 15;
-export const proHelenaDailyMessageLimit = 100;
+export const proHelenaDailyMessageLimit = 50;
 
 export const helenaDailyLimitReply =
   "Você atingiu o limite diário da Helena do seu plano. Tente novamente amanhã ou atualize seu plano.";
 
 export const appImportProFeatureReply =
-  "A importacao pelo app faz parte do plano Pro. No Essencial, a exportacao pelo app continua liberada.";
+  "A importacao pelo app faz parte do FechouMEI Completo. A exportacao pelo app continua liberada na sua assinatura atual.";
 
 export const helenaImportExportProFeatureReply =
   "Importacao e exportacao pela Helena/WhatsApp fazem parte do plano Pro. No Essencial, voce pode continuar registrando e consultando pela Helena e exportando pelo app.";

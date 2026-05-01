@@ -63,6 +63,266 @@ export type Database = {
           },
         ];
       };
+      asaas_customers: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          asaas_customer_id: string;
+          email: string | null;
+          name: string | null;
+          cpf_cnpj: string | null;
+          raw_payload: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          asaas_customer_id: string;
+          email?: string | null;
+          name?: string | null;
+          cpf_cnpj?: string | null;
+          raw_payload?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          asaas_customer_id?: string;
+          email?: string | null;
+          name?: string | null;
+          cpf_cnpj?: string | null;
+          raw_payload?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "asaas_customers_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      asaas_checkouts: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          billing_cycle: "monthly" | "semiannual" | "annual";
+          internal_access_plan: "pro";
+          status: string;
+          external_reference: string | null;
+          asaas_checkout_id: string | null;
+          checkout_url: string | null;
+          raw_request: Json | null;
+          raw_response: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          billing_cycle: "monthly" | "semiannual" | "annual";
+          internal_access_plan?: "pro";
+          status?: string;
+          external_reference?: string | null;
+          asaas_checkout_id?: string | null;
+          checkout_url?: string | null;
+          raw_request?: Json | null;
+          raw_response?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          billing_cycle?: "monthly" | "semiannual" | "annual";
+          internal_access_plan?: "pro";
+          status?: string;
+          external_reference?: string | null;
+          asaas_checkout_id?: string | null;
+          checkout_url?: string | null;
+          raw_request?: Json | null;
+          raw_response?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "asaas_checkouts_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      asaas_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          billing_cycle: "monthly" | "semiannual" | "annual";
+          internal_access_plan: "pro";
+          asaas_subscription_id: string;
+          asaas_customer_id: string | null;
+          status: string;
+          current_period_start: string | null;
+          current_period_end: string | null;
+          next_due_date: string | null;
+          canceled_at: string | null;
+          raw_payload: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          billing_cycle: "monthly" | "semiannual" | "annual";
+          internal_access_plan?: "pro";
+          asaas_subscription_id: string;
+          asaas_customer_id?: string | null;
+          status: string;
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          next_due_date?: string | null;
+          canceled_at?: string | null;
+          raw_payload?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          billing_cycle?: "monthly" | "semiannual" | "annual";
+          internal_access_plan?: "pro";
+          asaas_subscription_id?: string;
+          asaas_customer_id?: string | null;
+          status?: string;
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          next_due_date?: string | null;
+          canceled_at?: string | null;
+          raw_payload?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "asaas_subscriptions_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      asaas_payments: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          billing_cycle: "monthly" | "semiannual" | "annual" | null;
+          internal_access_plan: "pro" | null;
+          asaas_payment_id: string;
+          asaas_subscription_id: string | null;
+          asaas_checkout_id: string | null;
+          asaas_customer_id: string | null;
+          status: string;
+          value_cents: number | null;
+          billing_type: string | null;
+          due_date: string | null;
+          paid_at: string | null;
+          raw_payload: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          billing_cycle?: "monthly" | "semiannual" | "annual" | null;
+          internal_access_plan?: "pro" | null;
+          asaas_payment_id: string;
+          asaas_subscription_id?: string | null;
+          asaas_checkout_id?: string | null;
+          asaas_customer_id?: string | null;
+          status: string;
+          value_cents?: number | null;
+          billing_type?: string | null;
+          due_date?: string | null;
+          paid_at?: string | null;
+          raw_payload?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          billing_cycle?: "monthly" | "semiannual" | "annual" | null;
+          internal_access_plan?: "pro" | null;
+          asaas_payment_id?: string;
+          asaas_subscription_id?: string | null;
+          asaas_checkout_id?: string | null;
+          asaas_customer_id?: string | null;
+          status?: string;
+          value_cents?: number | null;
+          billing_type?: string | null;
+          due_date?: string | null;
+          paid_at?: string | null;
+          raw_payload?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "asaas_payments_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      asaas_webhook_events: {
+        Row: {
+          id: string;
+          asaas_event_id: string | null;
+          event: string;
+          status: "received" | "processed" | "ignored" | "failed";
+          payload: Json;
+          received_at: string;
+          processed_at: string | null;
+          error: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          asaas_event_id?: string | null;
+          event: string;
+          status?: "received" | "processed" | "ignored" | "failed";
+          payload: Json;
+          received_at?: string;
+          processed_at?: string | null;
+          error?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          asaas_event_id?: string | null;
+          event?: string;
+          status?: "received" | "processed" | "ignored" | "failed";
+          payload?: Json;
+          received_at?: string;
+          processed_at?: string | null;
+          error?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       agent_conversations: {
         Row: {
           id: string;
@@ -972,3 +1232,8 @@ export type AgentPromptTrace = Database["public"]["Tables"]["agent_prompt_traces
 export type ImportSession = Database["public"]["Tables"]["import_sessions"]["Row"];
 export type ImportSessionRow = Database["public"]["Tables"]["import_session_rows"]["Row"];
 export type WhatsAppAssistantLink = Database["public"]["Tables"]["whatsapp_assistant_links"]["Row"];
+export type AsaasCustomer = Database["public"]["Tables"]["asaas_customers"]["Row"];
+export type AsaasCheckout = Database["public"]["Tables"]["asaas_checkouts"]["Row"];
+export type AsaasSubscription = Database["public"]["Tables"]["asaas_subscriptions"]["Row"];
+export type AsaasPayment = Database["public"]["Tables"]["asaas_payments"]["Row"];
+export type AsaasWebhookEvent = Database["public"]["Tables"]["asaas_webhook_events"]["Row"];

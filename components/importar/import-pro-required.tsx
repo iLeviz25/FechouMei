@@ -13,10 +13,10 @@ export function ImportProRequired() {
               <LockKeyhole className="h-5 w-5" />
             </div>
             <div className="max-w-2xl space-y-2">
-              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-secondary-foreground">Plano Pro</p>
-              <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Importacao disponivel no Pro</h1>
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-secondary-foreground">Acesso completo</p>
+              <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Importacao incluida no FechouMEI Completo</h1>
               <p className="text-sm leading-6 text-muted-foreground">
-                No plano Essencial, a exportacao pelo app continua liberada. Importacao pelo app e importacao/exportacao pela Helena no WhatsApp ficam no plano Pro.
+                No seu acesso atual, a exportacao pelo app continua liberada. Importacao pelo app e arquivos pela Helena fazem parte do acesso completo.
               </p>
             </div>
           </div>
@@ -27,20 +27,20 @@ export function ImportProRequired() {
                 <Download className="h-4 w-4 text-primary" />
                 Exportacao pelo app
               </div>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">Liberada no Essencial e no Pro.</p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">Liberada para assinaturas ativas.</p>
             </div>
             <div className="rounded-[24px] border border-border/70 bg-background/80 p-4">
               <div className="flex items-center gap-2 text-sm font-extrabold text-foreground">
                 <Upload className="h-4 w-4 text-secondary-foreground" />
                 Importacao
               </div>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">Disponivel no Pro pelo app e pela Helena/WhatsApp.</p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">Incluida no FechouMEI Completo pelo app e pela Helena/WhatsApp.</p>
             </div>
           </div>
 
           <Button asChild className="w-full sm:w-fit">
             <Link href="/app/configuracoes">
-              Ver plano em Configuracoes
+              Ver assinatura em Configuracoes
               <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
