@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   parseAsaasWebhookEvent,
+  processAsaasWebhookEvent,
   saveAsaasWebhookEvent,
   validateAsaasWebhookToken,
 } from "@/lib/billing/asaas-webhook";
@@ -48,15 +49,29 @@ export async function POST(request: Request) {
   try {
     const result = await saveAsaasWebhookEvent(parsed.event);
 
+    if (result.status === "duplicate") {
+      return NextResponse.json({
+        ok: true,
+        status: result.status,
+      });
+    }
+
+    const processingResult = await processAsaasWebhookEvent(
+      result.webhookEventId,
+      parsed.event,
+    );
+
     return NextResponse.json({
       ok: true,
-      status: result.status,
+      status: processingResult.status,
+      operations: processingResult.operations,
+      reason: processingResult.reason,
     });
   } catch (error) {
-    console.error("[asaas-webhook] Failed to persist webhook event.", sanitizeWebhookError(error));
+    console.error("[asaas-webhook] Failed to persist or process webhook event.", sanitizeWebhookError(error));
 
     return NextResponse.json(
-      { ok: false, reason: "asaas_webhook_persist_failed" },
+      { ok: false, reason: "asaas_webhook_processing_failed" },
       { status: 500 },
     );
   }
