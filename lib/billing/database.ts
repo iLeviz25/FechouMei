@@ -7,3 +7,10 @@ export const asaasBillingTables = {
 } as const;
 
 export type AsaasBillingTableName = (typeof asaasBillingTables)[keyof typeof asaasBillingTables];
+
+export const caktoBillingTables = {
+  orders: "cakto_orders",
+  webhookEvents: "cakto_webhook_events",
+} as const;
+
+export type CaktoBillingTableName = (typeof caktoBillingTables)[keyof typeof caktoBillingTables];

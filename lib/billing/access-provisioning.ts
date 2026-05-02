@@ -46,6 +46,16 @@ export type AccessProvisioningResult =
       operations: string[];
     };
 
+export type PaidAccessSource = "asaas" | "cakto";
+
+export type PaidCustomerAccessProvisioningResult = {
+  userId: string;
+  email: string;
+  userCreated: boolean;
+  inviteSent: boolean;
+  operations: string[];
+};
+
 type ResolvedBuyer = {
   asaasCustomerId: string | null;
   email: string | null;
@@ -129,32 +139,63 @@ export async function provisionAccessForPaidAsaasEvent(
     source: buyer.emailSource,
   });
 
-  const authUser = await findOrInviteUserByEmail(supabase, buyer.email, buyer.name);
+  const paidAccess = await provisionPaidCustomerAccess(supabase, {
+    email: buyer.email,
+    name: buyer.name,
+    source: "asaas",
+    logPrefix: "asaas-provisioning",
+  });
+  const operations = [...paidAccess.operations];
+
+  const billingResourceIds = getBillingResourceIds(event.payload);
+  await linkBillingRowsToUser(supabase, paidAccess.userId, billingResourceIds);
+  operations.push("asaas_billing_user_links");
+
+  console.info("[asaas-provisioning] Access activated.", {
+    email: maskEmail(buyer.email),
+    inviteSent: paidAccess.inviteSent,
+    userCreated: paidAccess.userCreated,
+    userId: paidAccess.userId,
+  });
+
+  return {
+    status: "provisioned",
+    userId: paidAccess.userId,
+    email: buyer.email,
+    userCreated: paidAccess.userCreated,
+    inviteSent: paidAccess.inviteSent,
+    operations,
+  };
+}
+
+export async function provisionPaidCustomerAccess(
+  supabase: ServiceRoleClient,
+  {
+    email,
+    name,
+    source,
+    logPrefix,
+  }: {
+    email: string;
+    name: string | null;
+    source: PaidAccessSource;
+    logPrefix: string;
+  },
+): Promise<PaidCustomerAccessProvisioningResult> {
+  const authUser = await findOrInviteUserByEmail(supabase, email, name, source, logPrefix);
   const operations = [
     authUser.userCreated ? "supabase_auth_invite" : "supabase_auth_existing_user",
   ];
 
   await activateProfileAccess(supabase, authUser.user.id, {
-    buyerName: buyer.name,
+    buyerName: name,
     isNewUser: authUser.userCreated,
   });
   operations.push("profiles");
 
-  const billingResourceIds = getBillingResourceIds(event.payload);
-  await linkBillingRowsToUser(supabase, authUser.user.id, billingResourceIds);
-  operations.push("asaas_billing_user_links");
-
-  console.info("[asaas-provisioning] Access activated.", {
-    email: maskEmail(buyer.email),
-    inviteSent: authUser.inviteSent,
-    userCreated: authUser.userCreated,
-    userId: authUser.user.id,
-  });
-
   return {
-    status: "provisioned",
     userId: authUser.user.id,
-    email: buyer.email,
+    email,
     userCreated: authUser.userCreated,
     inviteSent: authUser.inviteSent,
     operations,
@@ -234,11 +275,13 @@ async function findOrInviteUserByEmail(
   supabase: ServiceRoleClient,
   email: string,
   fullName: string | null,
+  source: PaidAccessSource,
+  logPrefix: string,
 ): Promise<AuthUserResolution> {
   const existingUser = await findAuthUserByEmail(supabase, email);
 
   if (existingUser) {
-    console.info("[asaas-provisioning] Existing auth user found.", {
+    console.info(`[${logPrefix}] Existing auth user found.`, {
       email: maskEmail(email),
       userId: existingUser.id,
     });
@@ -252,14 +295,14 @@ async function findOrInviteUserByEmail(
 
   const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
     data: {
-      billing_source: "asaas",
+      billing_source: source,
       full_name: fullName,
     },
     redirectTo: getInviteRedirectUrl(),
   });
 
   if (!error && data.user) {
-    console.info("[asaas-provisioning] Auth invite sent for new user.", {
+    console.info(`[${logPrefix}] Auth invite sent for new user.`, {
       email: maskEmail(email),
       userId: data.user.id,
     });
@@ -274,7 +317,7 @@ async function findOrInviteUserByEmail(
   const racedUser = await findAuthUserByEmail(supabase, email);
 
   if (racedUser) {
-    console.info("[asaas-provisioning] Auth user found after invite conflict.", {
+    console.info(`[${logPrefix}] Auth user found after invite conflict.`, {
       email: maskEmail(email),
       userId: racedUser.id,
     });

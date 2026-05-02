@@ -323,6 +323,131 @@ export type Database = {
         };
         Relationships: [];
       };
+      cakto_webhook_events: {
+        Row: {
+          id: string;
+          cakto_event_key: string | null;
+          event: string;
+          status: "received" | "processed" | "ignored" | "failed";
+          order_id: string | null;
+          offer_id: string | null;
+          payload: Json;
+          received_at: string;
+          processed_at: string | null;
+          error: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          cakto_event_key?: string | null;
+          event: string;
+          status?: "received" | "processed" | "ignored" | "failed";
+          order_id?: string | null;
+          offer_id?: string | null;
+          payload: Json;
+          received_at?: string;
+          processed_at?: string | null;
+          error?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          cakto_event_key?: string | null;
+          event?: string;
+          status?: "received" | "processed" | "ignored" | "failed";
+          order_id?: string | null;
+          offer_id?: string | null;
+          payload?: Json;
+          received_at?: string;
+          processed_at?: string | null;
+          error?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      cakto_orders: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          cakto_order_id: string;
+          cakto_ref_id: string | null;
+          cakto_subscription_id: string | null;
+          cakto_checkout_id: string | null;
+          cakto_offer_id: string;
+          cakto_product_id: string | null;
+          billing_cycle: "monthly" | "quarterly" | "annual";
+          internal_access_plan: "pro";
+          status: string;
+          customer_email: string | null;
+          customer_name: string | null;
+          customer_document: string | null;
+          amount_cents: number | null;
+          payment_method: string | null;
+          paid_at: string | null;
+          checkout_url: string | null;
+          raw_payload: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          cakto_order_id: string;
+          cakto_ref_id?: string | null;
+          cakto_subscription_id?: string | null;
+          cakto_checkout_id?: string | null;
+          cakto_offer_id: string;
+          cakto_product_id?: string | null;
+          billing_cycle: "monthly" | "quarterly" | "annual";
+          internal_access_plan?: "pro";
+          status: string;
+          customer_email?: string | null;
+          customer_name?: string | null;
+          customer_document?: string | null;
+          amount_cents?: number | null;
+          payment_method?: string | null;
+          paid_at?: string | null;
+          checkout_url?: string | null;
+          raw_payload?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          cakto_order_id?: string;
+          cakto_ref_id?: string | null;
+          cakto_subscription_id?: string | null;
+          cakto_checkout_id?: string | null;
+          cakto_offer_id?: string;
+          cakto_product_id?: string | null;
+          billing_cycle?: "monthly" | "quarterly" | "annual";
+          internal_access_plan?: "pro";
+          status?: string;
+          customer_email?: string | null;
+          customer_name?: string | null;
+          customer_document?: string | null;
+          amount_cents?: number | null;
+          payment_method?: string | null;
+          paid_at?: string | null;
+          checkout_url?: string | null;
+          raw_payload?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "cakto_orders_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       agent_conversations: {
         Row: {
           id: string;
@@ -1237,3 +1362,5 @@ export type AsaasCheckout = Database["public"]["Tables"]["asaas_checkouts"]["Row
 export type AsaasSubscription = Database["public"]["Tables"]["asaas_subscriptions"]["Row"];
 export type AsaasPayment = Database["public"]["Tables"]["asaas_payments"]["Row"];
 export type AsaasWebhookEvent = Database["public"]["Tables"]["asaas_webhook_events"]["Row"];
+export type CaktoWebhookEvent = Database["public"]["Tables"]["cakto_webhook_events"]["Row"];
+export type CaktoOrder = Database["public"]["Tables"]["cakto_orders"]["Row"];
