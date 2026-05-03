@@ -1,7 +1,11 @@
-import { getInternalAccessPlanForPaidCustomer } from "@/lib/billing/plans";
+import {
+  getBillingCycleByCaktoOfferId,
+  getInternalAccessPlanForPaidCustomer,
+  type BillingCycleCode,
+} from "@/lib/billing/plans";
 import type { Json } from "@/types/database";
 
-export type CaktoBillingCycle = "monthly" | "quarterly" | "annual";
+export type CaktoBillingCycle = BillingCycleCode;
 
 export type ExtractedCaktoOrder = {
   caktoOrderId: string;
@@ -22,12 +26,6 @@ export type ExtractedCaktoOrder = {
   checkoutUrl: string | null;
   rawPayload: Json;
 };
-
-export const caktoOfferBillingCycles = {
-  yp9ig32: "monthly",
-  qm96ddu: "quarterly",
-  hdmowau: "annual",
-} as const satisfies Record<string, CaktoBillingCycle>;
 
 const approvedCaktoEvents = [
   "purchase_approved",
@@ -70,7 +68,7 @@ export function getCaktoBillingCycleByOfferId(offerId: string | null): CaktoBill
   }
 
   const normalizedOfferId = normalizeOfferId(offerId);
-  return caktoOfferBillingCycles[normalizedOfferId as keyof typeof caktoOfferBillingCycles] ?? null;
+  return getBillingCycleByCaktoOfferId(normalizedOfferId)?.code ?? null;
 }
 
 export function extractCaktoOrder(payload: Record<string, unknown>): ExtractedCaktoOrder | null {

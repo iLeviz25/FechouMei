@@ -1,17 +1,19 @@
 import type { SubscriptionPlan } from "@/lib/subscription/access";
 
-export type BillingCycleCode = "monthly" | "semiannual" | "annual";
+export type BillingCycleCode = "monthly" | "quarterly" | "annual";
 
 export type BillingCycle = {
   code: BillingCycleCode;
   label: string;
-  installments: number;
-  installmentPriceCents: number;
+  priceCents: number;
   totalCents: number;
+  displayPrice: string;
   displayInstallment: string;
+  displayTotal: string;
+  equivalentMonthly?: string;
+  offerId: string;
+  checkoutUrl: string;
   internalAccessPlan: SubscriptionPlan;
-  displayPrice?: string;
-  priceCents?: number;
 };
 
 export const billingProduct = {
@@ -26,30 +28,39 @@ const billingCycles = [
   {
     code: "monthly",
     label: "Mensal",
-    priceCents: 4700,
-    installments: 1,
-    installmentPriceCents: 4700,
-    totalCents: 4700,
-    displayPrice: "R$ 47",
-    displayInstallment: "R$ 47/mês",
+    priceCents: 4790,
+    totalCents: 4790,
+    displayPrice: "R$ 47,90/mês",
+    displayInstallment: "R$ 47,90/mês",
+    displayTotal: "R$ 47,90",
+    offerId: "yp9ig32",
+    checkoutUrl: "https://pay.cakto.com.br/yp9ig32_871207",
     internalAccessPlan: internalAccessPlanForPaidCustomer,
   },
   {
-    code: "semiannual",
-    label: "Semestral",
-    installments: 6,
-    installmentPriceCents: 3790,
-    totalCents: 22740,
-    displayInstallment: "6x de R$ 37,90",
+    code: "quarterly",
+    label: "Trimestral",
+    priceCents: 11970,
+    totalCents: 11970,
+    displayPrice: "R$ 119,70/trimestre",
+    displayInstallment: "R$ 119,70/trimestre",
+    displayTotal: "R$ 119,70",
+    equivalentMonthly: "R$ 39,90/mês",
+    offerId: "qm96ddu",
+    checkoutUrl: "https://pay.cakto.com.br/qm96ddu",
     internalAccessPlan: internalAccessPlanForPaidCustomer,
   },
   {
     code: "annual",
     label: "Anual",
-    installments: 12,
-    installmentPriceCents: 2990,
-    totalCents: 35880,
-    displayInstallment: "12x de R$ 29,90",
+    priceCents: 29700,
+    totalCents: 29700,
+    displayPrice: "R$ 297,00/ano",
+    displayInstallment: "R$ 297,00/ano",
+    displayTotal: "R$ 297,00",
+    equivalentMonthly: "R$ 24,75/mês",
+    offerId: "hdmowau",
+    checkoutUrl: "https://pay.cakto.com.br/hdmowau",
     internalAccessPlan: internalAccessPlanForPaidCustomer,
   },
 ] as const satisfies readonly BillingCycle[];
@@ -64,6 +75,14 @@ export function getBillingCycleByCode(code: string | null | undefined) {
 
 export function isValidBillingCycle(code: unknown): code is BillingCycleCode {
   return typeof code === "string" && billingCycles.some((cycle) => cycle.code === code);
+}
+
+export function getBillingCycleByCaktoOfferId(offerId: string | null | undefined) {
+  if (!offerId) {
+    return undefined;
+  }
+
+  return billingCycles.find((cycle) => cycle.offerId === offerId);
 }
 
 export function getInternalAccessPlanForPaidCustomer(): SubscriptionPlan {

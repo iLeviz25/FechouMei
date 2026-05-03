@@ -1,7 +1,5 @@
 import {
   getInternalAccessPlanForPaidCustomer,
-  isValidBillingCycle,
-  type BillingCycleCode,
 } from "@/lib/billing/plans";
 import type { InternalPaidAccessPlan } from "@/lib/billing/types";
 import type { Json } from "@/types/database";
@@ -45,6 +43,8 @@ export type AsaasEventCategory =
   | "checkout"
   | "unknown";
 
+type AsaasBillingCycleCode = "monthly" | "semiannual" | "annual";
+
 export type ExtractedAsaasCustomer = {
   asaasCustomerId: string;
   email: string | null;
@@ -63,7 +63,7 @@ export type ExtractedAsaasPayment = {
   billingType: string | null;
   dueDate: string | null;
   paidAt: string | null;
-  billingCycle: BillingCycleCode | null;
+  billingCycle: AsaasBillingCycleCode | null;
   internalAccessPlan: InternalPaidAccessPlan;
   rawPayload: Json;
 };
@@ -72,7 +72,7 @@ export type ExtractedAsaasSubscription = {
   asaasSubscriptionId: string;
   asaasCustomerId: string | null;
   status: string;
-  billingCycle: BillingCycleCode | null;
+  billingCycle: AsaasBillingCycleCode | null;
   currentPeriodStart: string | null;
   currentPeriodEnd: string | null;
   nextDueDate: string | null;
@@ -86,12 +86,12 @@ export type ExtractedAsaasCheckout = {
   externalReference: string | null;
   status: string;
   checkoutUrl: string | null;
-  billingCycle: BillingCycleCode | null;
+  billingCycle: AsaasBillingCycleCode | null;
   internalAccessPlan: InternalPaidAccessPlan;
   rawPayload: Json;
 };
 
-const billingCycleByTotalCents = new Map<number, BillingCycleCode>([
+const billingCycleByTotalCents = new Map<number, AsaasBillingCycleCode>([
   [4700, "monthly"],
   [22740, "semiannual"],
   [35880, "annual"],
@@ -296,7 +296,7 @@ export function normalizeMoneyToCents(value: unknown): number | null {
 export function identifyBillingCycle(
   payload: Record<string, unknown>,
   resource?: Record<string, unknown> | null,
-): BillingCycleCode | null {
+): AsaasBillingCycleCode | null {
   const prioritizedRecords = [resource, payload].filter(isRecord);
   const metadataCandidates = collectMetadataCandidates(prioritizedRecords);
   const fromMetadata = firstBillingCycle(metadataCandidates);
@@ -358,7 +358,7 @@ function firstBillingCycle(values: unknown[]) {
   return null;
 }
 
-function parseBillingCycleText(value: unknown): BillingCycleCode | null {
+function parseBillingCycleText(value: unknown): AsaasBillingCycleCode | null {
   if (typeof value !== "string") {
     return null;
   }
@@ -369,7 +369,7 @@ function parseBillingCycleText(value: unknown): BillingCycleCode | null {
     return null;
   }
 
-  if (isValidBillingCycle(text)) {
+  if (isValidAsaasBillingCycle(text)) {
     return text;
   }
 
@@ -390,6 +390,10 @@ function parseBillingCycleText(value: unknown): BillingCycleCode | null {
   }
 
   return null;
+}
+
+function isValidAsaasBillingCycle(code: string): code is AsaasBillingCycleCode {
+  return code === "monthly" || code === "semiannual" || code === "annual";
 }
 
 function collectMetadataCandidates(records: Record<string, unknown>[]) {
