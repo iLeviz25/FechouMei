@@ -17,7 +17,6 @@ import {
   Settings,
   ShieldCheck,
   Upload,
-  UserCircle2,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
@@ -71,9 +70,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
   const [moreOpen, setMoreOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const visiblePathname = getPathOnly(pendingHref ?? pathname);
-  const moreIsActive =
-    mobileMoreItems.some((item) => visiblePathname === item.href) ||
-    (isAdmin && visiblePathname.startsWith("/admin"));
+  const moreIsActive = mobileMoreItems.some((item) => visiblePathname === item.href);
   const initials = (profile?.full_name ?? "MEI")
     .split(" ")
     .filter(Boolean)
@@ -244,12 +241,17 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
           >
             <Logo size="sm" />
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <NotificationBell
               mobile
               notifications={notifications}
               onNavigate={markRoutePending}
-              onOpenChange={setNotificationsOpen}
+              onOpenChange={(open) => {
+                setNotificationsOpen(open);
+                if (open) {
+                  setMoreOpen(false);
+                }
+              }}
               open={notificationsOpen}
             />
             {isAdmin ? (
@@ -265,12 +267,24 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
                 <ShieldCheck className="h-5 w-5" />
               </Link>
             ) : null}
-            <Link
-              className="surface-panel-ghost flex h-11 w-11 items-center justify-center rounded-[18px] text-muted-foreground"
-              href="/app/configuracoes"
+            <button
+              aria-current={moreIsActive ? "page" : undefined}
+              aria-expanded={moreOpen}
+              aria-label="Mais opcoes"
+              aria-haspopup="menu"
+              className={cn(
+                "surface-panel-ghost flex h-11 w-11 items-center justify-center rounded-[18px] text-muted-foreground transition-colors hover:text-foreground",
+                moreIsActive && "border-primary/20 bg-primary-soft/55 text-primary",
+              )}
+              data-tour-target="more-nav"
+              onClick={() => {
+                setNotificationsOpen(false);
+                setMoreOpen((current) => !current);
+              }}
+              type="button"
             >
-              <UserCircle2 className="h-5 w-5" />
-            </Link>
+              <MoreHorizontal className="h-5 w-5" />
+            </button>
           </div>
         </div>
       </header>
@@ -283,12 +297,11 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
             onClick={() => setMoreOpen(false)}
             type="button"
           />
-          <div className="fixed inset-x-4 bottom-[calc(6.65rem+env(safe-area-inset-bottom))] z-40 overflow-hidden rounded-[28px] border border-border/75 bg-card/95 p-2 shadow-elevated backdrop-blur-xl print:hidden lg:hidden">
+          <div className="fixed right-3 top-[4.75rem] z-40 w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-[28px] border border-border/75 bg-card/95 p-2 shadow-elevated backdrop-blur-xl print:hidden lg:hidden">
             <div className="grid grid-cols-2 gap-1.5">
-              {[...mobileMoreItems, ...(isAdmin ? [adminNavItem] : [])].map((item) => {
+              {mobileMoreItems.map((item) => {
                 const Icon = item.icon;
-                const isActive =
-                  item.href === adminNavItem.href ? visiblePathname.startsWith("/admin") : visiblePathname === item.href;
+                const isActive = visiblePathname === item.href;
 
                 return (
                   <Link
@@ -327,7 +340,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
       ) : null}
 
       <div className="fixed inset-x-0 bottom-0 z-30 px-2.5 pb-[calc(0.65rem+env(safe-area-inset-bottom))] pt-8 print:hidden lg:hidden">
-        <nav className="mx-auto grid h-[76px] max-w-[560px] grid-cols-[1fr_1fr_78px_1fr_1fr_1fr] items-end gap-0.5 rounded-[30px] border border-border/70 bg-card/96 px-2 py-2 shadow-[0_-8px_30px_rgba(15,23,42,0.12),0_16px_34px_rgba(15,23,42,0.1)] backdrop-blur-xl">
+        <nav className="mx-auto grid h-[76px] max-w-[560px] grid-cols-[1fr_1fr_80px_1fr_1fr] items-end gap-0.5 rounded-[30px] border border-border/70 bg-card/96 px-2 py-2 shadow-[0_-8px_30px_rgba(15,23,42,0.12),0_16px_34px_rgba(15,23,42,0.1)] backdrop-blur-xl">
           {mobileNavItems.map((item) => {
             const isPrimaryAction = "primaryAction" in item && item.primaryAction === true;
             const isActive = !isPrimaryAction && visiblePathname === item.href;
@@ -371,29 +384,6 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
             );
           })}
 
-          <button
-            aria-current={moreIsActive ? "page" : undefined}
-            aria-expanded={moreOpen}
-            aria-haspopup="menu"
-            className={cn(
-              "relative flex min-h-[58px] min-w-0 flex-col items-center justify-end gap-1 rounded-[21px] px-0.5 pb-1 text-[9px] font-extrabold leading-none text-muted-foreground transition-[background-color,color,transform] active:scale-[0.98] min-[390px]:text-[10px]",
-              moreIsActive && "text-primary",
-              !moreIsActive && "hover:bg-primary-soft/35 hover:text-foreground",
-            )}
-            data-tour-target="more-nav"
-            onClick={() => setMoreOpen((current) => !current)}
-            type="button"
-          >
-            <span
-              className={cn(
-                "icon-tile flex h-8 w-8 items-center justify-center rounded-[17px]",
-                moreIsActive ? "bg-primary-soft text-primary" : "bg-transparent text-current",
-              )}
-            >
-              <MoreHorizontal className="h-5 w-5" />
-            </span>
-            <span className="max-w-full truncate text-center leading-3">Mais</span>
-          </button>
         </nav>
       </div>
     </>
