@@ -35,8 +35,6 @@ import { createClient } from "@/lib/supabase/client";
 import {
   getSubscriptionAccessFromProfile,
   type SubscriptionAccess,
-  type SubscriptionPlan,
-  type SubscriptionStatus,
 } from "@/lib/subscription/access";
 import { cn } from "@/lib/utils";
 import type { Profile } from "@/types/database";
@@ -142,29 +140,6 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
   const businessModeLabel = getBusinessModeLabel(values.businessMode);
   const profileTag = `${businessModeLabel} - ${resolvedCategory}`;
   const subscriptionAccess = getSubscriptionAccessFromProfile(profile);
-
-  const profileSnapshotItems = [
-    {
-      icon: <BriefcaseBusiness className="h-4 w-4" />,
-      label: "Atuacao",
-      value: resolvedCategory,
-    },
-    {
-      icon: <Building2 className="h-4 w-4" />,
-      label: "Tipo de trabalho",
-      value: resolvedWorkType,
-    },
-    {
-      icon: <Target className="h-4 w-4" />,
-      label: "Objetivo no app",
-      value: resolvedGoal,
-    },
-    {
-      icon: <Wallet className="h-4 w-4" />,
-      label: "Saldo inicial",
-      value: formatInitialBalanceLabel(values.initialBalance),
-    },
-  ];
 
   function openProfileEditor() {
     setProfileMessage(null);
@@ -355,12 +330,6 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
         </div>
 
         <SubscriptionSummaryCard access={subscriptionAccess} />
-
-        <div className="grid gap-3 md:grid-cols-2">
-          {profileSnapshotItems.map((item) => (
-            <SettingsSummaryCard icon={item.icon} key={item.label} label={item.label} value={item.value} />
-          ))}
-        </div>
       </section>
 
       <section className="space-y-3">
@@ -370,9 +339,9 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
         </Badge>
         <div className="flex flex-col gap-3 min-[430px]:flex-row min-[430px]:items-start min-[430px]:justify-between">
           <div className="space-y-1">
-            <h2 className="text-lg font-extrabold tracking-tight text-foreground">Editar informacoes</h2>
+            <h2 className="text-lg font-extrabold tracking-tight text-foreground">Informacoes do perfil</h2>
             <p className="text-sm leading-6 text-muted-foreground">
-              Atualize seus dados de cadastro a qualquer momento.
+              Dados vindos do onboarding. Atualize quando sua rotina ou categoria mudar.
             </p>
           </div>
           <Button onClick={openProfileEditor} size="sm" type="button" variant="outline">
@@ -383,9 +352,8 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
 
         <Card className="overflow-hidden rounded-[30px]">
           <CardContent className="space-y-3 p-5 sm:p-6">
-            <InfoRow icon={<UserRound className="h-4 w-4" />} label="Nome completo" value={values.fullName || "Nao informado"} />
-            <InfoRow icon={<BriefcaseBusiness className="h-4 w-4" />} label="Atuacao" value={resolvedCategory} />
-            <InfoRow icon={<Building2 className="h-4 w-4" />} label="Tipo de trabalho" value={resolvedWorkType} />
+            <InfoRow icon={<Building2 className="h-4 w-4" />} label="Atuacao" value={businessModeLabel} />
+            <InfoRow icon={<BriefcaseBusiness className="h-4 w-4" />} label="Tipo de trabalho" value={resolvedWorkType} />
             <InfoRow icon={<Sparkles className="h-4 w-4" />} label="Categoria principal" value={resolvedCategory} />
             <InfoRow icon={<Target className="h-4 w-4" />} label="Objetivo no app" value={resolvedGoal} />
             <InfoRow icon={<Wallet className="h-4 w-4" />} label="Saldo inicial" value={formatInitialBalanceLabel(values.initialBalance)} />
@@ -706,42 +674,53 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
 }
 
 function SubscriptionSummaryCard({ access }: { access: SubscriptionAccess }) {
-  const planLabel = access.isAdmin ? "Admin" : getSubscriptionPlanLabel(access.plan);
-  const statusLabel = access.isAdmin ? "Admin" : getSubscriptionStatusLabel(access.status);
-  const description = access.isAdmin ? "Acesso administrativo completo." : getSubscriptionPlanDescription(access.plan);
-  const limitLabel = access.isAdmin ? "Sem limite bloqueante" : `${access.dailyHelenaLimit ?? 0} mensagens/dia`;
-  const appImportLabel = access.canUseAppImport ? "Liberada" : "Acesso completo";
-  const appExportLabel = access.canUseAppExport ? "Liberada" : "Bloqueada";
-  const helenaFilesLabel = access.canUseHelenaImportExport ? "Liberada" : "Acesso completo";
+  const statusLabel = getAccessStatusLabel(access);
+  const description = access.isAdmin
+    ? "Acesso administrativo completo ao app."
+    : access.status === "active"
+      ? "FechouMEI Completo ativo. O ciclo de pagamento e gerenciado fora desta tela."
+      : "Aguardando confirmacao ou regularizacao do acesso.";
+  const helenaLabel = access.isAdmin
+    ? "Sem limite bloqueante"
+    : access.status === "active"
+      ? "50 mensagens/dia"
+      : "Disponivel ao ativar";
+  const importLabel = access.canUseAppImport ? "Liberada" : "Aguardando acesso";
+  const reportsLabel = access.canUseAppExport ? "Liberados" : "Aguardando acesso";
 
   return (
     <Card className="overflow-hidden rounded-[28px] border-primary/15 bg-primary-soft/30">
       <CardContent className="space-y-4 p-4 sm:p-5">
         <div className="flex flex-col gap-3 min-[430px]:flex-row min-[430px]:items-start min-[430px]:justify-between">
           <div className="min-w-0 space-y-1">
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Assinatura</p>
-            <h2 className="text-lg font-extrabold tracking-tight text-foreground">{planLabel}</h2>
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Acesso ao FechouMEI</p>
+            <h2 className="text-lg font-extrabold tracking-tight text-foreground">FechouMEI Completo</h2>
             <p className="text-sm leading-6 text-muted-foreground">{description}</p>
           </div>
           <div className="flex flex-wrap gap-2 min-[430px]:justify-end">
-            <Badge variant={access.isAdmin || access.plan === "pro" ? "success" : "secondary"}>{planLabel}</Badge>
-            <Badge variant={access.status === "active" || access.isAdmin ? "success" : access.status === "pending_payment" ? "secondary" : "danger"}>
+            <Badge variant={access.isAdmin || access.status === "active" ? "success" : "secondary"}>
               {statusLabel}
             </Badge>
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <SubscriptionSummaryItem label="Produto" value={planLabel} />
-          <SubscriptionSummaryItem label="Status da assinatura" value={statusLabel} />
-          <SubscriptionSummaryItem label="Limite da Helena" value={limitLabel} />
-          <SubscriptionSummaryItem label="Importacao pelo app" value={appImportLabel} />
-          <SubscriptionSummaryItem label="Exportacao pelo app" value={appExportLabel} />
-          <SubscriptionSummaryItem label="Arquivos pela Helena" value={helenaFilesLabel} />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <SubscriptionSummaryItem label="Status do acesso" value={statusLabel} />
+          <SubscriptionSummaryItem label="Helena" value={helenaLabel} />
+          <SubscriptionSummaryItem label="Importacao" value={importLabel} />
+          <SubscriptionSummaryItem label="Relatorios" value={reportsLabel} />
         </div>
       </CardContent>
     </Card>
   );
+}
+
+function getAccessStatusLabel(access: SubscriptionAccess) {
+  if (access.isAdmin) {
+    return "Admin";
+  }
+
+  return access.status === "active" ? "Ativo" : "Pendente";
 }
 
 function SubscriptionSummaryItem({ label, value }: { label: string; value: string }) {
@@ -789,30 +768,6 @@ function validateProfileDraft(values: ProfileValues) {
   }
 
   return null;
-}
-
-function SettingsSummaryCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <Card className="overflow-hidden rounded-[26px]">
-      <CardContent className="flex items-start gap-3 p-4 sm:p-5">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-primary">
-          {icon}
-        </div>
-        <div className="min-w-0 space-y-1">
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
-          <p className="text-sm font-bold leading-6 text-foreground sm:text-[0.95rem]">{value}</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
 }
 
 function InfoRow({
@@ -1067,27 +1022,6 @@ function OptionGroup({
 
 function getBusinessModeLabel(value: string) {
   return businessModeOptions.find((option) => option.value === value)?.label ?? value;
-}
-
-function getSubscriptionPlanLabel(plan: SubscriptionPlan) {
-  return plan === "pro" ? "FechouMEI Completo" : "Plano ativo";
-}
-
-function getSubscriptionPlanDescription(plan: SubscriptionPlan) {
-  return plan === "pro"
-    ? "Inclui 50 mensagens/dia, importacao/exportacao pelo app e arquivos pela Helena no WhatsApp."
-    : "Inclui registros, consultas com a Helena e exportacao pelo app. Importacao e arquivos pela Helena fazem parte do acesso completo.";
-}
-
-function getSubscriptionStatusLabel(status: SubscriptionStatus) {
-  const labels: Record<SubscriptionStatus, string> = {
-    active: "Assinatura ativa",
-    canceled: "Assinatura cancelada",
-    past_due: "Pagamento pendente",
-    pending_payment: "Aguardando pagamento",
-  };
-
-  return labels[status];
 }
 
 function getKnownOrOther(value: string | null | undefined, options: string[], fallback: string) {

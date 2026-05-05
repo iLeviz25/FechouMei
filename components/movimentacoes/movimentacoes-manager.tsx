@@ -29,54 +29,27 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { MovementCreateSheet } from "@/components/movimentacoes/movement-create-sheet";
+import {
+  createEmptyMovementForm,
+  movementCategories,
+  MovementFields,
+  toMovementFormState,
+  validateMovementForm,
+  type MovementFormState,
+  type MovementItem,
+} from "@/components/movimentacoes/movement-form-fields";
 import { getMovementVisualTone } from "@/lib/movement-visuals";
 import { cn } from "@/lib/utils";
-import type { Movimentacao } from "@/types/database";
 
 type MovimentacoesManagerProps = {
   initialBalance: number;
   movements: MovementItem[];
 };
 
-type MovementItem = Pick<
-  Movimentacao,
-  "amount" | "category" | "description" | "id" | "occurred_at" | "occurred_on" | "type"
->;
-
-type FormState = {
-  type: "entrada" | "despesa";
-  description: string;
-  amount: string;
-  occurred_on: string;
-  category: string;
-};
-
 type PeriodFilter = "todos" | "este-mes" | "mes-anterior" | "ultimos-30-dias";
 type TypeFilter = "todos" | "entrada" | "despesa";
-
-const today = new Date().toISOString().slice(0, 10);
-
-const emptyForm: FormState = {
-  type: "entrada",
-  description: "",
-  amount: "",
-  occurred_on: today,
-  category: "",
-};
-
-const categories = [
-  "CLIENTE",
-  "SERVICO",
-  "VENDA",
-  "MATERIAL",
-  "FERRAMENTA",
-  "IMPOSTO",
-  "TRANSPORTE",
-  "ALIMENTACAO",
-  "OUTRO",
-];
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -146,46 +119,6 @@ function getPeriodRange(period: PeriodFilter) {
   };
 }
 
-function toFormState(movement: MovementItem): FormState {
-  return {
-    type: movement.type,
-    description: movement.description,
-    amount: movement.amount.toFixed(2).replace(".", ","),
-    occurred_on: movement.occurred_on,
-    category: movement.category,
-  };
-}
-
-function normalizeAmountInput(value: string) {
-  const cleaned = value.replace(/[^\d,.]/g, "");
-  const hasComma = cleaned.includes(",");
-  const separator = hasComma ? "," : ".";
-  const parts = cleaned.split(hasComma ? "," : ".");
-
-  if (parts.length === 1) {
-    return parts[0];
-  }
-
-  const integerPart = parts[0];
-  const decimalPart = parts.slice(1).join("").slice(0, 2);
-  return `${integerPart}${separator}${decimalPart}`;
-}
-
-function formatAmountForDisplay(value: string) {
-  if (!value) {
-    return "";
-  }
-
-  const normalized = value.replace(",", ".");
-  const numberValue = Number(normalized);
-
-  if (!Number.isFinite(numberValue)) {
-    return value;
-  }
-
-  return numberValue.toFixed(2).replace(".", ",");
-}
-
 function formatSignedCurrency(value: number) {
   if (value === 0) {
     return toCurrency(0);
@@ -194,142 +127,12 @@ function formatSignedCurrency(value: number) {
   return `${value > 0 ? "+" : "-"} ${toCurrency(Math.abs(value))}`;
 }
 
-function validateMovementForm(form: FormState) {
-  const description = form.description.trim();
-  const amount = form.amount.trim();
-
-  if (!form.occurred_on) {
-    return "Informe a data da movimentacao.";
-  }
-
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(form.occurred_on)) {
-    return "Use uma data valida para a movimentacao.";
-  }
-
-  if (!amount) {
-    return "Informe o valor da movimentacao.";
-  }
-
-  if (!/^\d+([,.]\d{1,2})?$/.test(amount)) {
-    return "Use um valor em reais, como 120,50.";
-  }
-
-  if (Number(amount.replace(",", ".")) <= 0) {
-    return "Informe um valor maior que zero.";
-  }
-
-  if (!description) {
-    return "Informe uma descricao curta para identificar o registro.";
-  }
-
-  if (!form.category) {
-    return "Escolha uma categoria para continuar.";
-  }
-
-  return null;
-}
-
-function MovementFields({
-  compact = false,
-  form,
-  idPrefix,
-  onChange,
-}: {
-  compact?: boolean;
-  form: FormState;
-  idPrefix: string;
-  onChange: (field: keyof FormState, value: string) => void;
-}) {
-  return (
-    <div className={cn("grid gap-4", compact ? "md:grid-cols-2" : "md:grid-cols-2")}>
-      <div className="space-y-2 md:col-span-2">
-        <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground" htmlFor={`${idPrefix}-type`}>
-          Entrada ou despesa
-        </Label>
-        <input name="type" type="hidden" value={form.type} />
-        <OptionGroup
-          name={`${idPrefix}-type`}
-          onChange={(value) => onChange("type", value as FormState["type"])}
-          options={[
-            { value: "entrada", label: "Entrada" },
-            { value: "despesa", label: "Despesa" },
-          ]}
-          value={form.type}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground" htmlFor={`${idPrefix}-occurred-on`}>
-          Data do registro
-        </Label>
-        <Input
-          id={`${idPrefix}-occurred-on`}
-          name="occurred_on"
-          onChange={(event) => onChange("occurred_on", event.target.value)}
-          required
-          type="date"
-          value={form.occurred_on}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground" htmlFor={`${idPrefix}-amount`}>
-          Valor em reais
-        </Label>
-        <Input
-          className={cn(form.type === "entrada" ? "text-primary" : "text-destructive")}
-          id={`${idPrefix}-amount`}
-          inputMode="decimal"
-          name="amount"
-          onBlur={(event) => onChange("amount", formatAmountForDisplay(event.target.value))}
-          onChange={(event) => onChange("amount", normalizeAmountInput(event.target.value))}
-          pattern="[0-9]+([,.][0-9]{1,2})?"
-          placeholder="120,50"
-          required
-          title="Use reais e centavos, como 120,50"
-          type="text"
-          value={form.amount}
-        />
-      </div>
-
-      <div className="space-y-2 md:col-span-2">
-        <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground" htmlFor={`${idPrefix}-description`}>
-          Descricao curta
-        </Label>
-        <Input
-          id={`${idPrefix}-description`}
-          name="description"
-          onChange={(event) => onChange("description", event.target.value)}
-          placeholder="Ex.: servico para cliente"
-          required
-          value={form.description}
-        />
-      </div>
-
-      <div className="space-y-2 md:col-span-2">
-        <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground" htmlFor={`${idPrefix}-category`}>
-          Categoria
-        </Label>
-        <input name="category" type="hidden" value={form.category} />
-        <Select id={`${idPrefix}-category`} onChange={(event) => onChange("category", event.target.value)} value={form.category}>
-          <option value="">Escolha uma categoria</option>
-          {categories.map((category) => (
-            <option key={category} value={category}>
-              {category}
-            </option>
-          ))}
-        </Select>
-      </div>
-    </div>
-  );
-}
-
 export function MovimentacoesManager({ initialBalance, movements }: MovimentacoesManagerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [createForm, setCreateForm] = useState<FormState>(emptyForm);
+  const [createForm, setCreateForm] = useState<MovementFormState>(() => createEmptyMovementForm());
   const [createFeedback, setCreateFeedback] = useState<MovementActionResult | null>(null);
-  const [editForm, setEditForm] = useState<FormState>(emptyForm);
+  const [editForm, setEditForm] = useState<MovementFormState>(() => createEmptyMovementForm());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<MovementActionResult | null>(null);
   const [pendingDelete, setPendingDelete] = useState<MovementItem | null>(null);
@@ -364,13 +167,13 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
   const balance = safeInitialBalance + summary.income - summary.expense;
 
   const categoryOptions = useMemo(() => {
-    const knownCategories = new Set(categories.map(normalizeSearchValue));
+    const knownCategories = new Set(movementCategories.map(normalizeSearchValue));
     const extraCategories = movements
       .map((movement) => movement.category)
       .filter((category) => category && !knownCategories.has(normalizeSearchValue(category)))
       .sort((a, b) => a.localeCompare(b, "pt-BR"));
 
-    return [...categories, ...extraCategories];
+    return [...movementCategories, ...extraCategories];
   }, [movements]);
 
   const filteredMovements = useMemo(() => {
@@ -459,24 +262,24 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
     });
   }, [existingMovementIds]);
 
-  function updateCreateField(field: keyof FormState, value: string) {
+  function updateCreateField(field: keyof MovementFormState, value: string) {
     setCreateForm((current) => ({ ...current, [field]: value }));
   }
 
-  function updateEditField(field: keyof FormState, value: string) {
+  function updateEditField(field: keyof MovementFormState, value: string) {
     setEditForm((current) => ({ ...current, [field]: value }));
   }
 
   function cancelEdit() {
     setEditingId(null);
-    setEditForm(emptyForm);
+    setEditForm(createEmptyMovementForm());
   }
 
   function startEdit(movement: MovementItem) {
     setFeedback(null);
     setPendingDelete(null);
     setEditingId(movement.id);
-    setEditForm(toFormState(movement));
+    setEditForm(toMovementFormState(movement));
   }
 
   function clearFilters() {
@@ -487,18 +290,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
   }
 
   function openMobileCreate() {
-    setCreateFeedback(null);
     setMobileCreateOpen(true);
-  }
-
-  function closeMobileCreate() {
-    if (isPending) {
-      return;
-    }
-
-    setMobileCreateOpen(false);
-    setCreateForm(emptyForm);
-    setCreateFeedback(null);
   }
 
   function startSelectionMode() {
@@ -557,8 +349,9 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
       setFeedback(result.ok ? { ok: true, message: "Movimentacao salva com sucesso." } : null);
 
       if (result.ok) {
-        setCreateForm(emptyForm);
+        setCreateForm(createEmptyMovementForm());
         setMobileCreateOpen(false);
+        router.refresh();
       }
     });
   }
@@ -1075,64 +868,12 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
         </section>
       </div>
 
-      {mobileCreateOpen ? (
-        <div
-          aria-labelledby="create-movement-title"
-          aria-modal="true"
-          className="fixed inset-0 z-40 flex items-end bg-black/40 xl:hidden"
-          onClick={closeMobileCreate}
-          role="dialog"
-        >
-          <div
-            className="w-full rounded-t-[32px] bg-card px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 shadow-elevated"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-border/80" />
-
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-                  Nova movimentacao
-                </p>
-                <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground" id="create-movement-title">
-                  Lancar entrada ou despesa
-                </h2>
-              </div>
-              <Button disabled={isPending} onClick={closeMobileCreate} size="icon" type="button" variant="ghost">
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {createFeedback ? (
-              <p
-                className={cn(
-                  "mt-4 rounded-[20px] border px-4 py-3 text-sm leading-6",
-                  createFeedback.ok
-                    ? "border-success/20 bg-success/10 text-success"
-                    : "border-destructive/20 bg-destructive/10 text-destructive",
-                )}
-                role="status"
-              >
-                {createFeedback.message}
-              </p>
-            ) : null}
-
-            <form className="mt-4 space-y-5" noValidate onSubmit={handleCreate}>
-              <MovementFields form={createForm} idPrefix="create-mobile" onChange={updateCreateField} />
-
-              <div className="grid grid-cols-2 gap-2">
-                <Button disabled={isPending} onClick={closeMobileCreate} type="button" variant="outline">
-                  Cancelar
-                </Button>
-                <Button disabled={isPending} type="submit">
-                  {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                  Salvar
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
+      <MovementCreateSheet
+        onCreated={() => setFeedback({ ok: true, message: "Movimentacao salva com sucesso." })}
+        onOpenChange={setMobileCreateOpen}
+        open={mobileCreateOpen}
+        viewportClassName="xl:hidden"
+      />
 
       {pendingDelete ? (
         <div

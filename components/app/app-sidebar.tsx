@@ -18,6 +18,7 @@ import {
   Upload,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
+import { MovementCreateSheet } from "@/components/movimentacoes/movement-create-sheet";
 import { Button } from "@/components/ui/button";
 import type { ObligationNotification } from "@/lib/obrigacoes/notifications";
 import { cn } from "@/lib/utils";
@@ -65,6 +66,7 @@ function getPathOnly(href: string) {
 export function AppSidebar({ profile, isAdmin = false, notifications = [] }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [globalCreateOpen, setGlobalCreateOpen] = useState(false);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const visiblePathname = getPathOnly(pendingHref ?? pathname);
@@ -323,17 +325,46 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
             const isPrimaryAction = "primaryAction" in item && item.primaryAction === true;
             const isActive = !isPrimaryAction && visiblePathname === item.href;
             const Icon = item.icon;
+            const navItemClassName = cn(
+              "relative flex min-h-[58px] min-w-0 flex-col items-center justify-end gap-1 rounded-[21px] px-0.5 pb-1 text-[9px] font-extrabold leading-none transition-[background-color,color,box-shadow,transform] active:scale-[0.98] min-[390px]:text-[10px]",
+              isPrimaryAction && "-mt-9 justify-start pb-0 text-secondary-foreground",
+              isActive && !isPrimaryAction && "text-primary",
+              !isPrimaryAction && !isActive && "text-muted-foreground hover:bg-primary-soft/35 hover:text-foreground",
+            );
+            const iconClassName = cn(
+              "icon-tile flex h-8 w-8 items-center justify-center rounded-[17px] transition-colors",
+              isPrimaryAction
+                ? "h-16 w-16 rounded-[24px] bg-gradient-amber text-secondary-foreground shadow-[0_14px_28px_rgba(245,158,11,0.32)]"
+                : isActive
+                  ? "bg-primary-soft text-primary"
+                  : "bg-transparent text-current",
+            );
+            const labelClassName = cn("max-w-full truncate text-center leading-3", isPrimaryAction && "uppercase tracking-[0.08em]");
+
+            if (isPrimaryAction) {
+              return (
+                <button
+                  aria-label={item.label}
+                  className={navItemClassName}
+                  key={item.href}
+                  onClick={() => {
+                    setNotificationsOpen(false);
+                    setGlobalCreateOpen(true);
+                  }}
+                  type="button"
+                >
+                  <span className={iconClassName}>
+                    <Icon className="h-7 w-7" />
+                  </span>
+                  <span className={labelClassName}>{item.shortLabel}</span>
+                </button>
+              );
+            }
 
             return (
               <Link
-                aria-label={isPrimaryAction ? item.label : undefined}
                 aria-current={isActive ? "page" : undefined}
-                className={cn(
-                  "relative flex min-h-[58px] min-w-0 flex-col items-center justify-end gap-1 rounded-[21px] px-0.5 pb-1 text-[9px] font-extrabold leading-none transition-[background-color,color,box-shadow,transform] active:scale-[0.98] min-[390px]:text-[10px]",
-                  isPrimaryAction && "-mt-9 justify-start pb-0 text-secondary-foreground",
-                  isActive && !isPrimaryAction && "text-primary",
-                  !isPrimaryAction && !isActive && "text-muted-foreground hover:bg-primary-soft/35 hover:text-foreground",
-                )}
+                className={navItemClassName}
                 data-tour-target={"tourTarget" in item ? item.tourTarget : undefined}
                 href={item.href}
                 key={item.href}
@@ -343,26 +374,17 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
                 onTouchStart={() => warmRoute(item.href)}
                 prefetch
               >
-                <span
-                  className={cn(
-                    "icon-tile flex h-8 w-8 items-center justify-center rounded-[17px] transition-colors",
-                    isPrimaryAction
-                      ? "h-16 w-16 rounded-[24px] bg-gradient-amber text-secondary-foreground shadow-[0_14px_28px_rgba(245,158,11,0.32)]"
-                      : isActive
-                        ? "bg-primary-soft text-primary"
-                        : "bg-transparent text-current",
-                  )}
-                >
-                  <Icon className={cn(isPrimaryAction ? "h-7 w-7" : "h-5 w-5")} />
+                <span className={iconClassName}>
+                  <Icon className="h-5 w-5" />
                 </span>
-                <span className={cn("max-w-full truncate text-center leading-3", isPrimaryAction && "uppercase tracking-[0.08em]")}>
-                  {item.shortLabel}
-                </span>
+                <span className={labelClassName}>{item.shortLabel}</span>
               </Link>
             );
           })}
         </nav>
       </div>
+
+      <MovementCreateSheet onOpenChange={setGlobalCreateOpen} open={globalCreateOpen} />
     </>
   );
 }
