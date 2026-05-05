@@ -282,7 +282,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
       <div className="fixed inset-x-0 top-[4.65rem] z-30 px-3 print:hidden lg:hidden">
         <nav
           aria-label="Atalhos rapidos"
-          className="mx-auto grid h-12 max-w-[560px] grid-cols-3 gap-1.5 rounded-[24px] border border-border/70 bg-card/96 p-1.5 shadow-[0_10px_28px_rgba(15,23,42,0.10)] backdrop-blur-xl"
+          className="mx-auto grid h-12 max-w-[560px] grid-cols-3 gap-1.5 rounded-[24px] border border-border/70 bg-white p-1.5 shadow-[0_8px_20px_rgba(15,23,42,0.08)]"
         >
           {mobileShortcutItems.map((item) => {
             const Icon = item.icon;
@@ -317,7 +317,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
       <div className="fixed inset-x-0 bottom-0 z-30 px-2.5 pb-[calc(0.65rem+env(safe-area-inset-bottom))] pt-8 print:hidden lg:hidden">
         <nav
           aria-label="Navegacao principal"
-          className="mx-auto grid h-[76px] max-w-[560px] grid-cols-[1fr_1fr_80px_1fr_1fr] items-end gap-0.5 rounded-[30px] border border-border/70 bg-card/96 px-2 py-2 shadow-[0_-8px_30px_rgba(15,23,42,0.12),0_16px_34px_rgba(15,23,42,0.1)] backdrop-blur-xl"
+          className="mx-auto grid h-[76px] max-w-[560px] grid-cols-[1fr_1fr_80px_1fr_1fr] items-end gap-0.5 rounded-[30px] border border-border/70 bg-white px-2 py-2 shadow-[0_-6px_22px_rgba(15,23,42,0.08),0_14px_28px_rgba(15,23,42,0.08)]"
         >
           {mobileNavItems.map((item) => {
             const isPrimaryAction = "primaryAction" in item && item.primaryAction === true;
