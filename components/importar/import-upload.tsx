@@ -384,7 +384,7 @@ function ImportPreview({
             </div>
           </div>
 
-          <div className="max-h-[32rem] overflow-y-auto overscroll-contain">
+          <div className="scroll-chain-y max-h-[32rem] overflow-y-auto">
             <div className="hidden min-w-full divide-y divide-border/60 md:block">
               {result.rows.map((row) => (
                 <PreviewTableRow key={row.id} row={row} />

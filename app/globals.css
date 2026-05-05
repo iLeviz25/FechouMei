@@ -129,6 +129,11 @@
     text-wrap: balance;
   }
 
+  .scroll-chain-y {
+    overscroll-behavior-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .grain {
     background-image: radial-gradient(hsl(0 0% 100% / 0.06) 1px, transparent 1px);
     background-size: 3px 3px;

@@ -34,9 +34,17 @@ export function AgentPlayground({
     initialConversation.messages.length > 0 ? initialConversation.messages : [welcomeMessage],
   );
   const [isPending, startTransition] = useTransition();
+  const messagesViewportRef = useRef<HTMLDivElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    const viewport = messagesViewportRef.current;
+
+    if (!viewport) {
+      return;
+    }
+
+    viewport.scrollTo({ top: viewport.scrollHeight, behavior: "auto" });
   }, [messages, isPending]);
 
   function submitMessage(message: string) {
@@ -152,7 +160,10 @@ export function AgentPlayground({
           </div>
         ) : null}
 
-        <div className="min-h-[420px] px-4 py-5 sm:px-5">
+        <div
+          className="scroll-chain-y h-[min(52dvh,32rem)] min-h-[360px] overflow-y-auto px-4 py-5 sm:min-h-[420px] sm:px-5"
+          ref={messagesViewportRef}
+        >
           {empty ? (
             <div className="flex min-h-[320px] flex-col items-center justify-center px-2 text-center">
               <div className="icon-tile flex h-14 w-14 items-center justify-center rounded-[22px] bg-primary-soft text-primary">
@@ -234,7 +245,7 @@ export function AgentPlayground({
 
         <form className="flex items-end gap-2 border-t border-border/70 bg-muted/10 px-4 py-4 sm:px-5" onSubmit={handleSubmit}>
           <textarea
-                className="surface-panel-ghost min-h-[52px] max-h-32 flex-1 resize-none rounded-[20px] px-4 py-3 text-sm leading-6 shadow-sm outline-none transition-[background-color,border-color,box-shadow,color] placeholder:text-muted-foreground focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
+            className="surface-panel-ghost min-h-[52px] max-h-32 flex-1 resize-none rounded-[20px] px-4 py-3 text-sm leading-6 shadow-sm outline-none transition-[background-color,border-color,box-shadow,color] placeholder:text-muted-foreground focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isPending}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={(event) => {

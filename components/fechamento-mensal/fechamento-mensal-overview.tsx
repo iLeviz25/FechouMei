@@ -622,7 +622,7 @@ export function FechamentoMensalOverview({
                 <div
                   className={cn(
                     "overflow-hidden rounded-[24px] border border-border/70 bg-card",
-                    mobileListShouldScroll && "max-h-[27rem] overflow-y-auto overscroll-contain md:max-h-none md:overflow-visible",
+                    mobileListShouldScroll && "scroll-chain-y max-h-[27rem] overflow-y-auto md:max-h-none md:overflow-visible",
                   )}
                 >
                   <div className="divide-y divide-border/60">

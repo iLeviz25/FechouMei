@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -324,6 +325,8 @@ function MovementFields({
 }
 
 export function MovimentacoesManager({ initialBalance, movements }: MovimentacoesManagerProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [createForm, setCreateForm] = useState<FormState>(emptyForm);
   const [createFeedback, setCreateFeedback] = useState<MovementActionResult | null>(null);
   const [editForm, setEditForm] = useState<FormState>(emptyForm);
@@ -433,6 +436,21 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
     categoryFilter !== "todas" ||
     periodFilter !== "todos";
   const mobileListShouldScroll = filteredMovements.length > 4 && editingId === null;
+
+  useEffect(() => {
+    if (searchParams.get("nova") !== "1") {
+      return;
+    }
+
+    setCreateFeedback(null);
+    setMobileCreateOpen(true);
+
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("nova");
+    const nextQuery = nextParams.toString();
+
+    router.replace(nextQuery ? `/app/movimentacoes?${nextQuery}` : "/app/movimentacoes", { scroll: false });
+  }, [router, searchParams]);
 
   useEffect(() => {
     setSelectedIds((current) => {
@@ -894,7 +912,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                 className={cn(
                   "max-w-full space-y-4",
                   mobileListShouldScroll &&
-                    "max-h-[31rem] overflow-y-auto overscroll-contain pr-1 md:max-h-none md:overflow-visible md:pr-0",
+                    "scroll-chain-y max-h-[31rem] overflow-y-auto pr-1 md:max-h-none md:overflow-visible md:pr-0",
                 )}
               >
                 {groupedMovements.map(([date, items]) => {
@@ -1056,18 +1074,6 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
           )}
         </section>
       </div>
-
-      {!mobileCreateOpen ? (
-        <Button
-          className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-30 rounded-[20px] px-5 shadow-elevated xl:hidden"
-          onClick={openMobileCreate}
-          size="lg"
-          type="button"
-        >
-          <Plus className="h-4 w-4" />
-          Nova
-        </Button>
-      ) : null}
 
       {mobileCreateOpen ? (
         <div

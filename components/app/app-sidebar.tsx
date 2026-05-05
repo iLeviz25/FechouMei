@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   LogOut,
   MessageCircle,
+  Plus,
   Receipt,
   Settings,
   ShieldCheck,
@@ -48,12 +49,23 @@ const adminNavItem = {
   shortLabel: "Admin",
 };
 
+const createMovementHref = "/app/movimentacoes?nova=1";
+const mobileNavItems = [
+  ...navItems.slice(0, 2),
+  { href: createMovementHref, label: "Nova movimentacao", shortLabel: "Nova", icon: Plus, primaryAction: true },
+  ...navItems.slice(2),
+];
+
+function getPathOnly(href: string) {
+  return href.split("?")[0] ?? href;
+}
+
 export function AppSidebar({ profile, isAdmin = false, notifications = [] }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const visiblePathname = pendingHref ?? pathname;
+  const visiblePathname = getPathOnly(pendingHref ?? pathname);
   const initials = (profile?.full_name ?? "MEI")
     .split(" ")
     .filter(Boolean)
@@ -83,7 +95,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
   }
 
   function markRoutePending(href: string) {
-    if (href !== pathname) {
+    if (getPathOnly(href) !== pathname) {
       setPendingHref(href);
     }
   }
@@ -254,43 +266,50 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
         </div>
       </header>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-8 border-t border-border/80 bg-background px-1 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_22px_rgba(15,23,42,0.11)] print:hidden lg:hidden">
-        {navItems.map((item) => {
-          const isActive = visiblePathname === item.href;
-          const Icon = item.icon;
+      <div className="fixed inset-x-0 bottom-0 z-30 px-2 pb-[calc(0.7rem+env(safe-area-inset-bottom))] pt-3 print:hidden lg:hidden">
+        <nav className="mx-auto grid max-w-[560px] grid-cols-9 gap-0.5 rounded-[30px] border border-border/80 bg-card/95 p-1.5 shadow-[0_-10px_34px_rgba(15,23,42,0.14),0_16px_38px_rgba(15,23,42,0.1)] backdrop-blur-xl">
+          {mobileNavItems.map((item) => {
+            const isPrimaryAction = "primaryAction" in item && item.primaryAction === true;
+            const isActive = !isPrimaryAction && visiblePathname === item.href;
+            const Icon = item.icon;
 
-          return (
-            <Link
-              aria-current={isActive ? "page" : undefined}
-              className={cn(
-                "relative flex min-h-[64px] min-w-0 flex-col items-center justify-center gap-1 rounded-[16px] px-0.5 text-[8px] font-bold transition-[background-color,color,box-shadow] min-[390px]:text-[9px]",
-                isActive
-                  ? "bg-card text-primary shadow-sm"
-                  : "text-foreground/72 hover:bg-muted/70 hover:text-foreground",
-              )}
-              data-tour-target={item.tourTarget}
-              href={item.href}
-              key={item.href}
-              onClick={() => markRoutePending(item.href)}
-              onFocus={() => warmRoute(item.href)}
-              onPointerEnter={() => warmRoute(item.href)}
-              onTouchStart={() => warmRoute(item.href)}
-              prefetch
-            >
-              {isActive ? <span className="absolute -top-1 h-1 w-7 rounded-full bg-primary" /> : null}
-              <span
+            return (
+              <Link
+                aria-label={isPrimaryAction ? item.label : undefined}
+                aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "icon-tile flex h-8 w-8 items-center justify-center rounded-2xl transition-colors",
-                  isActive ? "bg-primary text-primary-foreground" : "bg-muted/45 text-current",
+                  "relative flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-[22px] px-0.5 text-[8px] font-extrabold leading-none transition-[background-color,color,box-shadow,transform] active:scale-[0.98] min-[370px]:text-[9px] min-[430px]:text-[10px]",
+                  isPrimaryAction && "bg-gradient-amber text-secondary-foreground shadow-amber",
+                  isActive && "bg-gradient-brand text-primary-foreground shadow-elevated",
+                  !isPrimaryAction && !isActive && "text-muted-foreground hover:bg-primary-soft/40 hover:text-foreground",
                 )}
+                data-tour-target={"tourTarget" in item ? item.tourTarget : undefined}
+                href={item.href}
+                key={item.href}
+                onClick={() => markRoutePending(item.href)}
+                onFocus={() => warmRoute(item.href)}
+                onPointerEnter={() => warmRoute(item.href)}
+                onTouchStart={() => warmRoute(item.href)}
+                prefetch
               >
-                <Icon className="h-4 w-4" />
-              </span>
-              <span className="max-w-full truncate text-center leading-3">{item.shortLabel}</span>
-            </Link>
-          );
-        })}
-      </nav>
+                <span
+                  className={cn(
+                    "icon-tile flex h-8 w-8 items-center justify-center rounded-[18px] transition-colors",
+                    isPrimaryAction
+                      ? "bg-white/40 text-secondary-foreground"
+                      : isActive
+                        ? "bg-white/20 text-primary-foreground"
+                        : "bg-muted/50 text-current",
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span className="max-w-full truncate text-center leading-3">{item.shortLabel}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
     </>
   );
 }
@@ -357,7 +376,7 @@ function NotificationBell({
               Nenhuma notificacao no momento.
             </div>
           ) : (
-            <div className={cn("overflow-y-auto overscroll-contain p-2", mobile ? "max-h-[calc(100dvh_-_13rem)]" : "max-h-80")}>
+            <div className={cn("scroll-chain-y overflow-y-auto p-2", mobile ? "max-h-[calc(100dvh_-_13rem)]" : "max-h-80")}>
               {notifications.map((notification) => (
                 <Link
                   className="group flex items-start gap-3 rounded-[18px] px-3 py-3 transition-colors hover:bg-primary-soft/35"
