@@ -1,10 +1,12 @@
-"use client";
-
-import { useProfile } from "@/components/app/profile-provider";
 import { ConfiguracoesForm } from "@/components/configuracoes/configuracoes-form";
+import { getCurrentUserProfile } from "@/lib/profile";
 
-export default function ConfiguracoesPage() {
-  const profile = useProfile();
+export default async function ConfiguracoesPage() {
+  const { profile, profileError, user } = await getCurrentUserProfile();
 
-  return <ConfiguracoesForm profile={profile ?? null} />;
+  if (profileError) {
+    throw new Error(`Erro ao carregar perfil: ${profileError.message}`);
+  }
+
+  return <ConfiguracoesForm contactEmail={user?.email ?? ""} profile={profile ?? null} />;
 }

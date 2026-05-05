@@ -1,8 +1,10 @@
 import { Suspense } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { RouteTransitionPending } from "@/components/app/route-transition-pending";
 import { ObrigacoesOverview } from "@/components/obrigacoes/obrigacoes-overview";
 import { getOrCreateReminderPreferences } from "@/lib/obrigacoes/reminder-preferences";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserProfile } from "@/lib/profile";
+import type { Database } from "@/types/database";
 
 const checklistTemplate = [
   { key: "conferir-entradas", label: "Conferir entradas do mês" },
@@ -22,19 +24,19 @@ export default function ObrigacoesPage() {
 }
 
 async function ObrigacoesData() {
-  const supabase = await createClient();
+  const { profileError, supabase, user } = await getCurrentUserProfile();
+
+  if (!user) {
+    throw new Error("Faca login para carregar suas obrigacoes.");
+  }
+
+  if (profileError) {
+    throw new Error(`Erro ao carregar perfil: ${profileError.message}`);
+  }
+
   const now = new Date();
   const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const monthLabel = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(now);
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    throw new Error("Faça login para carregar suas obrigações.");
-  }
 
   const [checklistRows, reminderPreferences] = await Promise.all([
     getChecklistRows(supabase, user.id, monthKey),
@@ -57,7 +59,7 @@ async function ObrigacoesData() {
 }
 
 async function getChecklistRows(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: SupabaseClient<Database>,
   userId: string,
   monthKey: string,
 ) {
@@ -75,7 +77,7 @@ async function getChecklistRows(
 }
 
 async function getReminderPreferences(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: SupabaseClient<Database>,
   userId: string,
 ) {
   return getOrCreateReminderPreferences(supabase, userId);

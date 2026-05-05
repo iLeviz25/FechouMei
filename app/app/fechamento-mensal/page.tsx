@@ -18,7 +18,12 @@ export default function FechamentoMensalPage({ searchParams }: FechamentoMensalP
 }
 
 async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps) {
-  const { profile, profileError, supabase } = await getCurrentUserProfile();
+  const { profile, profileError, supabase, user } = await getCurrentUserProfile();
+
+  if (!user) {
+    throw new Error("Usuario nao autenticado.");
+  }
+
   const resolvedSearchParams = await searchParams;
   const selectedMonth = resolveMonth({
     monthParam: resolvedSearchParams?.month,
@@ -37,10 +42,11 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
   const previousMonthEndValue = toDateInputValue(previousMonthEnd);
   const trendStartValue = toDateInputValue(trendStartDate);
 
-  const [movementsResult, previousMonthResult, balanceUntilMonthResult, trendMonthsResult] = await Promise.all([
+  const [movementsResult, balanceUntilMonthResult] = await Promise.all([
     supabase
       .from("movimentacoes")
       .select("id, type, description, amount, occurred_on, occurred_at, category")
+      .eq("user_id", user.id)
       .gte("occurred_on", monthStartValue)
       .lte("occurred_on", monthEndValue)
       .order("occurred_at", { ascending: false })
@@ -48,16 +54,7 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
     supabase
       .from("movimentacoes")
       .select("type, amount, occurred_on")
-      .gte("occurred_on", previousMonthStartValue)
-      .lte("occurred_on", previousMonthEndValue),
-    supabase
-      .from("movimentacoes")
-      .select("type, amount, occurred_on")
-      .lte("occurred_on", monthEndValue),
-    supabase
-      .from("movimentacoes")
-      .select("type, amount, occurred_on")
-      .gte("occurred_on", trendStartValue)
+      .eq("user_id", user.id)
       .lte("occurred_on", monthEndValue),
   ]);
 
@@ -65,16 +62,8 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
     throw new Error(`Erro ao carregar fechamento mensal: ${movementsResult.error.message}`);
   }
 
-  if (previousMonthResult.error) {
-    throw new Error(`Erro ao carregar comparacao do mes anterior: ${previousMonthResult.error.message}`);
-  }
-
   if (balanceUntilMonthResult.error) {
     throw new Error(`Erro ao carregar saldo do fechamento: ${balanceUntilMonthResult.error.message}`);
-  }
-
-  if (trendMonthsResult.error) {
-    throw new Error(`Erro ao carregar grafico do fechamento: ${trendMonthsResult.error.message}`);
   }
 
   if (profileError) {
@@ -82,10 +71,17 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
   }
 
   const monthLabel = formatMonthLabel(selectedMonth);
+  const balanceRows = balanceUntilMonthResult.data ?? [];
+  const previousMonthMovements = balanceRows.filter(
+    (movement) => movement.occurred_on >= previousMonthStartValue && movement.occurred_on <= previousMonthEndValue,
+  );
+  const trendRows = balanceRows.filter(
+    (movement) => movement.occurred_on >= trendStartValue && movement.occurred_on <= monthEndValue,
+  );
 
   return (
     <FechamentoMensalOverview
-      balanceRows={balanceUntilMonthResult.data ?? []}
+      balanceRows={balanceRows}
       initialBalance={Number(profile?.initial_balance ?? 0)}
       monthEndValue={monthEndValue}
       monthLabel={monthLabel}
@@ -93,9 +89,9 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
       monthValue={String(selectedMonth.getMonth() + 1).padStart(2, "0")}
       movements={movementsResult.data ?? []}
       previousMonthEndValue={previousMonthEndValue}
-      previousMonthMovements={previousMonthResult.data ?? []}
+      previousMonthMovements={previousMonthMovements}
       previousMonthStartValue={previousMonthStartValue}
-      trendRows={trendMonthsResult.data ?? []}
+      trendRows={trendRows}
       yearValue={String(selectedMonth.getFullYear())}
     />
   );

@@ -57,7 +57,7 @@ export async function getMonthlyReportData(monthParam?: string): Promise<Monthly
       .order("occurred_at", { ascending: true }),
     supabase
       .from("movimentacoes")
-      .select("type, amount, occurred_on")
+      .select("type, amount")
       .eq("user_id", user.id)
       .gte("occurred_on", yearStartValue)
       .lte("occurred_on", yearEndValue),

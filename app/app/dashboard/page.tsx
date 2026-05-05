@@ -21,6 +21,10 @@ export default function DashboardPage() {
 async function DashboardData() {
   const { profile, profileError, supabase, user } = await getCurrentUserProfile();
 
+  if (!user) {
+    throw new Error("Usuario nao autenticado.");
+  }
+
   if (profileError) {
     throw new Error(`Erro ao carregar ajuste de saldo: ${profileError.message}`);
   }
@@ -36,49 +40,43 @@ async function DashboardData() {
   const monthEndValue = toDateInputValue(monthEnd);
   const previousMonthStartValue = toDateInputValue(previousMonthStart);
   const previousMonthEndValue = toDateInputValue(previousMonthEnd);
+  const yearStartValue = toDateInputValue(yearStart);
+  const yearEndValue = toDateInputValue(yearEnd);
+  const movementWindowStartValue = previousMonthStartValue < yearStartValue ? previousMonthStartValue : yearStartValue;
   const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
   const [
-    yearResult,
+    movementWindowResult,
     allMovementsResult,
     recentResult,
     checklistResult,
-    previousMonthResult,
-    whatsappLinkResult,
   ] = await Promise.all([
     supabase
       .from("movimentacoes")
       .select("type, amount, occurred_on")
-      .gte("occurred_on", toDateInputValue(yearStart))
-      .lte("occurred_on", toDateInputValue(yearEnd)),
+      .eq("user_id", user.id)
+      .gte("occurred_on", movementWindowStartValue)
+      .lte("occurred_on", yearEndValue),
     supabase
       .from("movimentacoes")
-      .select("type, amount"),
+      .select("type, amount")
+      .eq("user_id", user.id),
     supabase
       .from("movimentacoes")
       .select("id, type, description, amount, occurred_on, occurred_at, category")
+      .eq("user_id", user.id)
       .order("occurred_at", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(6),
     supabase
       .from("obrigacoes_checklist")
       .select("item_key, done")
+      .eq("user_id", user.id)
       .eq("month", monthKey),
-    supabase
-      .from("movimentacoes")
-      .select("type, amount")
-      .gte("occurred_on", previousMonthStartValue)
-      .lte("occurred_on", previousMonthEndValue),
-    supabase
-      .from("whatsapp_assistant_links")
-      .select("status")
-      .eq("user_id", user?.id ?? "")
-      .eq("status", "linked")
-      .maybeSingle(),
   ]);
 
-  if (yearResult.error) {
-    throw new Error(`Erro ao carregar resumo anual: ${yearResult.error.message}`);
+  if (movementWindowResult.error) {
+    throw new Error(`Erro ao carregar resumo anual: ${movementWindowResult.error.message}`);
   }
 
   if (allMovementsResult.error) {
@@ -93,30 +91,44 @@ async function DashboardData() {
     throw new Error(`Erro ao carregar obrigacoes do mes: ${checklistResult.error.message}`);
   }
 
-  if (previousMonthResult.error) {
-    throw new Error(`Erro ao carregar comparacao do mes anterior: ${previousMonthResult.error.message}`);
-  }
-
-  if (whatsappLinkResult.error) {
-    throw new Error(`Erro ao carregar vinculo da Helena: ${whatsappLinkResult.error.message}`);
-  }
-
-  const totals = (yearResult.data ?? []).reduce(
+  const totals = (movementWindowResult.data ?? []).reduce(
     (acc, movement) => {
+      const isCurrentYear = movement.occurred_on >= yearStartValue && movement.occurred_on <= yearEndValue;
       const isCurrentMonth = movement.occurred_on >= monthStartValue && movement.occurred_on <= monthEndValue;
+      const isPreviousMonth =
+        movement.occurred_on >= previousMonthStartValue && movement.occurred_on <= previousMonthEndValue;
 
       if (movement.type === "entrada") {
-        acc.annualIncome += movement.amount;
+        if (isCurrentYear) {
+          acc.annualIncome += movement.amount;
+        }
+
         if (isCurrentMonth) {
           acc.monthlyIncome += movement.amount;
         }
-      } else if (isCurrentMonth) {
+      }
+
+      if (movement.type === "despesa" && isCurrentMonth) {
         acc.monthlyExpense += movement.amount;
+      }
+
+      if (movement.type === "entrada" && isPreviousMonth) {
+        acc.previousMonthIncome += movement.amount;
+      }
+
+      if (movement.type === "despesa" && isPreviousMonth) {
+        acc.previousMonthExpense += movement.amount;
       }
 
       return acc;
     },
-    { annualIncome: 0, monthlyExpense: 0, monthlyIncome: 0 },
+    {
+      annualIncome: 0,
+      monthlyExpense: 0,
+      monthlyIncome: 0,
+      previousMonthExpense: 0,
+      previousMonthIncome: 0,
+    },
   );
 
   const initialBalance = Number(profile?.initial_balance ?? 0);
@@ -132,19 +144,6 @@ async function DashboardData() {
     return balance;
   }, Number.isFinite(initialBalance) ? initialBalance : 0);
 
-  const previousMonthTotals = (previousMonthResult.data ?? []).reduce(
-    (acc, movement) => {
-      if (movement.type === "entrada") {
-        acc.income += movement.amount;
-      } else if (movement.type === "despesa") {
-        acc.expense += movement.amount;
-      }
-
-      return acc;
-    },
-    { expense: 0, income: 0 },
-  );
-
   return (
     <DashboardOverview
       annualIncome={totals.annualIncome}
@@ -155,8 +154,8 @@ async function DashboardData() {
       )}
       monthlyExpense={totals.monthlyExpense}
       monthlyIncome={totals.monthlyIncome}
-      previousMonthExpense={previousMonthTotals.expense}
-      previousMonthIncome={previousMonthTotals.income}
+      previousMonthExpense={totals.previousMonthExpense}
+      previousMonthIncome={totals.previousMonthIncome}
       recentMovements={recentResult.data ?? []}
     />
   );

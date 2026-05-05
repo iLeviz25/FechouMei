@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, ReminderPreferences } from "@/types/database";
 
@@ -25,7 +26,7 @@ export function createDefaultReminderPreferences(userId: string): ReminderPrefer
   };
 }
 
-export async function getOrCreateReminderPreferences(
+export const getOrCreateReminderPreferences = cache(async function getOrCreateReminderPreferences(
   supabase: SupabaseClient<Database>,
   userId: string,
 ): Promise<ReminderPreferences> {
@@ -54,7 +55,7 @@ export async function getOrCreateReminderPreferences(
   }
 
   throw new Error(`Erro ao inicializar lembretes de obrigacoes: ${error?.message ?? "registro nao retornado"}`);
-}
+});
 
 async function fetchReminderPreferences(
   supabase: SupabaseClient<Database>,

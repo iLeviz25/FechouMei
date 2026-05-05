@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getAuthErrorMessage, getProfileErrorMessage, normalizeAuthEmail } from "@/lib/auth/errors";
+import { getAuthErrorMessage, normalizeAuthEmail } from "@/lib/auth/errors";
 import { createClient } from "@/lib/supabase/client";
 
 type LoginFormProps = {
@@ -47,41 +47,8 @@ export function LoginForm({ initialMessage, initialTone = "danger", redirectedFr
         return;
       }
 
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("onboarding_completed")
-        .eq("id", data.user.id)
-        .maybeSingle();
-
-      if (profileError) {
-        setMessage(getProfileErrorMessage());
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (!profile) {
-        const { error: createProfileError } = await supabase.from("profiles").upsert(
-          {
-            id: data.user.id,
-            full_name:
-              typeof data.user.user_metadata?.full_name === "string"
-                ? data.user.user_metadata.full_name
-                : null,
-            onboarding_completed: false,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "id" },
-        );
-
-        if (createProfileError) {
-          setMessage(getProfileErrorMessage());
-          setIsSubmitting(false);
-          return;
-        }
-      }
-
       const safeRedirect = redirectedFrom?.startsWith("/app/") ? redirectedFrom : null;
-      const destination = profile?.onboarding_completed ? safeRedirect ?? "/app/dashboard" : "/onboarding";
+      const destination = safeRedirect ?? "/app/dashboard";
 
       router.replace(destination);
     } catch (error) {

@@ -12,11 +12,16 @@ export default function MovimentacoesPage() {
 }
 
 async function MovimentacoesData() {
-  const { profile, profileError, supabase } = await getCurrentUserProfile();
+  const { profile, profileError, supabase, user } = await getCurrentUserProfile();
+
+  if (!user) {
+    throw new Error("Usuario nao autenticado.");
+  }
 
   const movementsResult = await supabase
     .from("movimentacoes")
     .select("id, type, description, amount, occurred_on, occurred_at, category")
+    .eq("user_id", user.id)
     .order("occurred_at", { ascending: false })
     .order("created_at", { ascending: false });
 

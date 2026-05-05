@@ -40,6 +40,7 @@ import { cn } from "@/lib/utils";
 import type { Profile } from "@/types/database";
 
 type ConfiguracoesFormProps = {
+  contactEmail?: string;
   profile: Pick<
     Profile,
     | "business_mode"
@@ -97,13 +98,12 @@ const goalOptions = [
   "acompanhar limite do MEI",
 ];
 
-export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
+export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesFormProps) {
   const router = useRouter();
   const { openTour } = useOnboardingTour();
   const initialValues = useMemo(() => getInitialProfileValues(profile), [profile]);
   const [values, setValues] = useState(initialValues);
   const [draft, setDraft] = useState(initialValues);
-  const [contactEmail, setContactEmail] = useState("");
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -116,23 +116,6 @@ export function ConfiguracoesForm({ profile }: ConfiguracoesFormProps) {
   const [isSavingProfile, startProfileTransition] = useTransition();
   const [isUpdatingPassword, startPasswordTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
-
-  useEffect(() => {
-    let active = true;
-    const supabase = createClient();
-
-    void supabase.auth.getUser().then(({ data, error }) => {
-      if (!active || error) {
-        return;
-      }
-
-      setContactEmail(data.user?.email ?? "");
-    });
-
-    return () => {
-      active = false;
-    };
-  }, []);
 
   const resolvedWorkType = resolveOtherValue(values.workType, values.customWorkType) || "Nao informado";
   const resolvedCategory = resolveOtherValue(values.mainCategory, values.customMainCategory) || "Nao informado";

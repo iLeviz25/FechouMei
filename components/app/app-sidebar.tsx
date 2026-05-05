@@ -35,7 +35,7 @@ const navItems = [
   { href: "/app/dashboard", label: "Dashboard", shortLabel: "Dashboard", icon: LayoutDashboard, tourTarget: "dashboard-nav" },
   { href: "/app/movimentacoes", label: "Movimentacoes", shortLabel: "Mov.", icon: Receipt, tourTarget: "movimentacoes-nav" },
   { href: "/app/importar", label: "Importar dados", shortLabel: "Importar", icon: Upload, tourTarget: "importacao-nav" },
-  { href: "/app/fechamento-mensal", label: "Fechamento mensal", shortLabel: "Fechar", icon: ClipboardCheck, tourTarget: "fechamento-nav" },
+  { href: "/app/fechamento-mensal", label: "Fechamento mensal", shortLabel: "Fechamento", icon: ClipboardCheck, tourTarget: "fechamento-nav" },
   { href: "/app/relatorios", label: "Relatorios", shortLabel: "Relatorios", icon: FileText, tourTarget: "relatorios-nav" },
   { href: "/app/obrigacoes", label: "Obrigacoes", shortLabel: "Obrig.", icon: BellRing, tourTarget: "obrigacoes-nav" },
   { href: "/app/agente", label: "Helena", shortLabel: "Helena", icon: MessageCircle, tourTarget: "helena-nav" },
