@@ -84,7 +84,6 @@ export function LoginForm({ initialMessage, initialTone = "danger", redirectedFr
       const destination = profile?.onboarding_completed ? safeRedirect ?? "/app/dashboard" : "/onboarding";
 
       router.replace(destination);
-      router.refresh();
     } catch (error) {
       setMessage(getAuthErrorMessage(error, "Nao foi possivel entrar agora."));
       setIsSubmitting(false);

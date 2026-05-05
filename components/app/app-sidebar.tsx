@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -18,7 +19,6 @@ import {
   Upload,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
-import { MovementCreateSheet } from "@/components/movimentacoes/movement-create-sheet";
 import { Button } from "@/components/ui/button";
 import type { ObligationNotification } from "@/lib/obrigacoes/notifications";
 import { cn } from "@/lib/utils";
@@ -63,8 +63,23 @@ const mobileShortcutItems = [
   { ...navItems[6], quickTourId: "quick-helena" },
 ];
 
+const MovementCreateSheet = dynamic(
+  () =>
+    import("@/components/movimentacoes/movement-create-sheet").then(
+      (module) => module.MovementCreateSheet,
+    ),
+  { loading: () => null, ssr: false },
+);
+
 function getPathOnly(href: string) {
   return href.split("?")[0] ?? href;
+}
+
+function canWarmRouteOnThisDevice() {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia("(hover: hover) and (pointer: fine)").matches
+  );
 }
 
 export function AppSidebar({ profile, isAdmin = false, notifications = [] }: AppSidebarProps) {
@@ -100,6 +115,10 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
   }, [pendingHref]);
 
   function warmRoute(href: string) {
+    if (!canWarmRouteOnThisDevice()) {
+      return;
+    }
+
     router.prefetch(href);
   }
 
@@ -137,7 +156,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
               onClick={() => markRoutePending("/app/dashboard")}
               onFocus={() => warmRoute("/app/dashboard")}
               onPointerEnter={() => warmRoute("/app/dashboard")}
-              prefetch
+              prefetch={false}
             >
               <Logo size="md" />
             </Link>
@@ -175,7 +194,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
                     onClick={() => markRoutePending(item.href)}
                     onFocus={() => warmRoute(item.href)}
                     onPointerEnter={() => warmRoute(item.href)}
-                    prefetch
+                    prefetch={false}
                   >
                     {isActive ? (
                       <span className="absolute -left-4 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-secondary" />
@@ -204,7 +223,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
                   onClick={() => markRoutePending(adminNavItem.href)}
                   onFocus={() => warmRoute(adminNavItem.href)}
                   onPointerEnter={() => warmRoute(adminNavItem.href)}
-                  prefetch
+                  prefetch={false}
                 >
                   <ShieldCheck className="h-4 w-4" />
                   {adminNavItem.label}
@@ -239,8 +258,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
             onClick={() => markRoutePending("/app/dashboard")}
             onFocus={() => warmRoute("/app/dashboard")}
             onPointerEnter={() => warmRoute("/app/dashboard")}
-            onTouchStart={() => warmRoute("/app/dashboard")}
-            prefetch
+            prefetch={false}
           >
             <Logo size="sm" />
           </Link>
@@ -260,7 +278,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
                 onClick={() => markRoutePending("/admin")}
                 onFocus={() => warmRoute("/admin")}
                 onPointerEnter={() => warmRoute("/admin")}
-                onTouchStart={() => warmRoute("/admin")}
+                prefetch={false}
               >
                 <ShieldCheck className="h-5 w-5" />
               </Link>
@@ -276,8 +294,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
               onClick={() => markRoutePending("/app/configuracoes")}
               onFocus={() => warmRoute("/app/configuracoes")}
               onPointerEnter={() => warmRoute("/app/configuracoes")}
-              onTouchStart={() => warmRoute("/app/configuracoes")}
-              prefetch
+              prefetch={false}
             >
               <Settings className="h-5 w-5" />
             </Link>
@@ -310,8 +327,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
                 onClick={() => markRoutePending(item.href)}
                 onFocus={() => warmRoute(item.href)}
                 onPointerEnter={() => warmRoute(item.href)}
-                onTouchStart={() => warmRoute(item.href)}
-                prefetch
+                prefetch={false}
               >
                 <Icon className="h-3.5 w-3.5 shrink-0 min-[360px]:h-4 min-[360px]:w-4" />
                 <span className="whitespace-nowrap">{item.shortLabel}</span>
@@ -376,8 +392,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
                 onClick={() => markRoutePending(item.href)}
                 onFocus={() => warmRoute(item.href)}
                 onPointerEnter={() => warmRoute(item.href)}
-                onTouchStart={() => warmRoute(item.href)}
-                prefetch
+                prefetch={false}
               >
                 <span className={iconClassName}>
                   <Icon className="h-5 w-5" />
@@ -389,7 +404,9 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
         </nav>
       </div>
 
-      <MovementCreateSheet onOpenChange={setGlobalCreateOpen} open={globalCreateOpen} />
+      {globalCreateOpen ? (
+        <MovementCreateSheet onOpenChange={setGlobalCreateOpen} open={globalCreateOpen} />
+      ) : null}
     </>
   );
 }
@@ -466,6 +483,7 @@ function NotificationBell({
                     onNavigate(notification.href);
                     onOpenChange(false);
                   }}
+                  prefetch={false}
                 >
                   <span
                     className={cn(

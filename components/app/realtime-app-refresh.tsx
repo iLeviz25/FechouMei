@@ -9,7 +9,8 @@ type RealtimeAppRefreshProps = {
 };
 
 const refreshDelayMs = 250;
-const focusRefreshCooldownMs = 3000;
+const focusRefreshCooldownMs = 60000;
+const backgroundRefreshThresholdMs = 30000;
 const realtimeTables = [
   { filterColumn: "user_id", table: "movimentacoes" },
   { filterColumn: "user_id", table: "obrigacoes_checklist" },
@@ -20,6 +21,7 @@ const realtimeTables = [
 export function RealtimeAppRefresh({ userId }: RealtimeAppRefreshProps) {
   const router = useRouter();
   const lastFocusRefreshRef = useRef(0);
+  const hiddenAtRef = useRef<number | null>(null);
   const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -28,6 +30,8 @@ export function RealtimeAppRefresh({ userId }: RealtimeAppRefreshProps) {
     }
 
     const supabase = createClient();
+    lastFocusRefreshRef.current = Date.now();
+
     const scheduleRefresh = () => {
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
@@ -62,12 +66,6 @@ export function RealtimeAppRefresh({ userId }: RealtimeAppRefreshProps) {
         }),
     );
 
-    const refreshWhenVisible = () => {
-      if (document.visibilityState === "visible") {
-        scheduleFocusRefresh();
-      }
-    };
-
     const scheduleFocusRefresh = () => {
       const now = Date.now();
 
@@ -79,18 +77,45 @@ export function RealtimeAppRefresh({ userId }: RealtimeAppRefreshProps) {
       scheduleRefresh();
     };
 
-    window.addEventListener("focus", scheduleFocusRefresh);
-    window.addEventListener("pageshow", scheduleFocusRefresh);
+    const refreshAfterBackground = () => {
+      const now = Date.now();
+      const hiddenAt = hiddenAtRef.current;
+      hiddenAtRef.current = null;
+
+      if (hiddenAt && now - hiddenAt < backgroundRefreshThresholdMs) {
+        return;
+      }
+
+      scheduleFocusRefresh();
+    };
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAtRef.current = Date.now();
+        return;
+      }
+
+      if (document.visibilityState === "visible") {
+        refreshAfterBackground();
+      }
+    };
+
+    const refreshWhenRestored = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        refreshAfterBackground();
+      }
+    };
+
     document.addEventListener("visibilitychange", refreshWhenVisible);
+    window.addEventListener("pageshow", refreshWhenRestored);
 
     return () => {
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
       }
 
-      window.removeEventListener("focus", scheduleFocusRefresh);
-      window.removeEventListener("pageshow", scheduleFocusRefresh);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
+      window.removeEventListener("pageshow", refreshWhenRestored);
       channels.forEach((channel) => {
         void supabase.removeChannel(channel);
       });
