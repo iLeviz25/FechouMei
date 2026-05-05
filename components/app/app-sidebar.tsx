@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   LogOut,
   MessageCircle,
+  MoreHorizontal,
   Plus,
   Receipt,
   Settings,
@@ -51,10 +52,13 @@ const adminNavItem = {
 
 const createMovementHref = "/app/movimentacoes?nova=1";
 const mobileNavItems = [
-  ...navItems.slice(0, 2),
-  { href: createMovementHref, label: "Nova movimentacao", shortLabel: "Nova", icon: Plus, primaryAction: true },
-  ...navItems.slice(2),
+  navItems[0],
+  navItems[1],
+  { href: createMovementHref, label: "Nova movimentacao", shortLabel: "Novo", icon: Plus, primaryAction: true },
+  navItems[3],
+  navItems[5],
 ];
+const mobileMoreItems = [navItems[2], navItems[4], navItems[6], navItems[7]];
 
 function getPathOnly(href: string) {
   return href.split("?")[0] ?? href;
@@ -64,8 +68,12 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
   const pathname = usePathname();
   const router = useRouter();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const visiblePathname = getPathOnly(pendingHref ?? pathname);
+  const moreIsActive =
+    mobileMoreItems.some((item) => visiblePathname === item.href) ||
+    (isAdmin && visiblePathname.startsWith("/admin"));
   const initials = (profile?.full_name ?? "MEI")
     .split(" ")
     .filter(Boolean)
@@ -75,6 +83,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
 
   useEffect(() => {
     setPendingHref(null);
+    setMoreOpen(false);
     setNotificationsOpen(false);
   }, [pathname]);
 
@@ -266,8 +275,59 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
         </div>
       </header>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 px-2 pb-[calc(0.7rem+env(safe-area-inset-bottom))] pt-3 print:hidden lg:hidden">
-        <nav className="mx-auto grid max-w-[560px] grid-cols-9 gap-0.5 rounded-[30px] border border-border/80 bg-card/95 p-1.5 shadow-[0_-10px_34px_rgba(15,23,42,0.14),0_16px_38px_rgba(15,23,42,0.1)] backdrop-blur-xl">
+      {moreOpen ? (
+        <>
+          <button
+            aria-label="Fechar atalhos"
+            className="fixed inset-0 z-20 bg-transparent print:hidden lg:hidden"
+            onClick={() => setMoreOpen(false)}
+            type="button"
+          />
+          <div className="fixed inset-x-4 bottom-[calc(6.65rem+env(safe-area-inset-bottom))] z-40 overflow-hidden rounded-[28px] border border-border/75 bg-card/95 p-2 shadow-elevated backdrop-blur-xl print:hidden lg:hidden">
+            <div className="grid grid-cols-2 gap-1.5">
+              {[...mobileMoreItems, ...(isAdmin ? [adminNavItem] : [])].map((item) => {
+                const Icon = item.icon;
+                const isActive =
+                  item.href === adminNavItem.href ? visiblePathname.startsWith("/admin") : visiblePathname === item.href;
+
+                return (
+                  <Link
+                    aria-current={isActive ? "page" : undefined}
+                    className={cn(
+                      "flex min-w-0 items-center gap-3 rounded-[20px] px-3 py-3 text-sm font-bold transition-colors",
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground hover:bg-primary-soft/45",
+                    )}
+                    href={item.href}
+                    key={item.href}
+                    onClick={() => {
+                      setMoreOpen(false);
+                      markRoutePending(item.href);
+                    }}
+                    onFocus={() => warmRoute(item.href)}
+                    onPointerEnter={() => warmRoute(item.href)}
+                    prefetch
+                  >
+                    <span
+                      className={cn(
+                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-[16px]",
+                        isActive ? "bg-white/18 text-primary-foreground" : "bg-muted/55 text-muted-foreground",
+                      )}
+                    >
+                      <Icon className="h-[18px] w-[18px]" />
+                    </span>
+                    <span className="truncate">{item.shortLabel}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      ) : null}
+
+      <div className="fixed inset-x-0 bottom-0 z-30 px-2.5 pb-[calc(0.65rem+env(safe-area-inset-bottom))] pt-8 print:hidden lg:hidden">
+        <nav className="mx-auto grid h-[76px] max-w-[560px] grid-cols-[1fr_1fr_78px_1fr_1fr_1fr] items-end gap-0.5 rounded-[30px] border border-border/70 bg-card/96 px-2 py-2 shadow-[0_-8px_30px_rgba(15,23,42,0.12),0_16px_34px_rgba(15,23,42,0.1)] backdrop-blur-xl">
           {mobileNavItems.map((item) => {
             const isPrimaryAction = "primaryAction" in item && item.primaryAction === true;
             const isActive = !isPrimaryAction && visiblePathname === item.href;
@@ -278,10 +338,10 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
                 aria-label={isPrimaryAction ? item.label : undefined}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "relative flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-[22px] px-0.5 text-[8px] font-extrabold leading-none transition-[background-color,color,box-shadow,transform] active:scale-[0.98] min-[370px]:text-[9px] min-[430px]:text-[10px]",
-                  isPrimaryAction && "bg-gradient-amber text-secondary-foreground shadow-amber",
-                  isActive && "bg-gradient-brand text-primary-foreground shadow-elevated",
-                  !isPrimaryAction && !isActive && "text-muted-foreground hover:bg-primary-soft/40 hover:text-foreground",
+                  "relative flex min-h-[58px] min-w-0 flex-col items-center justify-end gap-1 rounded-[21px] px-0.5 pb-1 text-[9px] font-extrabold leading-none transition-[background-color,color,box-shadow,transform] active:scale-[0.98] min-[390px]:text-[10px]",
+                  isPrimaryAction && "-mt-9 justify-start pb-0 text-secondary-foreground",
+                  isActive && !isPrimaryAction && "text-primary",
+                  !isPrimaryAction && !isActive && "text-muted-foreground hover:bg-primary-soft/35 hover:text-foreground",
                 )}
                 data-tour-target={"tourTarget" in item ? item.tourTarget : undefined}
                 href={item.href}
@@ -294,20 +354,46 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
               >
                 <span
                   className={cn(
-                    "icon-tile flex h-8 w-8 items-center justify-center rounded-[18px] transition-colors",
+                    "icon-tile flex h-8 w-8 items-center justify-center rounded-[17px] transition-colors",
                     isPrimaryAction
-                      ? "bg-white/40 text-secondary-foreground"
+                      ? "h-16 w-16 rounded-[24px] bg-gradient-amber text-secondary-foreground shadow-[0_14px_28px_rgba(245,158,11,0.32)]"
                       : isActive
-                        ? "bg-white/20 text-primary-foreground"
-                        : "bg-muted/50 text-current",
+                        ? "bg-primary-soft text-primary"
+                        : "bg-transparent text-current",
                   )}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className={cn(isPrimaryAction ? "h-7 w-7" : "h-5 w-5")} />
                 </span>
-                <span className="max-w-full truncate text-center leading-3">{item.shortLabel}</span>
+                <span className={cn("max-w-full truncate text-center leading-3", isPrimaryAction && "uppercase tracking-[0.08em]")}>
+                  {item.shortLabel}
+                </span>
               </Link>
             );
           })}
+
+          <button
+            aria-current={moreIsActive ? "page" : undefined}
+            aria-expanded={moreOpen}
+            aria-haspopup="menu"
+            className={cn(
+              "relative flex min-h-[58px] min-w-0 flex-col items-center justify-end gap-1 rounded-[21px] px-0.5 pb-1 text-[9px] font-extrabold leading-none text-muted-foreground transition-[background-color,color,transform] active:scale-[0.98] min-[390px]:text-[10px]",
+              moreIsActive && "text-primary",
+              !moreIsActive && "hover:bg-primary-soft/35 hover:text-foreground",
+            )}
+            data-tour-target="more-nav"
+            onClick={() => setMoreOpen((current) => !current)}
+            type="button"
+          >
+            <span
+              className={cn(
+                "icon-tile flex h-8 w-8 items-center justify-center rounded-[17px]",
+                moreIsActive ? "bg-primary-soft text-primary" : "bg-transparent text-current",
+              )}
+            >
+              <MoreHorizontal className="h-5 w-5" />
+            </span>
+            <span className="max-w-full truncate text-center leading-3">Mais</span>
+          </button>
         </nav>
       </div>
     </>

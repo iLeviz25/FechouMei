@@ -101,7 +101,7 @@ const tourSteps: TourStep[] = [
   {
     icon: Upload,
     id: "importacao",
-    targetSelectors: ['[data-tour-target="importacao-nav"]'],
+    targetSelectors: ['[data-tour-target="importacao-nav"]', '[data-tour-target="more-nav"]'],
     title: "Importe seus registros antigos",
     text: "Com o FechouMEI Completo, voce pode importar entradas e despesas por CSV ou XLSX, revisar os dados e salvar tudo com mais seguranca.",
   },
@@ -115,7 +115,7 @@ const tourSteps: TourStep[] = [
   {
     icon: FileText,
     id: "relatorios",
-    targetSelectors: ['[data-tour-target="relatorios-nav"]'],
+    targetSelectors: ['[data-tour-target="relatorios-nav"]', '[data-tour-target="more-nav"]'],
     title: "Gere seu relatório mensal",
     text: "Aqui você confere um resumo organizado do mês, com entradas, despesas, obrigações e dados para salvar em PDF ou enviar ao contador.",
   },
@@ -129,7 +129,7 @@ const tourSteps: TourStep[] = [
   {
     icon: MessageCircle,
     id: "helena",
-    targetSelectors: ['[data-tour-target="helena-nav"]'],
+    targetSelectors: ['[data-tour-target="helena-nav"]', '[data-tour-target="more-nav"]'],
     title: "Use a Helena pelo WhatsApp",
     text: "A Helena ajuda voce a registrar movimentacoes e consultar informacoes. Arquivos pelo WhatsApp fazem parte do acesso completo.",
   },
