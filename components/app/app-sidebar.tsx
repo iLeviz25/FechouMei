@@ -57,7 +57,11 @@ const mobileNavItems = [
   navItems[3],
   navItems[5],
 ];
-const mobileShortcutItems = [navItems[2], navItems[4], navItems[6]];
+const mobileShortcutItems = [
+  { ...navItems[2], quickTourId: "quick-import" },
+  { ...navItems[4], quickTourId: "quick-reports" },
+  { ...navItems[6], quickTourId: "quick-helena" },
+];
 
 function getPathOnly(href: string) {
   return href.split("?")[0] ?? href;
@@ -299,6 +303,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:bg-primary-soft/45 hover:text-foreground",
                 )}
+                data-tour-id={item.quickTourId}
                 data-tour-target={item.tourTarget}
                 href={item.href}
                 key={item.href}

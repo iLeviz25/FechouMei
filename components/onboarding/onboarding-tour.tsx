@@ -101,7 +101,7 @@ const tourSteps: TourStep[] = [
   {
     icon: Upload,
     id: "importacao",
-    targetSelectors: ['[data-tour-target="importacao-nav"]', '[data-tour-target="more-nav"]'],
+    targetSelectors: ['[data-tour-id="quick-import"]', '[data-tour-target="importacao-nav"]'],
     title: "Importe seus registros antigos",
     text: "Com o FechouMEI Completo, voce pode importar entradas e despesas por CSV ou XLSX, revisar os dados e salvar tudo com mais seguranca.",
   },
@@ -115,7 +115,7 @@ const tourSteps: TourStep[] = [
   {
     icon: FileText,
     id: "relatorios",
-    targetSelectors: ['[data-tour-target="relatorios-nav"]', '[data-tour-target="more-nav"]'],
+    targetSelectors: ['[data-tour-id="quick-reports"]', '[data-tour-target="relatorios-nav"]'],
     title: "Gere seu relatório mensal",
     text: "Aqui você confere um resumo organizado do mês, com entradas, despesas, obrigações e dados para salvar em PDF ou enviar ao contador.",
   },
@@ -129,7 +129,7 @@ const tourSteps: TourStep[] = [
   {
     icon: MessageCircle,
     id: "helena",
-    targetSelectors: ['[data-tour-target="helena-nav"]', '[data-tour-target="more-nav"]'],
+    targetSelectors: ['[data-tour-id="quick-helena"]', '[data-tour-target="helena-nav"]'],
     title: "Use a Helena pelo WhatsApp",
     text: "A Helena ajuda voce a registrar movimentacoes e consultar informacoes. Arquivos pelo WhatsApp fazem parte do acesso completo.",
   },
@@ -499,6 +499,16 @@ function getTourLayout(step: TourStep): TourLayout {
   const estimatedCardHeight = step.id === "helena" ? 356 : 324;
   const bottomCardTop = viewportHeight - estimatedCardHeight - 20;
   const highlightBottom = highlightRect.top + highlightRect.height;
+  const fixedTargetFitsAboveBottomCard = target.isFixed && highlightBottom < bottomCardTop;
+
+  if (fixedTargetFitsAboveBottomCard) {
+    return {
+      highlightRect,
+      isMobile,
+      placement: "mobile-bottom",
+    };
+  }
+
   const shouldLiftCard = target.isFixed || highlightBottom > bottomCardTop;
 
   if (!shouldLiftCard) {
