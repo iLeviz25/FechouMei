@@ -11,7 +11,6 @@ import {
   LayoutDashboard,
   LogOut,
   MessageCircle,
-  MoreHorizontal,
   Plus,
   Receipt,
   Settings,
@@ -32,11 +31,11 @@ type AppSidebarProps = {
 };
 
 const navItems = [
-  { href: "/app/dashboard", label: "Inicio", shortLabel: "Inicio", icon: LayoutDashboard, tourTarget: "dashboard-nav" },
+  { href: "/app/dashboard", label: "Dashboard", shortLabel: "Dashboard", icon: LayoutDashboard, tourTarget: "dashboard-nav" },
   { href: "/app/movimentacoes", label: "Movimentacoes", shortLabel: "Mov.", icon: Receipt, tourTarget: "movimentacoes-nav" },
-  { href: "/app/importar", label: "Importar dados", shortLabel: "Import.", icon: Upload, tourTarget: "importacao-nav" },
+  { href: "/app/importar", label: "Importar dados", shortLabel: "Importar", icon: Upload, tourTarget: "importacao-nav" },
   { href: "/app/fechamento-mensal", label: "Fechamento mensal", shortLabel: "Fechar", icon: ClipboardCheck, tourTarget: "fechamento-nav" },
-  { href: "/app/relatorios", label: "Relatorios", shortLabel: "Relat.", icon: FileText, tourTarget: "relatorios-nav" },
+  { href: "/app/relatorios", label: "Relatorios", shortLabel: "Relatorios", icon: FileText, tourTarget: "relatorios-nav" },
   { href: "/app/obrigacoes", label: "Obrigacoes", shortLabel: "Obrig.", icon: BellRing, tourTarget: "obrigacoes-nav" },
   { href: "/app/agente", label: "Helena", shortLabel: "Helena", icon: MessageCircle, tourTarget: "helena-nav" },
   { href: "/app/configuracoes", label: "Configuracoes", shortLabel: "Conta", icon: Settings },
@@ -57,7 +56,7 @@ const mobileNavItems = [
   navItems[3],
   navItems[5],
 ];
-const mobileMoreItems = [navItems[2], navItems[4], navItems[6], navItems[7]];
+const mobileShortcutItems = [navItems[2], navItems[4], navItems[6]];
 
 function getPathOnly(href: string) {
   return href.split("?")[0] ?? href;
@@ -67,10 +66,9 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
   const pathname = usePathname();
   const router = useRouter();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
-  const [moreOpen, setMoreOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const visiblePathname = getPathOnly(pendingHref ?? pathname);
-  const moreIsActive = mobileMoreItems.some((item) => visiblePathname === item.href);
+  const settingsIsActive = visiblePathname === "/app/configuracoes";
   const initials = (profile?.full_name ?? "MEI")
     .split(" ")
     .filter(Boolean)
@@ -80,7 +78,6 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
 
   useEffect(() => {
     setPendingHref(null);
-    setMoreOpen(false);
     setNotificationsOpen(false);
   }, [pathname]);
 
@@ -246,12 +243,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
               mobile
               notifications={notifications}
               onNavigate={markRoutePending}
-              onOpenChange={(open) => {
-                setNotificationsOpen(open);
-                if (open) {
-                  setMoreOpen(false);
-                }
-              }}
+              onOpenChange={setNotificationsOpen}
               open={notificationsOpen}
             />
             {isAdmin ? (
@@ -267,80 +259,66 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
                 <ShieldCheck className="h-5 w-5" />
               </Link>
             ) : null}
-            <button
-              aria-current={moreIsActive ? "page" : undefined}
-              aria-expanded={moreOpen}
-              aria-label="Mais opcoes"
-              aria-haspopup="menu"
+            <Link
+              aria-current={settingsIsActive ? "page" : undefined}
+              aria-label="Conta e configuracoes"
               className={cn(
                 "surface-panel-ghost flex h-11 w-11 items-center justify-center rounded-[18px] text-muted-foreground transition-colors hover:text-foreground",
-                moreIsActive && "border-primary/20 bg-primary-soft/55 text-primary",
+                settingsIsActive && "border-primary/20 bg-primary-soft/55 text-primary",
               )}
-              data-tour-target="more-nav"
-              onClick={() => {
-                setNotificationsOpen(false);
-                setMoreOpen((current) => !current);
-              }}
-              type="button"
+              href="/app/configuracoes"
+              onClick={() => markRoutePending("/app/configuracoes")}
+              onFocus={() => warmRoute("/app/configuracoes")}
+              onPointerEnter={() => warmRoute("/app/configuracoes")}
+              onTouchStart={() => warmRoute("/app/configuracoes")}
+              prefetch
             >
-              <MoreHorizontal className="h-5 w-5" />
-            </button>
+              <Settings className="h-5 w-5" />
+            </Link>
           </div>
         </div>
       </header>
 
-      {moreOpen ? (
-        <>
-          <button
-            aria-label="Fechar atalhos"
-            className="fixed inset-0 z-20 bg-transparent print:hidden lg:hidden"
-            onClick={() => setMoreOpen(false)}
-            type="button"
-          />
-          <div className="fixed right-3 top-[4.75rem] z-40 w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-[28px] border border-border/75 bg-card/95 p-2 shadow-elevated backdrop-blur-xl print:hidden lg:hidden">
-            <div className="grid grid-cols-2 gap-1.5">
-              {mobileMoreItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = visiblePathname === item.href;
+      <div className="fixed inset-x-0 top-[4.65rem] z-30 px-3 print:hidden lg:hidden">
+        <nav
+          aria-label="Atalhos rapidos"
+          className="mx-auto grid h-12 max-w-[560px] grid-cols-3 gap-1.5 rounded-[24px] border border-border/70 bg-card/96 p-1.5 shadow-[0_10px_28px_rgba(15,23,42,0.10)] backdrop-blur-xl"
+        >
+          {mobileShortcutItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = visiblePathname === item.href;
 
-                return (
-                  <Link
-                    aria-current={isActive ? "page" : undefined}
-                    className={cn(
-                      "flex min-w-0 items-center gap-3 rounded-[20px] px-3 py-3 text-sm font-bold transition-colors",
-                      isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "text-foreground hover:bg-primary-soft/45",
-                    )}
-                    href={item.href}
-                    key={item.href}
-                    onClick={() => {
-                      setMoreOpen(false);
-                      markRoutePending(item.href);
-                    }}
-                    onFocus={() => warmRoute(item.href)}
-                    onPointerEnter={() => warmRoute(item.href)}
-                    prefetch
-                  >
-                    <span
-                      className={cn(
-                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-[16px]",
-                        isActive ? "bg-white/18 text-primary-foreground" : "bg-muted/55 text-muted-foreground",
-                      )}
-                    >
-                      <Icon className="h-[18px] w-[18px]" />
-                    </span>
-                    <span className="truncate">{item.shortLabel}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </>
-      ) : null}
+            return (
+              <Link
+                aria-current={isActive ? "page" : undefined}
+                className={cn(
+                  "flex min-w-0 items-center justify-center gap-1 rounded-[18px] px-1 text-[10px] font-bold leading-none transition-colors min-[360px]:gap-1.5 min-[360px]:px-2 min-[360px]:text-[11px]",
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-primary-soft/45 hover:text-foreground",
+                )}
+                data-tour-target={item.tourTarget}
+                href={item.href}
+                key={item.href}
+                onClick={() => markRoutePending(item.href)}
+                onFocus={() => warmRoute(item.href)}
+                onPointerEnter={() => warmRoute(item.href)}
+                onTouchStart={() => warmRoute(item.href)}
+                prefetch
+              >
+                <Icon className="h-3.5 w-3.5 shrink-0 min-[360px]:h-4 min-[360px]:w-4" />
+                <span className="whitespace-nowrap">{item.shortLabel}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
 
       <div className="fixed inset-x-0 bottom-0 z-30 px-2.5 pb-[calc(0.65rem+env(safe-area-inset-bottom))] pt-8 print:hidden lg:hidden">
-        <nav className="mx-auto grid h-[76px] max-w-[560px] grid-cols-[1fr_1fr_80px_1fr_1fr] items-end gap-0.5 rounded-[30px] border border-border/70 bg-card/96 px-2 py-2 shadow-[0_-8px_30px_rgba(15,23,42,0.12),0_16px_34px_rgba(15,23,42,0.1)] backdrop-blur-xl">
+        <nav
+          aria-label="Navegacao principal"
+          className="mx-auto grid h-[76px] max-w-[560px] grid-cols-[1fr_1fr_80px_1fr_1fr] items-end gap-0.5 rounded-[30px] border border-border/70 bg-card/96 px-2 py-2 shadow-[0_-8px_30px_rgba(15,23,42,0.12),0_16px_34px_rgba(15,23,42,0.1)] backdrop-blur-xl"
+        >
           {mobileNavItems.map((item) => {
             const isPrimaryAction = "primaryAction" in item && item.primaryAction === true;
             const isActive = !isPrimaryAction && visiblePathname === item.href;
@@ -383,7 +361,6 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
               </Link>
             );
           })}
-
         </nav>
       </div>
     </>
