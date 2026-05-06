@@ -367,7 +367,7 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
                     <CheckCircle2 className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-foreground">Nenhum prazo critico agora</p>
+                    <p className="text-sm font-bold text-foreground">Nenhum prazo crítico agora</p>
                     <p className="mt-1 text-sm leading-6 text-muted-foreground">
                       Alertas e progresso seguem ligados aos estados reais do checklist e das obrigações do app.
                     </p>

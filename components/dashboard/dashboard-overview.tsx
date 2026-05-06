@@ -223,7 +223,7 @@ export function DashboardOverview({
       tone: dasDone ? "success" : dasLate ? "danger" : "warning",
     },
     {
-      cta: "Ver projecao",
+      cta: "Ver projeção",
       description:
         limitUsage >= 1
           ? `Seu faturamento anual passou do teto do MEI em ${toCurrency(exceededLimit)}. Revise o fechamento para decidir os próximos passos.`

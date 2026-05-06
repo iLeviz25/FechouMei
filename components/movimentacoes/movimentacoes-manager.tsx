@@ -440,7 +440,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
         <div className="max-w-2xl space-y-1.5">
           <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Entradas e despesas</h1>
           <p className="text-sm leading-6 text-muted-foreground">
-            Registre o que entra e o que sai do seu MEI com busca, filtros e leitura pensados para o uso diario no celular.
+            Registre o que entra e o que sai do seu MEI com busca, filtros e leitura pensados para o uso diário no celular.
           </p>
         </div>
       </header>
@@ -621,7 +621,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                     <h2 className="text-lg font-extrabold tracking-tight text-foreground">Últimos registros</h2>
                     <p className="text-sm leading-6 text-muted-foreground">
                       {mobileListShouldScroll
-                        ? "As 4 mais recentes ficam visiveis primeiro. Role dentro desta caixa para ver mais."
+                        ? "As 4 mais recentes ficam visíveis primeiro. Role dentro desta caixa para ver mais."
                         : "A lista segue organizada aqui dentro, com leitura mais limpa no celular."}
                     </p>
                   </div>
