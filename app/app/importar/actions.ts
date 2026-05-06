@@ -22,7 +22,7 @@ async function getAuthenticatedContext() {
   } = await supabase.auth.getUser();
 
   if (error || !user) {
-    throw new Error("Faca login para importar movimentacoes.");
+    throw new Error("Faça login para importar movimentações.");
   }
 
   const access = await getUserSubscriptionAccess({ supabase, userId: user.id });
@@ -52,7 +52,7 @@ export async function checkImportDuplicates(rows: ImportableMovement[]): Promise
     return {
       duplicateKeys: [],
       ok: false,
-      message: error instanceof Error ? error.message : "Nao foi possivel verificar duplicados.",
+      message: error instanceof Error ? error.message : "Não foi possível verificar duplicados.",
     };
   }
 }
@@ -62,7 +62,7 @@ export async function importMovimentacoes(rows: ImportableMovement[]): Promise<I
     const validRows = rows.filter(isImportableMovement);
 
     if (validRows.length === 0) {
-      throw new Error("Nenhuma movimentacao valida para importar.");
+      throw new Error("Nenhuma movimentação válida para importar.");
     }
 
     const { supabase, userId } = await getAuthenticatedContext();
@@ -74,7 +74,7 @@ export async function importMovimentacoes(rows: ImportableMovement[]): Promise<I
         importedCount: 0,
         ok: true,
         skippedDuplicateCount: validRows.length,
-        message: "Nenhuma movimentacao nova importada. Todas pareciam duplicadas.",
+        message: "Nenhuma movimentação nova importada. Todas pareciam duplicadas.",
       };
     }
 
@@ -91,13 +91,13 @@ export async function importMovimentacoes(rows: ImportableMovement[]): Promise<I
       skippedDuplicateCount: validRows.length - rowsToInsert.length,
       message:
         rowsToInsert.length === 1
-          ? "1 movimentacao importada com sucesso."
-          : `${rowsToInsert.length} movimentacoes importadas com sucesso.`,
+          ? "1 movimentação importada com sucesso."
+          : `${rowsToInsert.length} movimentações importadas com sucesso.`,
     };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Nao foi possivel importar as movimentacoes.",
+      message: error instanceof Error ? error.message : "Não foi possível importar as movimentações.",
     };
   }
 }

@@ -30,7 +30,7 @@ export function ReportTransactionsList({ movements }: ReportTransactionsListProp
   if (movements.length === 0) {
     return (
       <div className="px-5 py-8 text-center text-sm font-semibold text-muted-foreground print:px-0">
-        Nenhuma movimentacao registrada neste mes.
+        Nenhuma movimentação registrada neste mês.
       </div>
     );
   }
@@ -43,7 +43,7 @@ export function ReportTransactionsList({ movements }: ReportTransactionsListProp
 
         <div className="flex flex-col gap-3 border-t border-border/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm font-semibold text-muted-foreground">
-            Mostrando {visibleMovements.length} de {movements.length} movimentacoes
+            Mostrando {visibleMovements.length} de {movements.length} movimentações
           </p>
           {hasMore ? (
             <Button
@@ -52,7 +52,7 @@ export function ReportTransactionsList({ movements }: ReportTransactionsListProp
               type="button"
               variant="outline"
             >
-              Ver mais movimentacoes
+              Ver mais movimentações
             </Button>
           ) : null}
         </div>
@@ -70,7 +70,7 @@ function ScreenMovementsTable({ movements }: { movements: ReportMovement[] }) {
         <thead>
           <tr className="border-b border-border/70 bg-muted/35 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
             <th className="px-5 py-3 font-bold">Data</th>
-            <th className="px-5 py-3 font-bold">Descricao</th>
+            <th className="px-5 py-3 font-bold">Descrição</th>
             <th className="px-5 py-3 font-bold">Tipo</th>
             <th className="px-5 py-3 font-bold">Categoria</th>
             <th className="px-5 py-3 text-right font-bold">Valor</th>
@@ -137,7 +137,7 @@ function PrintMovementsTable({ movements }: { movements: ReportMovement[] }) {
         <thead>
           <tr className="border-b border-border text-[8px] uppercase tracking-[0.08em] text-muted-foreground">
             <th className="px-1.5 py-2 font-bold">Data</th>
-            <th className="px-1.5 py-2 font-bold">Descricao</th>
+            <th className="px-1.5 py-2 font-bold">Descrição</th>
             <th className="px-1.5 py-2 font-bold">Tipo</th>
             <th className="px-1.5 py-2 font-bold">Categoria</th>
             <th className="px-1.5 py-2 text-right font-bold">Valor</th>

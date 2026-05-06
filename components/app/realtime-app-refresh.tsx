@@ -58,7 +58,7 @@ export function RealtimeAppRefresh({ userId }: RealtimeAppRefreshProps) {
         )
         .subscribe((status) => {
           if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-            console.warn("Atualizacao em tempo real do app ficou indisponivel para uma tabela.", {
+            console.warn("Atualização em tempo real do app ficou indisponível para uma tabela.", {
               status,
               table,
             });

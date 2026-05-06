@@ -12,11 +12,11 @@ const pageMeta: Record<string, { description: string; title: string }> = {
     title: "Visao geral",
   },
   "/admin/usuarios": {
-    description: "Contas, permissoes e status dos usuarios.",
-    title: "Usuarios",
+    description: "Contas, permissões e status dos usuários.",
+    title: "Usuários",
   },
   "/admin/helena": {
-    description: "Conexoes, mensagens e status do agente.",
+    description: "Conexões, mensagens e status do agente.",
     title: "Helena / WhatsApp",
   },
   "/admin/logs": {
@@ -25,7 +25,7 @@ const pageMeta: Record<string, { description: string; title: string }> = {
   },
   "/admin/configuracoes": {
     description: "Parametros internos do produto.",
-    title: "Configuracoes admin",
+    title: "Configurações admin",
   },
 };
 

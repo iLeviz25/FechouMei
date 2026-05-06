@@ -42,7 +42,7 @@ export function LoginForm({ initialMessage, initialTone = "danger", redirectedFr
       });
 
       if (error || !data.user) {
-        setMessage(getAuthErrorMessage(error, "Nao foi possivel entrar agora."));
+        setMessage(getAuthErrorMessage(error, "Não foi possível entrar agora."));
         setIsSubmitting(false);
         return;
       }
@@ -52,7 +52,7 @@ export function LoginForm({ initialMessage, initialTone = "danger", redirectedFr
 
       router.replace(destination);
     } catch (error) {
-      setMessage(getAuthErrorMessage(error, "Nao foi possivel entrar agora."));
+      setMessage(getAuthErrorMessage(error, "Não foi possível entrar agora."));
       setIsSubmitting(false);
     }
   }
@@ -61,9 +61,9 @@ export function LoginForm({ initialMessage, initialTone = "danger", redirectedFr
     <Card className="overflow-hidden border-border/70">
       <CardContent className="space-y-5 p-5 sm:p-6">
         <div className="rounded-2xl bg-muted/50 p-4">
-          <p className="text-sm font-bold text-foreground">Seu mes organizado em poucos toques.</p>
+          <p className="text-sm font-bold text-foreground">Seu mês organizado em poucos toques.</p>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">
-            Entre para acompanhar movimentacoes, fechamento, obrigacoes e a Helena no mesmo lugar.
+            Entre para acompanhar movimentações, fechamento, obrigações e a Helena no mesmo lugar.
           </p>
         </div>
 

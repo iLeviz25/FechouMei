@@ -118,7 +118,7 @@ export function AdminHelenaActivityPanel({ events }: { events: AdminHelenaEvent[
                 </div>
                 <p className="mt-3 text-sm font-extrabold text-foreground">{event.eventType}</p>
                 <p className="mt-1 text-xs font-semibold leading-5 text-muted-foreground">
-                  {event.userName ?? event.email ?? "Usuario nao identificado"} · {event.summary ?? event.status}
+                  {event.userName ?? event.email ?? "Usuário não identificado"} · {event.summary ?? event.status}
                 </p>
               </div>
             ))

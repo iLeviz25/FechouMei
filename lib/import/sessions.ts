@@ -109,7 +109,7 @@ export async function createImportReviewSession({
     .single();
 
   if (sessionError || !session) {
-    throw new Error(sessionError?.message ?? "Nao foi possivel criar a sessao de revisao.");
+    throw new Error(sessionError?.message ?? "Não foi possível criar a sessão de revisão.");
   }
 
   if (parseResult.rows.length > 0) {
@@ -144,7 +144,7 @@ export async function getImportReviewSessionForCurrentUser(sessionId: string) {
   } = await supabase.auth.getUser();
 
   if (userError || !user) {
-    throw new Error("Faca login para revisar esta importacao.");
+    throw new Error("Faça login para revisar esta importação.");
   }
 
   return getImportReviewSession({ sessionId, supabase, userId: user.id });
@@ -159,7 +159,7 @@ export async function confirmImportReviewSession(sessionId: string): Promise<Imp
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      throw new Error("Faca login para importar movimentacoes.");
+      throw new Error("Faça login para importar movimentações.");
     }
 
     await assertImportFeatureAccess({ source: "upload", supabase, userId: user.id });
@@ -167,7 +167,7 @@ export async function confirmImportReviewSession(sessionId: string): Promise<Imp
     const view = await getImportReviewSession({ sessionId, supabase, userId: user.id });
 
     if (!view) {
-      throw new Error("Sessao de importacao nao encontrada.");
+      throw new Error("Sessão de importação não encontrada.");
     }
 
     return confirmLoadedImportReviewSession({
@@ -179,7 +179,7 @@ export async function confirmImportReviewSession(sessionId: string): Promise<Imp
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Nao foi possivel importar as movimentacoes.",
+      message: error instanceof Error ? error.message : "Não foi possível importar as movimentações.",
     };
   }
 }
@@ -234,7 +234,7 @@ export async function confirmWhatsAppImportSession({
   if (!view) {
     return {
       ok: false,
-      message: "Nao encontrei nenhuma importacao pendente para confirmar. Envie uma planilha CSV ou XLSX para eu preparar.",
+      message: "Não encontrei nenhuma importação pendente para confirmar. Envie uma planilha CSV ou XLSX para eu preparar.",
     };
   }
 
@@ -260,7 +260,7 @@ export async function cancelWhatsAppImportSession({
   if (!view) {
     return {
       ok: false,
-      message: "Nao encontrei nenhuma importacao pendente para cancelar.",
+      message: "Não encontrei nenhuma importação pendente para cancelar.",
     };
   }
 
@@ -268,14 +268,14 @@ export async function cancelWhatsAppImportSession({
     return {
       importedCount: 0,
       ok: true,
-      message: "Essa planilha ja foi importada. Nao importei novamente para evitar duplicidade.",
+      message: "Essa planilha já foi importada. Não importei novamente para evitar duplicidade.",
     };
   }
 
   if (view.session.status === "cancelled") {
     return {
       ok: true,
-      message: "Essa importacao ja estava cancelada. Nenhuma movimentacao foi salva.",
+      message: "Essa importação já estava cancelada. Nenhuma movimentação foi salva.",
     };
   }
 
@@ -295,7 +295,7 @@ export async function cancelWhatsAppImportSession({
 
   return {
     ok: true,
-    message: "Importacao cancelada. Nenhuma movimentacao foi salva.",
+    message: "Importação cancelada. Nenhuma movimentação foi salva.",
   };
 }
 
@@ -308,7 +308,7 @@ export async function cancelImportReviewSession(sessionId: string): Promise<Impo
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      throw new Error("Faca login para cancelar esta importacao.");
+      throw new Error("Faça login para cancelar esta importação.");
     }
 
     const { error } = await supabase
@@ -327,12 +327,12 @@ export async function cancelImportReviewSession(sessionId: string): Promise<Impo
 
     return {
       ok: true,
-      message: "Importacao cancelada. Nenhuma movimentacao foi salva.",
+      message: "Importação cancelada. Nenhuma movimentação foi salva.",
     };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Nao foi possivel cancelar a importacao.",
+      message: error instanceof Error ? error.message : "Não foi possível cancelar a importação.",
     };
   }
 }
@@ -415,24 +415,24 @@ async function confirmLoadedImportReviewSession({
     return {
       importedCount: 0,
       ok: true,
-      message: "Essa planilha ja foi importada. Voce pode conferir em Movimentacoes.",
+      message: "Essa planilha já foi importada. Você pode conferir em Movimentações.",
     };
   }
 
   if (view.session.status === "cancelled") {
     return {
       ok: false,
-      message: "Essa importacao foi cancelada. Envie a planilha novamente para eu preparar uma nova revisao.",
+      message: "Essa importação foi cancelada. Envie a planilha novamente para eu preparar uma nova revisão.",
     };
   }
 
   if (view.session.status !== "draft" && view.session.status !== "reviewed") {
-    throw new Error("Esta sessao nao pode mais ser importada.");
+    throw new Error("Esta sessão não pode mais ser importada.");
   }
 
   if (isExpired(view.session)) {
     await supabase.from("import_sessions").update({ status: "expired" }).eq("id", view.session.id).eq("user_id", userId);
-    throw new Error("Essa importacao expirou. Envie a planilha novamente para eu preparar uma nova revisao.");
+    throw new Error("Essa importação expirou. Envie a planilha novamente para eu preparar uma nova revisão.");
   }
 
   const duplicateCount = view.summary.duplicateExistingCount + view.summary.duplicateFileCount;
@@ -440,7 +440,7 @@ async function confirmLoadedImportReviewSession({
   if (requireCleanRows && view.summary.errorCount > 0) {
     return {
       ok: false,
-      message: "Essa importacao tem linhas que precisam de atencao. Para evitar salvar algo errado, revise pelo link.",
+      message: "Essa importação tem linhas que precisam de atenção. Para evitar salvar algo errado, revise pelo link.",
       reviewUrl: `/app/importar/sessao/${view.session.id}`,
     };
   }
@@ -453,11 +453,11 @@ async function confirmLoadedImportReviewSession({
         importedCount: 0,
         ok: true,
         skippedDuplicateCount: duplicateCount,
-        message: `Esse arquivo parece ja ter sido importado antes. Encontrei ${duplicateCount} movimentacao${duplicateCount === 1 ? "" : "es"}, mas todas parecem ja existir no FechouMEI. Nao importei novamente para evitar duplicidade.`,
+        message: `Esse arquivo parece já ter sido importado antes. Encontrei ${duplicateCount} ${duplicateCount === 1 ? "movimentação" : "movimentações"}, mas todas parecem já existir no FechouMEI. Não importei novamente para evitar duplicidade.`,
       };
     }
 
-    throw new Error("Nao ha linhas validas para importar.");
+    throw new Error("Não há linhas válidas para importar.");
   }
 
   const existingDuplicateKeys = await getExistingImportDuplicateKeys({
@@ -474,7 +474,7 @@ async function confirmLoadedImportReviewSession({
       importedCount: 0,
       ok: true,
       skippedDuplicateCount: importableRows.length,
-      message: `Esse arquivo parece ja ter sido importado antes. Encontrei ${importableRows.length} movimentacao${importableRows.length === 1 ? "" : "es"}, mas todas parecem ja existir no FechouMEI. Nao importei novamente para evitar duplicidade.`,
+      message: `Esse arquivo parece já ter sido importado antes. Encontrei ${importableRows.length} ${importableRows.length === 1 ? "movimentação" : "movimentações"}, mas todas parecem já existir no FechouMEI. Não importei novamente para evitar duplicidade.`,
     };
   }
 
@@ -520,8 +520,8 @@ async function confirmLoadedImportReviewSession({
     skippedDuplicateCount,
     message:
       rowsToInsert.length === 1
-        ? "1 movimentacao importada com sucesso."
-        : `${rowsToInsert.length} movimentacoes importadas com sucesso.`,
+        ? "1 movimentação importada com sucesso."
+        : `${rowsToInsert.length} movimentações importadas com sucesso.`,
   };
 }
 

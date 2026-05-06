@@ -79,7 +79,7 @@ export function MonthSelector({
 
           <div className="relative min-w-0 rounded-[24px] border border-border/70 bg-white/75 shadow-card">
             <Input
-              aria-label="Selecionar periodo"
+              aria-label="Selecionar período"
               className="absolute inset-0 z-10 h-full w-full cursor-pointer border-0 opacity-0 shadow-none focus-visible:ring-0"
               disabled={isPending}
               onChange={(event) => handleMonthChange(event.target.value)}
@@ -89,7 +89,7 @@ export function MonthSelector({
             <div className="pointer-events-none flex min-h-[70px] items-center justify-center gap-2.5 px-4 py-3 text-center">
               <CalendarDays className="h-4.5 w-4.5 shrink-0 text-primary/80" />
               <div className="min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Periodo</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Período</p>
                 <p className="mt-1 truncate text-lg font-extrabold tracking-tight text-foreground">
                   {formatMonthLabel(selectedMonth)}
                 </p>
@@ -118,7 +118,7 @@ export function MonthSelector({
               <div className="min-w-0">
                 <p className="text-sm font-bold text-foreground">Refinar intervalo</p>
                 <p className="max-w-[34rem] text-sm leading-5 text-muted-foreground">
-                  Escolha um intervalo dentro do mes para recalcular apenas esse trecho.
+                  Escolha um intervalo dentro do mês para recalcular apenas esse trecho.
                 </p>
               </div>
             </div>
@@ -163,7 +163,7 @@ export function MonthSelector({
 
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs leading-5 text-muted-foreground">
-                  Defina uma data inicial e uma final para ver o fechamento apenas desse intervalo dentro do mes.
+                  Defina uma data inicial e uma final para ver o fechamento apenas desse intervalo dentro do mês.
                 </p>
                 {hasCustomRange ? (
                   <Button onClick={onClearRange} size="sm" type="button" variant="ghost">
@@ -179,7 +179,7 @@ export function MonthSelector({
               <p className="text-xs leading-5 text-muted-foreground">
                 {hasCustomRange
                   ? `${toDate(rangeStart || monthStartValue)} a ${toDate(rangeEnd || monthEndValue)}`
-                  : "Abra datas para escolher um intervalo dentro do mes."}
+                  : "Abra datas para escolher um intervalo dentro do mês."}
               </p>
               {hasCustomRange ? <Badge variant="success">Intervalo ativo</Badge> : <Badge variant="secondary">Opcional</Badge>}
             </div>

@@ -17,7 +17,7 @@ export function AdminSidebar() {
             </div>
             <div className="min-w-0">
               <p className="truncate text-base font-extrabold tracking-tight text-foreground">Admin FechouMEI</p>
-              <p className="text-xs font-semibold text-muted-foreground">Operacao interna</p>
+              <p className="text-xs font-semibold text-muted-foreground">Operação interna</p>
             </div>
           </div>
           <Badge className="w-fit" variant="success">

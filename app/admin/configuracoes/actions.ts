@@ -21,7 +21,7 @@ function parseDailyLimit(formData: FormData): number | null {
 
   const parsed = Number(raw);
   if (!Number.isInteger(parsed) || parsed < 0 || parsed > 100000) {
-    throw new Error("O limite diario precisa ser um numero inteiro entre 0 e 100000.");
+    throw new Error("O limite diario precisa ser um número inteiro entre 0 e 100000.");
   }
 
   return parsed;
@@ -46,7 +46,7 @@ export async function saveAdminSettingsAction(formData: FormData) {
       ["max_agent_messages_per_day", parseDailyLimit(formData)],
     ];
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Configuracao invalida.";
+    const message = error instanceof Error ? error.message : "Configuração inválida.";
     redirect(`/admin/configuracoes?error=${encodeURIComponent(message)}`);
   }
 
@@ -54,7 +54,7 @@ export async function saveAdminSettingsAction(formData: FormData) {
     const result = await updateAdminSetting(key, value);
 
     if (!result.ok) {
-      redirect(`/admin/configuracoes?error=${encodeURIComponent(result.error ?? "Falha ao salvar configuracoes.")}`);
+      redirect(`/admin/configuracoes?error=${encodeURIComponent(result.error ?? "Falha ao salvar configurações.")}`);
     }
   }
 

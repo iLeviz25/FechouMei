@@ -93,10 +93,10 @@ export function MovementCreateSheet({
         <div className="flex items-start justify-between gap-3 border-b border-border/60 px-4 py-4 sm:px-5">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-              Nova movimentacao
+              Nova movimentação
             </p>
             <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground" id="global-create-movement-title">
-              Lancar entrada ou despesa
+              Lançar entrada ou despesa
             </h2>
           </div>
           <Button disabled={isPending} onClick={closeSheet} size="icon" type="button" variant="ghost">

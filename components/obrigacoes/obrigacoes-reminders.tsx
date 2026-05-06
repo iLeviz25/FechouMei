@@ -37,25 +37,25 @@ const reminderOptions: Array<{
   label: string;
 }> = [
   {
-    description: "Preferencia para avisar antes do vencimento mensal do DAS.",
+    description: "Preferência para avisar antes do vencimento mensal do DAS.",
     icon: FileText,
     key: "das_monthly_enabled",
     label: "DAS mensal",
   },
   {
-    description: "Preferencia para lembrar da declaracao anual do MEI.",
+    description: "Preferência para lembrar da declaração anual do MEI.",
     icon: BellRing,
     key: "dasn_annual_enabled",
     label: "DASN-SIMEI",
   },
   {
-    description: "Preferencia para revisar entradas, despesas e fechamento.",
+    description: "Preferência para revisar entradas, despesas e fechamento.",
     icon: ClipboardList,
     key: "monthly_review_enabled",
-    label: "Revisao mensal",
+    label: "Revisão mensal",
   },
   {
-    description: "Preferencia para nao esquecer notas, recibos e comprovantes.",
+    description: "Preferência para não esquecer notas, recibos e comprovantes.",
     icon: ReceiptText,
     key: "receipts_enabled",
     label: "Comprovantes",
@@ -110,7 +110,7 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
 
     latestStateRef.current = nextState;
     setReminders(nextState);
-    setStatus({ kind: "saving", message: "Salvando preferencias..." });
+    setStatus({ kind: "saving", message: "Salvando preferências..." });
 
     if (saveInFlightRef.current) {
       queuedStateRef.current = nextState;
@@ -132,7 +132,7 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
       confirmedStateRef.current = stateToSave;
       setStatus({
         kind: "success",
-        message: hasNewerState || queuedState ? "Preferencias salvas no app." : result.message,
+        message: hasNewerState || queuedState ? "Preferências salvas no app." : result.message,
       });
     } else {
       if (!hasNewerState && !queuedState) {
@@ -164,7 +164,7 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
             <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-foreground">Lembretes no app</p>
-            <h2 className="text-lg font-extrabold tracking-tight text-foreground">Receba avisos antes das obrigacoes</h2>
+            <h2 className="text-lg font-extrabold tracking-tight text-foreground">Receba avisos antes das obrigações</h2>
           </div>
           <Badge variant={activeCount > 0 ? "success" : "secondary"}>{activeCount} ativos</Badge>
         </div>
@@ -223,7 +223,7 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
         </div>
 
         <p className="text-xs font-semibold leading-6 text-muted-foreground">
-          Voce so sera avisado se o lembrete estiver ativo e a obrigacao ainda estiver pendente. Nenhum envio externo
+          Você só será avisado se o lembrete estiver ativo e a obrigação ainda estiver pendente. Nenhum envio externo
           acontece nesta etapa.
         </p>
 
@@ -235,7 +235,7 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
             {status.message}
           </p>
         ) : null}
-        {isSaving ? <span className="sr-only">Salvando preferencias.</span> : null}
+        {isSaving ? <span className="sr-only">Salvando preferências.</span> : null}
       </CardContent>
     </Card>
   );

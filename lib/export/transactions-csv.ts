@@ -97,7 +97,7 @@ export async function getTransactionCsvExport({
   const { data, error } = await query;
 
   if (error) {
-    throw new Error(`Nao foi possivel buscar movimentacoes para exportacao: ${error.message}`);
+    throw new Error(`Não foi possível buscar movimentações para exportação: ${error.message}`);
   }
 
   const movements = (data ?? []).map((movement) => ({

@@ -11,7 +11,7 @@ type RelatoriosPageProps = {
 
 export default function RelatoriosPage({ searchParams }: RelatoriosPageProps) {
   return (
-    <Suspense fallback={<RouteTransitionPending label="Carregando relatorio" />}>
+    <Suspense fallback={<RouteTransitionPending label="Carregando relatório" />}>
       <RelatoriosData searchParams={searchParams} />
     </Suspense>
   );

@@ -57,7 +57,7 @@ function whatsappLabel(status: string) {
   const labels: Record<string, string> = {
     expired: "Expirado",
     linked: "Vinculado",
-    none: "Nao vinculado",
+    none: "Não vinculado",
     pending: "Pendente",
     revoked: "Revogado",
   };
@@ -130,10 +130,10 @@ function technicalHealthStatusLabel(status: AdminHelenaTechnicalHealthCard["stat
   }
 
   if (status === "warning") {
-    return "Atencao";
+    return "Atenção";
   }
 
-  return "Nao configurado";
+  return "Não configurado";
 }
 
 function TechnicalHealthCard({
@@ -178,8 +178,8 @@ function TechnicalHealthSection({ health }: { health: AdminHelenaTechnicalHealth
     <section className="space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Operacao</p>
-          <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Saude tecnica</h2>
+          <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Operação</p>
+          <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Saúde técnica</h2>
         </div>
         <ShieldCheck className="h-5 w-5 text-primary" />
       </div>
@@ -203,8 +203,8 @@ function ConnectionMobileCard({ connection }: { connection: AdminHelenaConnectio
       <CardContent className="space-y-4 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate text-base font-extrabold text-foreground">{connection.fullName ?? "Usuario sem nome"}</p>
-            <p className="truncate text-xs font-semibold text-muted-foreground">{connection.email ?? "E-mail indisponivel"}</p>
+            <p className="truncate text-base font-extrabold text-foreground">{connection.fullName ?? "Usuário sem nome"}</p>
+            <p className="truncate text-xs font-semibold text-muted-foreground">{connection.email ?? "E-mail indisponível"}</p>
           </div>
           <Badge variant={connection.whatsappStatus === "linked" ? "success" : "secondary"}>
             {whatsappLabel(connection.whatsappStatus)}
@@ -213,7 +213,7 @@ function ConnectionMobileCard({ connection }: { connection: AdminHelenaConnectio
         <div className="grid grid-cols-2 gap-2 text-xs font-semibold text-muted-foreground">
           <div className="rounded-2xl bg-muted/50 p-3">
             <p className="text-[10px] font-bold uppercase tracking-[0.1em]">Telefone</p>
-            <p className="mt-2 text-foreground">{connection.maskedPhone ?? "Nao informado"}</p>
+            <p className="mt-2 text-foreground">{connection.maskedPhone ?? "Não informado"}</p>
           </div>
           <div className="rounded-2xl bg-muted/50 p-3">
             <p className="text-[10px] font-bold uppercase tracking-[0.1em]">Atividade</p>
@@ -229,7 +229,7 @@ function ConnectionMobileCard({ connection }: { connection: AdminHelenaConnectio
           </div>
         </div>
         <Button asChild className="w-full" variant="outline">
-          <Link href={`/admin/usuarios/${connection.userId}`}>Ver usuario</Link>
+          <Link href={`/admin/usuarios/${connection.userId}`}>Ver usuário</Link>
         </Button>
       </CardContent>
     </Card>
@@ -260,7 +260,7 @@ function RecentEvents({ events }: { events: AdminHelenaEvent[] }) {
           </div>
           <p className="mt-3 text-sm font-extrabold text-foreground">{event.eventType}</p>
           <p className="mt-1 text-xs font-semibold leading-5 text-muted-foreground">
-            {event.userName ?? event.email ?? "Usuario nao identificado"} · {event.summary ?? event.status}
+            {event.userName ?? event.email ?? "Usuário não identificado"} · {event.summary ?? event.status}
           </p>
         </div>
       ))}
@@ -283,7 +283,7 @@ export default async function AdminHelenaPage() {
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Helena / WhatsApp</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Acompanhe conexoes, mensagens e sinais operacionais da Helena.
+              Acompanhe conexões, mensagens e sinais operacionais da Helena.
             </p>
           </div>
           <Badge className="w-fit" variant={dashboard.available ? "success" : "danger"}>
@@ -304,10 +304,10 @@ export default async function AdminHelenaPage() {
       ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard detail="Usuarios com status linked." icon={Phone} label="WhatsApp vinculado" tone="green" value={formatCount(dashboard.stats.linkedUsers)} />
-        <MetricCard detail="Usuarios sem vinculo ativo." icon={UsersRound} label="Sem WhatsApp" tone="slate" value={formatCount(dashboard.stats.unlinkedUsers)} />
+        <MetricCard detail="Usuários com status linked." icon={Phone} label="WhatsApp vinculado" tone="green" value={formatCount(dashboard.stats.linkedUsers)} />
+        <MetricCard detail="Usuários sem vínculo ativo." icon={UsersRound} label="Sem WhatsApp" tone="slate" value={formatCount(dashboard.stats.unlinkedUsers)} />
         <MetricCard detail="Mensagens registradas nas tabelas da Helena." icon={MessageCircle} label="Mensagens Helena" tone="green" value={formatCount(dashboard.stats.totalMessages)} />
-        <MetricCard detail="Falhas nos ultimos 7 dias." icon={AlertTriangle} label="Erros recentes" tone={dashboard.stats.recentErrors > 0 ? "red" : "slate"} value={formatCount(dashboard.stats.recentErrors)} />
+        <MetricCard detail="Falhas nos últimos 7 dias." icon={AlertTriangle} label="Erros recentes" tone={dashboard.stats.recentErrors > 0 ? "red" : "slate"} value={formatCount(dashboard.stats.recentErrors)} />
       </div>
 
       <TechnicalHealthSection health={technicalHealth} />
@@ -316,8 +316,8 @@ export default async function AdminHelenaPage() {
         <CardContent className="p-5">
           <div className="mb-5 flex items-start justify-between gap-3">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Conexoes</p>
-              <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Usuarios e WhatsApp</h2>
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Conexões</p>
+              <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Usuários e WhatsApp</h2>
             </div>
             <Bot className="h-5 w-5 text-primary" />
           </div>
@@ -334,20 +334,20 @@ export default async function AdminHelenaPage() {
                 <table className="w-full min-w-[980px] text-left">
                   <thead className="border-b border-border/70 bg-muted/45 text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
                     <tr>
-                      <th className="px-4 py-3">Usuario</th>
+                      <th className="px-4 py-3">Usuário</th>
                       <th className="px-4 py-3">WhatsApp</th>
-                      <th className="px-4 py-3">Vinculo</th>
-                      <th className="px-4 py-3">Ultima atividade</th>
+                      <th className="px-4 py-3">Vínculo</th>
+                      <th className="px-4 py-3">Última atividade</th>
                       <th className="px-4 py-3">Uso</th>
-                      <th className="px-4 py-3 text-right">Acao</th>
+                      <th className="px-4 py-3 text-right">Ação</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/70">
                     {dashboard.connections.map((connection) => (
                       <tr className="bg-card transition-colors hover:bg-muted/30" key={connection.userId}>
                         <td className="px-4 py-4">
-                          <p className="text-sm font-extrabold text-foreground">{connection.fullName ?? "Usuario sem nome"}</p>
-                          <p className="mt-1 text-xs font-semibold text-muted-foreground">{connection.email ?? "E-mail indisponivel"}</p>
+                          <p className="text-sm font-extrabold text-foreground">{connection.fullName ?? "Usuário sem nome"}</p>
+                          <p className="mt-1 text-xs font-semibold text-muted-foreground">{connection.email ?? "E-mail indisponível"}</p>
                         </td>
                         <td className="px-4 py-4">
                           <Badge variant={connection.whatsappStatus === "linked" ? "success" : "secondary"}>
@@ -362,7 +362,7 @@ export default async function AdminHelenaPage() {
                         </td>
                         <td className="px-4 py-4 text-right">
                           <Button asChild size="sm" variant="outline">
-                            <Link href={`/admin/usuarios/${connection.userId}`}>Ver usuario</Link>
+                            <Link href={`/admin/usuarios/${connection.userId}`}>Ver usuário</Link>
                           </Button>
                         </td>
                       </tr>
@@ -374,7 +374,7 @@ export default async function AdminHelenaPage() {
           ) : (
             <div className="flex items-center gap-3 rounded-2xl bg-primary-soft/45 p-4 text-sm font-semibold text-primary">
               <CheckCircle2 className="h-5 w-5" />
-              Nenhuma conexao encontrada ainda.
+              Nenhuma conexão encontrada ainda.
             </div>
           )}
         </CardContent>

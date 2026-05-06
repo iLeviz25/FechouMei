@@ -13,7 +13,7 @@ export async function confirmImportSessionAction(
   if (!sessionId) {
     return {
       ok: false,
-      message: "Sessao de importacao invalida.",
+      message: "Sessão de importação inválida.",
     };
   }
 
@@ -29,7 +29,7 @@ export async function cancelImportSessionAction(
   if (!sessionId) {
     return {
       ok: false,
-      message: "Sessao de importacao invalida.",
+      message: "Sessão de importação inválida.",
     };
   }
 

@@ -88,7 +88,7 @@ const categoryOptions = [
   "Alimentacao",
   "Consultoria",
   "Educacao",
-  "Manutencao e reparos",
+  "Manutenção e reparos",
   "Comercio varejista",
   "Marketing e conteudo",
   "Tecnologia",
@@ -97,7 +97,7 @@ const categoryOptions = [
 
 const goalOptions = [
   "organizar receitas e despesas",
-  "fechar o mes sem planilha",
+  "fechar o mês sem planilha",
   "acompanhar limite do MEI",
 ];
 
@@ -120,9 +120,9 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
   const [isUpdatingPassword, startPasswordTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
 
-  const resolvedWorkType = resolveOtherValue(values.workType, values.customWorkType) || "Nao informado";
-  const resolvedCategory = resolveOtherValue(values.mainCategory, values.customMainCategory) || "Nao informado";
-  const resolvedGoal = values.mainGoal || "Nao informado";
+  const resolvedWorkType = resolveOtherValue(values.workType, values.customWorkType) || "Não informado";
+  const resolvedCategory = resolveOtherValue(values.mainCategory, values.customMainCategory) || "Não informado";
+  const resolvedGoal = values.mainGoal || "Não informado";
   const businessModeLabel = getBusinessModeLabel(values.businessMode);
   const profileTag = `${businessModeLabel} - ${resolvedCategory}`;
   const subscriptionAccess = getSubscriptionAccessFromProfile(profile);
@@ -181,7 +181,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
       );
 
       if (error) {
-        setProfileMessage("Nao foi possivel salvar essas alteracoes agora.");
+        setProfileMessage("Não foi possível salvar essas alterações agora.");
         return;
       }
 
@@ -206,7 +206,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
     }
 
     if (password !== confirmPassword) {
-      setPasswordMessage("As senhas nao conferem.");
+      setPasswordMessage("As senhas não conferem.");
       return;
     }
 
@@ -215,7 +215,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
       const { error } = await supabase.auth.updateUser({ password });
 
       if (error) {
-        setPasswordMessage("Nao foi possivel atualizar a senha agora.");
+        setPasswordMessage("Não foi possível atualizar a senha agora.");
         return;
       }
 
@@ -259,7 +259,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
     setDeleteMessage(null);
 
     if (deleteConfirmation.trim().toUpperCase() !== "EXCLUIR") {
-      setDeleteMessage("Digite EXCLUIR para confirmar a exclusao definitiva da conta.");
+      setDeleteMessage("Digite EXCLUIR para confirmar a exclusão definitiva da conta.");
       return;
     }
 
@@ -270,7 +270,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
     setDeleteMessage(null);
 
     if (deleteConfirmation.trim().toUpperCase() !== "EXCLUIR") {
-      setDeleteMessage("Digite EXCLUIR para confirmar a exclusao definitiva da conta.");
+      setDeleteMessage("Digite EXCLUIR para confirmar a exclusão definitiva da conta.");
       return;
     }
 
@@ -297,9 +297,9 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
           Conta
         </Badge>
         <div className="max-w-2xl space-y-1.5">
-          <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Configuracoes</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Configurações</h1>
           <p className="text-sm leading-6 text-muted-foreground">
-            Gerencie seu perfil, preferencias e acoes da conta. Tudo num lugar so.
+            Gerencie seu perfil, preferências e ações da conta. Tudo num lugar só.
           </p>
         </div>
       </header>
@@ -342,7 +342,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
         </Badge>
         <div className="flex flex-col gap-3 min-[430px]:flex-row min-[430px]:items-start min-[430px]:justify-between">
           <div className="space-y-1">
-            <h2 className="text-lg font-extrabold tracking-tight text-foreground">Informacoes do perfil</h2>
+            <h2 className="text-lg font-extrabold tracking-tight text-foreground">Informações do perfil</h2>
             <p className="text-sm leading-6 text-muted-foreground">
               Dados vindos do onboarding. Atualize quando sua rotina ou categoria mudar.
             </p>
@@ -355,7 +355,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
 
         <Card className="overflow-hidden rounded-[30px]">
           <CardContent className="space-y-3 p-5 sm:p-6">
-            <InfoRow icon={<Building2 className="h-4 w-4" />} label="Atuacao" value={businessModeLabel} />
+            <InfoRow icon={<Building2 className="h-4 w-4" />} label="Atuação" value={businessModeLabel} />
             <InfoRow icon={<BriefcaseBusiness className="h-4 w-4" />} label="Tipo de trabalho" value={resolvedWorkType} />
             <InfoRow icon={<Sparkles className="h-4 w-4" />} label="Categoria principal" value={resolvedCategory} />
             <InfoRow icon={<Target className="h-4 w-4" />} label="Objetivo no app" value={resolvedGoal} />
@@ -386,7 +386,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
       <section className="space-y-3">
         <Badge className="w-fit" variant="secondary">
           <ShieldCheck className="mr-1 h-3 w-3" />
-          Seguranca
+          Segurança
         </Badge>
         <div className="space-y-1">
           <h2 className="text-lg font-extrabold tracking-tight text-foreground">Acesso a conta</h2>
@@ -458,14 +458,14 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
           Conta
         </Badge>
         <div className="space-y-1">
-          <h2 className="text-lg font-extrabold tracking-tight text-foreground">Acoes da conta</h2>
+          <h2 className="text-lg font-extrabold tracking-tight text-foreground">Ações da conta</h2>
           <p className="text-sm leading-6 text-muted-foreground">
             Sair do app ou encerrar sua conta no FechouMEI.
           </p>
         </div>
 
         <ActionCard
-          description="Voce precisara fazer login novamente."
+          description="Você precisará fazer login novamente."
           icon={<LogOut className="h-4 w-4" />}
           label="Sair da conta"
           onClick={handleSignOut}
@@ -482,7 +482,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
                   Excluir conta permanentemente
                 </p>
                 <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                  Todos os seus dados, movimentacoes, fechamentos e historico serao removidos. Esta acao nao pode ser desfeita.
+                  Todos os seus dados, movimentações, fechamentos e histórico serão removidos. Esta ação não pode ser desfeita.
                 </p>
               </div>
             </div>
@@ -504,7 +504,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
       {isEditingProfile ? (
         <ResponsiveOverlay
           closeDisabled={isSavingProfile}
-          description="Atualize seus dados sem poluir a tela principal. Se fechar sem salvar, nada sera alterado."
+          description="Atualize seus dados sem poluir a tela principal. Se fechar sem salvar, nada será alterado."
           icon={<Pencil className="h-4 w-4" />}
           maxWidthClass="sm:max-w-3xl"
           onClose={cancelProfileEditor}
@@ -616,7 +616,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
               </Button>
               <Button disabled={isSavingProfile} onClick={saveProfile} type="button">
                 {isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Salvar alteracoes
+                Salvar alterações
               </Button>
             </div>
           </div>
@@ -743,7 +743,7 @@ function SubscriptionSummaryCard({ access }: { access: SubscriptionAccess }) {
     ? "Acesso administrativo completo ao app."
     : access.status === "active"
       ? "FechouMEI Completo ativo. O ciclo de pagamento e gerenciado fora desta tela."
-      : "Aguardando confirmacao ou regularizacao do acesso.";
+      : "Aguardando confirmação ou regularização do acesso.";
   const helenaLabel = access.isAdmin
     ? "Sem limite bloqueante"
     : access.status === "active"
@@ -771,8 +771,8 @@ function SubscriptionSummaryCard({ access }: { access: SubscriptionAccess }) {
         <div className="grid gap-3 sm:grid-cols-2">
           <SubscriptionSummaryItem label="Status do acesso" value={statusLabel} />
           <SubscriptionSummaryItem label="Helena" value={helenaLabel} />
-          <SubscriptionSummaryItem label="Importacao" value={importLabel} />
-          <SubscriptionSummaryItem label="Relatorios" value={reportsLabel} />
+          <SubscriptionSummaryItem label="Importação" value={importLabel} />
+          <SubscriptionSummaryItem label="Relatórios" value={reportsLabel} />
         </div>
       </CardContent>
     </Card>
@@ -1036,7 +1036,7 @@ function PasswordField({
         <Input
           className="pl-10 pr-11"
           onChange={(event) => onChange(event.target.value)}
-          placeholder="Minimo de 6 caracteres"
+          placeholder="Mínimo de 6 caracteres"
           type={showPassword ? "text" : "password"}
           value={value}
         />

@@ -161,7 +161,7 @@ export function markExistingDuplicates(rows: ImportPreviewRow[], duplicateKeys: 
 
     return {
       ...row,
-      errors: [...row.errors, "Possivel duplicado ja existente no app."],
+      errors: [...row.errors, "Possível duplicado já existente no app."],
       status: "duplicate_existing" as const,
     };
   });
@@ -192,11 +192,11 @@ export function getMissingRequiredColumns(columnMap: ImportColumnMap) {
   }
 
   if (!columnMap.description) {
-    missing.push("Descricao");
+    missing.push("Descrição");
   }
 
   if (!columnMap.amount && !columnMap.credit && !columnMap.debit) {
-    missing.push("Valor ou Credito/Debito");
+    missing.push("Valor ou Crédito/Débito");
   }
 
   return missing;
@@ -220,15 +220,15 @@ function normalizeImportRow(raw: RawImportRow, columnMap: ImportColumnMap, rowNu
   const category = normalizeCategory(rawCategory || inferCategory(description));
 
   if (!occurred_on) {
-    errors.push("Data invalida.");
+    errors.push("Data inválida.");
   }
 
   if (!description) {
-    errors.push("Descricao vazia.");
+    errors.push("Descrição vazia.");
   }
 
   if (signedAmount === null) {
-    errors.push("Valor invalido.");
+    errors.push("Valor inválido.");
   } else if (signedAmount === 0) {
     errors.push("Valor precisa ser diferente de zero.");
   }
@@ -238,7 +238,7 @@ function normalizeImportRow(raw: RawImportRow, columnMap: ImportColumnMap, rowNu
   }
 
   if (!amountInfo.type && rawType && !type) {
-    errors.push("Tipo invalido.");
+    errors.push("Tipo inválido.");
   }
 
   const duplicateKey =
@@ -366,7 +366,7 @@ function resolveSignedAmount({
 
   if (hasCredit && hasDebit) {
     return {
-      error: "Credito e debito preenchidos na mesma linha.",
+      error: "Crédito e débito preenchidos na mesma linha.",
       signedAmount: fallbackAmount,
       type: null,
     };

@@ -48,7 +48,7 @@ type MonthInfo = {
 const filterOptions: Array<{ label: string; value: ChecklistFilter }> = [
   { label: "Todas", value: "all" },
   { label: "Pendentes", value: "pending" },
-  { label: "Concluidas", value: "done" },
+  { label: "Concluídas", value: "done" },
 ];
 
 export function ObrigacoesChecklist({ items, monthKey, onItemsChange }: ObrigacoesChecklistProps) {
@@ -120,7 +120,7 @@ export function ObrigacoesChecklist({ items, monthKey, onItemsChange }: Obrigaco
     onItemsChange((current) => updateItemState(current, item.key, nextDone));
     pendingKeysRef.current = [...pendingKeysRef.current, item.key];
     setPendingKeys(pendingKeysRef.current);
-    setStatus({ kind: "saving", message: "Salvando atualizacao..." });
+    setStatus({ kind: "saving", message: "Salvando atualização..." });
 
     void persistChecklistItem(item.key, nextDone);
   }
@@ -248,7 +248,7 @@ export function ObrigacoesChecklist({ items, monthKey, onItemsChange }: Obrigaco
                     )}
                     variant="outline"
                   >
-                    {item.done ? "Concluida" : "Pendente"}
+                    {item.done ? "Concluída" : "Pendente"}
                   </Badge>
 
                   <span className="rounded-full bg-muted/70 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
@@ -323,7 +323,7 @@ function enrichChecklistItem(item: ChecklistItem, monthInfo: MonthInfo): Enriche
       category: "Imposto",
       dateLabel: formatShortDate(dueDate),
       dateTone: getDateTone(item.done, dueDate),
-      description: "Documento de Arrecadacao do Simples Nacional",
+      description: "Documento de Arrecadação do Simples Nacional",
       priorityLabel: "Importante",
       title: `Pagar DAS - ${monthTitle.replace(" de ", "/")}`,
     };
@@ -334,10 +334,10 @@ function enrichChecklistItem(item: ChecklistItem, monthInfo: MonthInfo): Enriche
 
     return {
       ...item,
-      category: "Declaracao",
+      category: "Declaração",
       dateLabel: formatShortDate(dueDate),
       dateTone: getDateTone(item.done, dueDate),
-      description: `Declaracao anual do MEI - referente a ${monthInfo.declarationYear}`,
+      description: `Declaração anual do MEI - referente a ${monthInfo.declarationYear}`,
       priorityLabel: "Importante",
       title: `DASN-SIMEI ${monthInfo.declarationYear}`,
     };
@@ -347,8 +347,8 @@ function enrichChecklistItem(item: ChecklistItem, monthInfo: MonthInfo): Enriche
     return {
       ...item,
       ...base,
-      category: "Organizacao",
-      description: "Organize notas, recibos e comprovantes do periodo",
+      category: "Organização",
+      description: "Organize notas, recibos e comprovantes do período",
       title: "Separar comprovantes",
     };
   }
@@ -359,8 +359,8 @@ function enrichChecklistItem(item: ChecklistItem, monthInfo: MonthInfo): Enriche
       category: "Rotina",
       dateLabel: formatShortDate(monthInfo.nextReviewDate),
       dateTone: getDateTone(item.done, monthInfo.nextReviewDate),
-      description: "Valide o resultado consolidado antes da virada do mes",
-      title: "Conferir fechamento do mes",
+      description: "Valide o resultado consolidado antes da virada do mês",
+      title: "Conferir fechamento do mês",
     };
   }
 
@@ -370,7 +370,7 @@ function enrichChecklistItem(item: ChecklistItem, monthInfo: MonthInfo): Enriche
       ...base,
       category: "Financeiro",
       description: "Confirme entradas e recebimentos registrados",
-      title: "Revisar entradas do mes",
+      title: "Revisar entradas do mês",
     };
   }
 
@@ -380,7 +380,7 @@ function enrichChecklistItem(item: ChecklistItem, monthInfo: MonthInfo): Enriche
       ...base,
       category: "Financeiro",
       description: "Confirme despesas e saidas registradas",
-      title: "Revisar despesas do mes",
+      title: "Revisar despesas do mês",
     };
   }
 

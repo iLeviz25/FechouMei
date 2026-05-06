@@ -44,7 +44,7 @@ const exampleMessages = [
   },
   {
     icon: Wallet,
-    text: '"Como esta meu mes?"',
+    text: '"Como esta meu mês?"',
     tone: "warning" as const,
   },
   {
@@ -71,8 +71,8 @@ export function WhatsAppActivationPanel({
   const pendingActivation = activation.status === "pending" && Boolean(activation.activationCode);
   const heroContent = getHeroContent(activation);
   const noteText = linked
-    ? "Tudo acontece pelo WhatsApp: mande a mensagem e a Helena responde por la."
-    : "Conecte o WhatsApp para comecar a usar.";
+    ? "Tudo acontece pelo WhatsApp: mande a mensagem e a Helena responde por lá."
+    : "Conecte o WhatsApp para começar a usar.";
 
   function handleStartActivation() {
     setErrorMessage(null);
@@ -81,7 +81,7 @@ export function WhatsAppActivationPanel({
         const nextActivation = await startWhatsAppActivation();
         setActivation(nextActivation);
       } catch {
-        setErrorMessage("Nao consegui iniciar a ativacao agora. Tente novamente em instantes.");
+        setErrorMessage("Não consegui iniciar a ativação agora. Tente novamente em instantes.");
       }
     });
   }
@@ -93,7 +93,7 @@ export function WhatsAppActivationPanel({
         const nextActivation = await disconnectWhatsAppAssistant();
         setActivation(nextActivation);
       } catch {
-        setErrorMessage("Nao consegui desvincular o WhatsApp agora. Tente novamente.");
+        setErrorMessage("Não consegui desvincular o WhatsApp agora. Tente novamente.");
       }
     });
   }
@@ -116,7 +116,7 @@ export function WhatsAppActivationPanel({
           <div className="max-w-2xl space-y-1.5">
             <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Helena</h1>
             <p className="text-sm leading-6 text-muted-foreground">
-              Sua assistente do MEI. Conecte seu WhatsApp para registrar movimentacoes e consultar a Helena por la.
+              Sua assistente do MEI. Conecte seu WhatsApp para registrar movimentações e consultar a Helena por lá.
             </p>
           </div>
 
@@ -186,7 +186,7 @@ export function WhatsAppActivationPanel({
                       variant="outline"
                     >
                       {copyState === "code" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                      {copyState === "code" ? "Codigo copiado" : "Copiar codigo"}
+                      {copyState === "code" ? "Código copiado" : "Copiar código"}
                     </Button>
                   </>
                 ) : (
@@ -204,7 +204,7 @@ export function WhatsAppActivationPanel({
 
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <span className="rounded-full bg-white/10 px-3 py-1.5 font-semibold text-white/82">
-                  Seguro - usa so seu numero
+                  Seguro - usa só seu número
                 </span>
                 {displayUserNumber ? (
                   <span className="rounded-full bg-white/8 px-3 py-1.5 font-semibold text-white/82">
@@ -219,20 +219,20 @@ export function WhatsAppActivationPanel({
             <div className="rounded-[24px] border border-white/10 bg-white/8 p-4">
               <div className="flex flex-col gap-3 min-[430px]:flex-row min-[430px]:items-center min-[430px]:justify-between">
                 <div className="space-y-1">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-white/68">Codigo de ativacao</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-white/68">Código de ativação</p>
                   <p className="font-mono text-2xl font-extrabold tracking-[0.18em] text-white">
                     {activation.activationCode}
                   </p>
                 </div>
                 <p className="max-w-xs text-sm leading-6 text-white/78">
-                  O botao acima ja abre o WhatsApp com a mensagem pronta para envio.
+                  O botão acima já abre o WhatsApp com a mensagem pronta para envio.
                 </p>
               </div>
             </div>
           ) : null}
 
           {copyState === "error" ? (
-            <p className="text-sm font-semibold text-secondary">Nao consegui copiar automaticamente. Copie o codigo manualmente.</p>
+            <p className="text-sm font-semibold text-secondary">Não consegui copiar automaticamente. Copie o código manualmente.</p>
           ) : null}
           {errorMessage ? <p className="text-sm font-semibold text-secondary">{errorMessage}</p> : null}
         </div>
@@ -243,7 +243,7 @@ export function WhatsAppActivationPanel({
           <div className="space-y-1">
             <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Exemplos</p>
             <h2 className="text-lg font-extrabold tracking-tight text-foreground">
-              Coisas que voce pode mandar pra Helena
+              Coisas que você pode mandar pra Helena
             </h2>
           </div>
 
@@ -288,19 +288,19 @@ function getHeroContent(activation: WhatsAppAssistantActivationSnapshot) {
     case "pending":
       return {
         description:
-          "Seu vinculo ja foi iniciado. Abra o WhatsApp, envie a mensagem pronta e termine a conexao em poucos segundos.",
+          "Seu vínculo já foi iniciado. Abra o WhatsApp, envie a mensagem pronta e termine a conexão em poucos segundos.",
         statusLabel: "Falta um passo",
       };
     case "expired":
       return {
         description:
-          "O codigo anterior expirou. Gere uma nova conexao para voltar a usar a Helena pelo WhatsApp com seguranca.",
-        statusLabel: "Codigo expirado",
+          "O código anterior expirou. Gere uma nova conexão para voltar a usar a Helena pelo WhatsApp com segurança.",
+        statusLabel: "Código expirado",
       };
     case "revoked":
       return {
         description:
-          "O WhatsApp foi desvinculado. Voce pode conectar novamente quando quiser para voltar a registrar e consultar por la.",
+          "O WhatsApp foi desvinculado. Você pode conectar novamente quando quiser para voltar a registrar e consultar por lá.",
         statusLabel: "Desvinculado",
       };
     default:

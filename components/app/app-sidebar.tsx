@@ -33,13 +33,13 @@ type AppSidebarProps = {
 
 const navItems = [
   { href: "/app/dashboard", label: "Dashboard", shortLabel: "Dashboard", icon: LayoutDashboard, tourTarget: "dashboard-nav" },
-  { href: "/app/movimentacoes", label: "Movimentacoes", shortLabel: "Mov.", icon: Receipt, tourTarget: "movimentacoes-nav" },
+  { href: "/app/movimentacoes", label: "Movimentações", shortLabel: "Mov.", icon: Receipt, tourTarget: "movimentacoes-nav" },
   { href: "/app/importar", label: "Importar dados", shortLabel: "Importar", icon: Upload, tourTarget: "importacao-nav" },
   { href: "/app/fechamento-mensal", label: "Fechamento mensal", shortLabel: "Fechamento", icon: ClipboardCheck, tourTarget: "fechamento-nav" },
-  { href: "/app/relatorios", label: "Relatorios", shortLabel: "Relatorios", icon: FileText, tourTarget: "relatorios-nav" },
-  { href: "/app/obrigacoes", label: "Obrigacoes", shortLabel: "Obrig.", icon: BellRing, tourTarget: "obrigacoes-nav" },
+  { href: "/app/relatorios", label: "Relatórios", shortLabel: "Relatórios", icon: FileText, tourTarget: "relatorios-nav" },
+  { href: "/app/obrigacoes", label: "Obrigações", shortLabel: "Obrig.", icon: BellRing, tourTarget: "obrigacoes-nav" },
   { href: "/app/agente", label: "Helena", shortLabel: "Helena", icon: MessageCircle, tourTarget: "helena-nav" },
-  { href: "/app/configuracoes", label: "Configuracoes", shortLabel: "Conta", icon: Settings },
+  { href: "/app/configuracoes", label: "Configurações", shortLabel: "Conta", icon: Settings },
 ];
 
 const adminNavItem = {
@@ -53,7 +53,7 @@ const createMovementHref = "/app/movimentacoes?nova=1";
 const mobileNavItems = [
   navItems[0],
   navItems[1],
-  { href: createMovementHref, label: "Nova movimentacao", shortLabel: "Novo", icon: Plus, primaryAction: true },
+  { href: createMovementHref, label: "Nova movimentação", shortLabel: "Novo", icon: Plus, primaryAction: true },
   navItems[3],
   navItems[5],
 ];
@@ -285,7 +285,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
             ) : null}
             <Link
               aria-current={settingsIsActive ? "page" : undefined}
-              aria-label="Conta e configuracoes"
+              aria-label="Conta e configurações"
               className={cn(
                 "surface-panel-ghost flex h-11 w-11 items-center justify-center rounded-[18px] text-muted-foreground transition-colors hover:text-foreground",
                 settingsIsActive && "border-primary/20 bg-primary-soft/55 text-primary",
@@ -304,7 +304,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
 
       <div className="fixed inset-x-0 top-[4.65rem] z-30 px-3 print:hidden lg:hidden">
         <nav
-          aria-label="Atalhos rapidos"
+          aria-label="Atalhos rápidos"
           className="mx-auto grid h-12 max-w-[560px] grid-cols-3 gap-1.5 rounded-[24px] border border-border/70 bg-white p-1.5 shadow-[0_8px_20px_rgba(15,23,42,0.08)]"
         >
           {mobileShortcutItems.map((item) => {
@@ -339,7 +339,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
 
       <div className="fixed inset-x-0 bottom-0 z-30 px-2.5 pb-[calc(0.65rem+env(safe-area-inset-bottom))] pt-8 print:hidden lg:hidden">
         <nav
-          aria-label="Navegacao principal"
+          aria-label="Navegação principal"
           className="mx-auto grid h-[76px] max-w-[560px] grid-cols-[1fr_1fr_80px_1fr_1fr] items-end gap-0.5 rounded-[30px] border border-border/70 bg-white px-2 py-2 shadow-[0_-6px_22px_rgba(15,23,42,0.08),0_14px_28px_rgba(15,23,42,0.08)]"
         >
           {mobileNavItems.map((item) => {
@@ -434,7 +434,7 @@ function NotificationBell({
     <div className="relative">
       <button
         aria-expanded={open}
-        aria-label={count > 0 ? `${count} notificacoes de obrigacoes` : "Notificacoes"}
+        aria-label={count > 0 ? `${count} notificações de obrigações` : "Notificações"}
         className={cn(
           "surface-panel-ghost relative flex h-11 w-11 items-center justify-center rounded-[18px] text-muted-foreground transition-colors hover:text-foreground",
           className,
@@ -443,7 +443,7 @@ function NotificationBell({
         type="button"
       >
         <BellRing className="h-5 w-5 shrink-0" />
-        <span className={cn("hidden text-sm font-bold", className && "ml-2 inline")}>Notificacoes</span>
+        <span className={cn("hidden text-sm font-bold", className && "ml-2 inline")}>Notificações</span>
         {count > 0 ? (
           <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-extrabold text-secondary-foreground ring-2 ring-background">
             {count > 9 ? "9+" : count}
@@ -464,13 +464,13 @@ function NotificationBell({
           )}
         >
           <div className="border-b border-border/70 px-4 py-3">
-            <p className="text-sm font-extrabold tracking-tight text-foreground">Notificacoes</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">Baseadas nos lembretes e obrigacoes pendentes.</p>
+            <p className="text-sm font-extrabold tracking-tight text-foreground">Notificações</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Baseadas nos lembretes e obrigações pendentes.</p>
           </div>
 
           {count === 0 ? (
             <div className="px-4 py-5 text-sm font-semibold text-muted-foreground">
-              Nenhuma notificacao no momento.
+              Nenhuma notificação no momento.
             </div>
           ) : (
             <div className={cn("scroll-chain-y overflow-y-auto p-2", mobile ? "max-h-[calc(100dvh_-_13rem)]" : "max-h-80")}>

@@ -75,7 +75,7 @@ export function AuthShell({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Saldo do mes
+                    Saldo do mês
                   </p>
                   <p className="font-mono mt-1 text-3xl font-extrabold tabular text-foreground">R$ 8.420</p>
                 </div>
@@ -121,7 +121,7 @@ export function AuthShell({
 
           <div className="space-y-4">
             <h2 className="text-balance text-2xl font-bold leading-tight">
-              Tudo que voce precisa para fechar o mes com clareza.
+              Tudo que você precisa para fechar o mês com clareza.
             </h2>
             <ul className="space-y-1.5 text-sm text-primary-foreground/80">
               {[
@@ -136,7 +136,7 @@ export function AuthShell({
               ))}
             </ul>
             <div className="inline-flex items-center gap-2 text-sm font-semibold text-secondary">
-              Ver seu mes em minutos
+              Ver seu mês em minutos
               <ArrowUpRight className="h-4 w-4" />
             </div>
           </div>

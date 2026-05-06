@@ -70,7 +70,7 @@ const quickActions = [
   {
     href: "/app/fechamento-mensal",
     icon: Landmark,
-    label: "Fechar mes",
+    label: "Fechar mês",
     tone: "neutral",
   },
   {
@@ -174,7 +174,7 @@ function getDashboardStatus({
   monthBalance: number;
 }) {
   if (dasLate || limitUsage >= 1 || monthBalance < 0) {
-    return { label: "Atencao", tone: "danger" } as const;
+    return { label: "Atenção", tone: "danger" } as const;
   }
 
   if (!dasDone || limitUsage >= 0.75) {
@@ -216,16 +216,16 @@ export function DashboardOverview({
   const limitStatus = limitInfo.status;
   const alerts = [
     {
-      cta: dasDone ? "Abrir obrigacoes" : "Pagar agora",
+      cta: dasDone ? "Abrir obrigações" : "Pagar agora",
       description: dasDone
-        ? "O pagamento mensal ja foi marcado no checklist deste mes."
+        ? "O pagamento mensal já foi marcado no checklist deste mês."
         : dasLate
-          ? "O prazo do DAS passou. Entre em obrigacoes para regularizar sem perder o controle."
-          : `O DAS de ${toMonthName(today)} ainda esta em aberto. Atualize o checklist assim que concluir o pagamento.`,
+          ? "O prazo do DAS passou. Entre em obrigações para regularizar sem perder o controle."
+          : `O DAS de ${toMonthName(today)} ainda está em aberto. Atualize o checklist assim que concluir o pagamento.`,
       href: "/app/obrigacoes",
       icon: dasDone ? CheckCircle2 : Receipt,
-      kicker: dasDone ? "TUDO CERTO" : dasLate ? "URGENTE" : "ATENCAO",
-      title: dasDone ? "DAS do mes sinalizado" : `DAS de ${toMonthName(today)} em aberto`,
+      kicker: dasDone ? "TUDO CERTO" : dasLate ? "URGENTE" : "ATENÇÃO",
+      title: dasDone ? "DAS do mês sinalizado" : `DAS de ${toMonthName(today)} em aberto`,
       tone: dasDone ? "success" : dasLate ? "danger" : "warning",
     },
     {
@@ -236,7 +236,7 @@ export function DashboardOverview({
           : `${limitUsageDisplayPercent.toFixed(1).replace(".", ",")}% do limite anual usado. Ainda restam ${toCurrency(remainingLimit)} no teto.`,
       href: "/app/fechamento-mensal",
       icon: TrendingUp,
-      kicker: limitUsage >= 1 ? "URGENTE" : limitUsage >= 0.75 ? "ATENCAO" : "TUDO CERTO",
+      kicker: limitUsage >= 1 ? "URGENTE" : limitUsage >= 0.75 ? "ATENÇÃO" : "TUDO CERTO",
       title:
         limitUsage >= 1
           ? "Limite do MEI ultrapassado"
@@ -246,15 +246,15 @@ export function DashboardOverview({
       tone: limitUsage >= 1 ? "danger" : limitUsage >= 0.75 ? "warning" : "success",
     },
     {
-      cta: monthBalance >= 0 ? "Ver movimentacoes" : "Revisar mes",
+      cta: monthBalance >= 0 ? "Ver movimentações" : "Revisar mês",
       description:
         monthBalance >= 0
-          ? `Voce fecha o mes com ${toCurrency(monthBalance)} acima das despesas registradas.`
-          : `As despesas passaram as entradas em ${toCurrency(Math.abs(monthBalance))}. Vale revisar os lancamentos antes do fechamento.`,
+          ? `Você fecha o mês com ${toCurrency(monthBalance)} acima das despesas registradas.`
+          : `As despesas passaram as entradas em ${toCurrency(Math.abs(monthBalance))}. Vale revisar os lançamentos antes do fechamento.`,
       href: monthBalance >= 0 ? "/app/movimentacoes" : "/app/fechamento-mensal",
       icon: monthBalance >= 0 ? CheckCircle2 : AlertTriangle,
-      kicker: monthBalance >= 0 ? "TUDO CERTO" : "ATENCAO",
-      title: monthBalance >= 0 ? "Saldo saudavel neste mes" : "Saldo do mes pede revisao",
+      kicker: monthBalance >= 0 ? "TUDO CERTO" : "ATENÇÃO",
+      title: monthBalance >= 0 ? "Saldo saudável neste mês" : "Saldo do mês pede revisão",
       tone: monthBalance >= 0 ? "success" : "warning",
     },
   ] as const;
@@ -309,9 +309,9 @@ export function DashboardOverview({
           value={toCurrency(monthlyExpense)}
         />
         <SummaryCard
-          detail={monthBalance >= 0 ? "entradas - despesas" : "requer revisao do mes"}
+          detail={monthBalance >= 0 ? "entradas - despesas" : "requer revisão do mês"}
           icon={Wallet}
-          label="Saldo do mes"
+          label="Saldo do mês"
           tone="neutral"
           trend={getMetricDelta(monthBalance, previousMonthBalance, "higher-is-better")}
           value={toCurrency(monthBalance)}
@@ -399,7 +399,7 @@ export function DashboardOverview({
             </div>
 
             <div className="grid grid-cols-3 gap-2 border-t border-white/12 pt-3.5 sm:gap-3 sm:pt-4">
-              <LimitMetric label="Ja usado" value={toCompactCurrency(annualIncome)} />
+              <LimitMetric label="Já usado" value={toCompactCurrency(annualIncome)} />
               <LimitMetric label="Restante" value={toCompactCurrency(remainingLimit)} />
               <LimitMetric
                 label="Checklist"
@@ -416,10 +416,10 @@ export function DashboardOverview({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary/70">
-                  Acoes rapidas
+                  Ações rápidas
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Atalhos para o que voce resolve primeiro no celular.
+                  Atalhos para o que você resolve primeiro no celular.
                 </p>
               </div>
               <div className="icon-tile flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-primary">
@@ -442,7 +442,7 @@ export function DashboardOverview({
             <div className="flex flex-col gap-3 px-4 pb-4 pt-5 min-[430px]:flex-row min-[430px]:items-start min-[430px]:justify-between min-[380px]:px-5">
               <div>
                 <h2 className="text-[1.1rem] font-extrabold tracking-tight text-foreground">
-                  Ultimas movimentacoes
+                  Últimas movimentações
                 </h2>
                 <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                   <span className="h-2 w-2 rounded-full bg-primary" />
@@ -464,10 +464,10 @@ export function DashboardOverview({
 
             {recentMovements.length === 0 ? (
               <div className="border-t border-border/70 px-4 py-5 text-sm leading-6 text-muted-foreground min-[380px]:px-5">
-                <p className="font-bold text-foreground">Nenhuma movimentacao registrada ainda.</p>
+                <p className="font-bold text-foreground">Nenhuma movimentação registrada ainda.</p>
                 <p className="mt-1">Adicione sua primeira entrada ou despesa para alimentar o painel.</p>
                 <Button asChild className="mt-4" size="sm">
-                  <Link href="/app/movimentacoes">Adicionar movimentacao</Link>
+                  <Link href="/app/movimentacoes">Adicionar movimentação</Link>
                 </Button>
               </div>
             ) : (
@@ -488,7 +488,7 @@ export function DashboardOverview({
                   Alertas e status
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Acompanhe o que precisa da sua atencao.
+                  Acompanhe o que precisa da sua atenção.
                 </p>
               </div>
               <div className="flex h-9 min-w-9 items-center justify-center rounded-full bg-primary-soft px-3 text-sm font-extrabold text-primary">
@@ -596,7 +596,7 @@ function SummaryCard({
                 <TrendingUp className="h-3 w-3" />
                 {trend.label}
               </span>
-              <span className="text-muted-foreground">vs. mes anterior</span>
+              <span className="text-muted-foreground">vs. mês anterior</span>
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">{trendLabel ?? "Sem base anterior"}</p>

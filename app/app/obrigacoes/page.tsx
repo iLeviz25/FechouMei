@@ -27,7 +27,7 @@ async function ObrigacoesData() {
   const { profileError, supabase, user } = await getCurrentUserProfile();
 
   if (!user) {
-    throw new Error("Faca login para carregar suas obrigacoes.");
+    throw new Error("Faça login para carregar suas obrigações.");
   }
 
   if (profileError) {

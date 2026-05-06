@@ -74,7 +74,7 @@ function whatsappBadge(status: string) {
 
   return (
     <Badge variant={isLinked ? "success" : "secondary"}>
-      {isLinked ? "Vinculado" : "Nao vinculado"}
+      {isLinked ? "Vinculado" : "Não vinculado"}
     </Badge>
   );
 }
@@ -108,10 +108,10 @@ function UserMobileCard({ user }: { user: AdminUserListItem }) {
       <CardContent className="space-y-4 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate text-base font-extrabold text-foreground">{user.fullName ?? "Usuario sem nome"}</p>
+            <p className="truncate text-base font-extrabold text-foreground">{user.fullName ?? "Usuário sem nome"}</p>
             <p className="mt-1 flex items-center gap-1.5 truncate text-xs font-semibold text-muted-foreground">
               <Mail className="h-3.5 w-3.5 shrink-0" />
-              {user.email ?? "E-mail indisponivel"}
+              {user.email ?? "E-mail indisponível"}
             </p>
           </div>
           {roleBadge(user.role)}
@@ -134,7 +134,7 @@ function UserMobileCard({ user }: { user: AdminUserListItem }) {
             <p className="mt-2 text-foreground">{formatDate(user.lastActivityAt)}</p>
           </div>
           <div className="rounded-2xl bg-muted/50 p-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.1em]">Movimentacoes</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.1em]">Movimentações</p>
             <p className="mt-2 text-foreground">{formatCount(user.movementsCount)}</p>
           </div>
           <div className="rounded-2xl bg-muted/50 p-3">
@@ -169,13 +169,13 @@ export default async function AdminUsuariosPage({
         <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Admin FechouMEI</p>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Usuarios</h1>
+            <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Usuários</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Gerencie contas, permissoes e sinais operacionais dos usuarios.
+              Gerencie contas, permissões e sinais operacionais dos usuários.
             </p>
           </div>
           <Badge className="w-fit" variant={usersResult.available ? "success" : "danger"}>
-            {usersResult.available ? `${formatCount(usersResult.total)} usuarios` : "Indisponivel"}
+            {usersResult.available ? `${formatCount(usersResult.total)} usuários` : "Indisponível"}
           </Badge>
         </div>
       </div>
@@ -195,7 +195,7 @@ export default async function AdminUsuariosPage({
             <Select defaultValue={filters.whatsapp} name="whatsapp">
               <option value="all">WhatsApp: todos</option>
               <option value="linked">Vinculado</option>
-              <option value="unlinked">Nao vinculado</option>
+              <option value="unlinked">Não vinculado</option>
             </Select>
             <Button type="submit">Filtrar</Button>
             {hasFilters ? (
@@ -214,7 +214,7 @@ export default async function AdminUsuariosPage({
               <UsersRound className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-base font-extrabold text-foreground">Nao foi possivel carregar usuarios</h2>
+              <h2 className="text-base font-extrabold text-foreground">Não foi possível carregar usuários</h2>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
                 {usersResult.error ?? "Aplique a migration da Fase 4 e tente novamente."}
               </p>
@@ -227,7 +227,7 @@ export default async function AdminUsuariosPage({
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-soft text-primary">
               <UserRound className="h-6 w-6" />
             </div>
-            <h2 className="text-lg font-extrabold text-foreground">Nenhum usuario encontrado</h2>
+            <h2 className="text-lg font-extrabold text-foreground">Nenhum usuário encontrado</h2>
             <p className="max-w-md text-sm leading-6 text-muted-foreground">
               Ajuste a busca ou limpe os filtros para ver mais contas.
             </p>
@@ -247,14 +247,14 @@ export default async function AdminUsuariosPage({
                 <table className="w-full min-w-[1060px] text-left">
                   <thead className="border-b border-border/70 bg-muted/45 text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
                     <tr>
-                      <th className="px-5 py-4">Usuario</th>
+                      <th className="px-5 py-4">Usuário</th>
                       <th className="px-5 py-4">Role</th>
                       <th className="px-5 py-4">Assinatura</th>
                       <th className="px-5 py-4">Cadastro</th>
-                      <th className="px-5 py-4">Ultima atividade</th>
+                      <th className="px-5 py-4">Última atividade</th>
                       <th className="px-5 py-4">WhatsApp</th>
                       <th className="px-5 py-4">Uso</th>
-                      <th className="px-5 py-4 text-right">Acao</th>
+                      <th className="px-5 py-4 text-right">Ação</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/70">
@@ -262,10 +262,10 @@ export default async function AdminUsuariosPage({
                       <tr className="bg-card transition-colors hover:bg-muted/30" key={user.id}>
                         <td className="px-5 py-4">
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-extrabold text-foreground">{user.fullName ?? "Usuario sem nome"}</p>
+                            <p className="truncate text-sm font-extrabold text-foreground">{user.fullName ?? "Usuário sem nome"}</p>
                             <p className="mt-1 flex items-center gap-1.5 truncate text-xs font-semibold text-muted-foreground">
                               <Mail className="h-3.5 w-3.5 shrink-0" />
-                              {user.email ?? "E-mail indisponivel"}
+                              {user.email ?? "E-mail indisponível"}
                             </p>
                           </div>
                         </td>
@@ -283,7 +283,7 @@ export default async function AdminUsuariosPage({
                           <div className="flex flex-col gap-1 text-xs font-semibold text-muted-foreground">
                             <span className="inline-flex items-center gap-1.5">
                               <WalletCards className="h-3.5 w-3.5" />
-                              {formatCount(user.movementsCount)} movimentacoes
+                              {formatCount(user.movementsCount)} movimentações
                             </span>
                             <span className="inline-flex items-center gap-1.5">
                               <MessageCircle className="h-3.5 w-3.5" />
@@ -306,7 +306,7 @@ export default async function AdminUsuariosPage({
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm font-semibold text-muted-foreground">
-              Pagina {usersResult.page} de {usersResult.totalPages} · {formatCount(usersResult.total)} usuarios
+              Página {usersResult.page} de {usersResult.totalPages} · {formatCount(usersResult.total)} usuários
             </p>
             <div className="flex gap-2">
               <Button asChild className={cn(usersResult.page <= 1 && "pointer-events-none opacity-50")} variant="outline">
@@ -321,7 +321,7 @@ export default async function AdminUsuariosPage({
                 variant="outline"
               >
                 <Link href={nextHref}>
-                  Proxima
+                  Próxima
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>

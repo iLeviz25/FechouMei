@@ -37,7 +37,7 @@ export function ImportSessionActions({
           <input name="sessionId" type="hidden" value={sessionId} />
           <Button disabled={disabled || pending || importableCount === 0} type="submit">
             {confirmPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-            Importar movimentacoes
+            Importar movimentações
           </Button>
         </form>
 
@@ -45,7 +45,7 @@ export function ImportSessionActions({
           <input name="sessionId" type="hidden" value={sessionId} />
           <Button disabled={disabled || pending} type="submit" variant="outline">
             {cancelPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
-            Cancelar importacao
+            Cancelar importação
           </Button>
         </form>
       </div>

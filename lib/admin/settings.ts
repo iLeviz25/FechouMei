@@ -34,14 +34,14 @@ const defaults: Record<AdminSettingKey, AdminSetting> = {
     value: true,
   },
   maintenance_mode: {
-    description: "Ativo no sistema: bloqueia temporariamente a Helena para usuarios finais.",
+    description: "Ativo no sistema: bloqueia temporariamente a Helena para usuários finais.",
     key: "maintenance_mode",
     updatedAt: null,
     updatedBy: null,
     value: false,
   },
   max_agent_messages_per_day: {
-    description: "Ativo no sistema: limite diario de mensagens da Helena por usuario; vazio ou 0 significa sem limite.",
+    description: "Ativo no sistema: limite diário de mensagens da Helena por usuário; vazio ou 0 significa sem limite.",
     key: "max_agent_messages_per_day",
     updatedAt: null,
     updatedBy: null,
@@ -52,7 +52,7 @@ const defaults: Record<AdminSettingKey, AdminSetting> = {
     key: "public_support_message",
     updatedAt: null,
     updatedBy: null,
-    value: "Suporte FechouMEI em operacao normal.",
+    value: "Suporte FechouMEI em operação normal.",
   },
   support_email: {
     description: "Informativo/futuro: e-mail de suporte salvo para uso operacional posterior.",
@@ -133,7 +133,7 @@ export async function getAdminSettings(): Promise<AdminSettingsResult> {
   if (!Array.isArray(data)) {
     return {
       available: false,
-      error: "Configuracoes admin indisponiveis.",
+      error: "Configurações admin indisponíveis.",
       settings,
     };
   }

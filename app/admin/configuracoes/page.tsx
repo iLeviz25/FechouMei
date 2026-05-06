@@ -60,7 +60,7 @@ export default async function AdminConfiguracoesPage({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
-              Configuracoes admin
+              Configurações admin
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
               Consulte e ajuste parametros internos do produto sem alterar regras do app normal nesta fase.
@@ -77,7 +77,7 @@ export default async function AdminConfiguracoesPage({
           <CardContent className="flex gap-4 p-5">
             <AlertTriangle className="h-5 w-5 shrink-0 text-destructive" />
             <p className="text-sm font-semibold leading-6 text-muted-foreground">
-              {settingsResult.error ?? "Aplique a migration da Fase 5 para carregar configuracoes reais."}
+              {settingsResult.error ?? "Aplique a migration da Fase 5 para carregar configurações reais."}
             </p>
           </CardContent>
         </Card>
@@ -86,7 +86,7 @@ export default async function AdminConfiguracoesPage({
       {saved ? (
         <div className="flex items-center gap-3 rounded-[22px] border border-primary/15 bg-primary-soft/55 p-4 text-sm font-semibold text-primary">
           <CheckCircle2 className="h-5 w-5" />
-          Configuracoes salvas com sucesso.
+          Configurações salvas com sucesso.
         </div>
       ) : null}
 
@@ -103,7 +103,7 @@ export default async function AdminConfiguracoesPage({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Flags</p>
-                <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Operacao do produto</h2>
+                <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Operação do produto</h2>
               </div>
               <Settings className="h-5 w-5 text-primary" />
             </div>
@@ -121,8 +121,8 @@ export default async function AdminConfiguracoesPage({
               value={settingValue(settings.whatsapp_enabled.value, true)}
             />
             <BooleanSetting
-              description={settings.maintenance_mode.description ?? "Bloqueia temporariamente a Helena para usuarios finais."}
-              label="Modo manutencao"
+              description={settings.maintenance_mode.description ?? "Bloqueia temporariamente a Helena para usuários finais."}
+              label="Modo manutenção"
               name="maintenance_mode"
               value={settingValue(settings.maintenance_mode.value, false)}
             />
@@ -179,14 +179,14 @@ export default async function AdminConfiguracoesPage({
                 type="number"
               />
               <span className="block text-xs font-semibold leading-5 text-muted-foreground">
-                {settings.max_agent_messages_per_day.description} Deixe vazio ou 0 para nao limitar.
+                {settings.max_agent_messages_per_day.description} Deixe vazio ou 0 para não limitar.
               </span>
             </label>
           </CardContent>
         </Card>
 
         <div className="flex justify-end">
-          <Button type="submit">Salvar configuracoes</Button>
+          <Button type="submit">Salvar configurações</Button>
         </div>
       </form>
     </div>

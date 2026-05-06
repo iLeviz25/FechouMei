@@ -95,7 +95,7 @@ function LogCard({ log }: { log: AdminLogEntry }) {
       </div>
       <p className="mt-3 text-sm font-extrabold text-foreground">{log.message}</p>
       <p className="mt-1 text-xs font-semibold leading-5 text-muted-foreground">
-        {log.userName ?? log.userEmail ?? "Sem usuario"} · {log.status}
+        {log.userName ?? log.userEmail ?? "Sem usuário"} · {log.status}
       </p>
       {log.detail ? (
         <details className="mt-3 rounded-xl bg-muted/45 p-3 text-xs font-semibold leading-5 text-muted-foreground">
@@ -148,7 +148,7 @@ export default async function AdminLogsPage({
         <Card className="rounded-[26px]"><CardContent className="p-5"><p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Erros 24h</p><p className="mt-3 text-2xl font-extrabold">{formatCount(logsResult.metrics.errorsLast24Hours)}</p></CardContent></Card>
         <Card className="rounded-[26px]"><CardContent className="p-5"><p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Erros 7 dias</p><p className="mt-3 text-2xl font-extrabold">{formatCount(logsResult.metrics.errorsLast7Days)}</p></CardContent></Card>
         <Card className="rounded-[26px]"><CardContent className="p-5"><p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Criticos</p><p className="mt-3 text-2xl font-extrabold">{formatCount(logsResult.metrics.criticalEvents)}</p></CardContent></Card>
-        <Card className="rounded-[26px]"><CardContent className="p-5"><p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Ultimo erro</p><p className="mt-3 truncate text-sm font-extrabold">{logsResult.metrics.latestError ? formatDate(logsResult.metrics.latestError.createdAt) : "Nenhum"}</p></CardContent></Card>
+        <Card className="rounded-[26px]"><CardContent className="p-5"><p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Último erro</p><p className="mt-3 truncate text-sm font-extrabold">{logsResult.metrics.latestError ? formatDate(logsResult.metrics.latestError.createdAt) : "Nenhum"}</p></CardContent></Card>
       </div>
 
       <Card className="overflow-hidden rounded-[26px]">
@@ -213,14 +213,14 @@ export default async function AdminLogsPage({
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm font-semibold text-muted-foreground">
-          Pagina {logsResult.page} de {logsResult.totalPages}
+          Página {logsResult.page} de {logsResult.totalPages}
         </p>
         <div className="flex gap-2">
           <Button asChild className={cn(logsResult.page <= 1 && "pointer-events-none opacity-50")} variant="outline">
             <Link href={buildPageHref(filters, Math.max(logsResult.page - 1, 1))}>Anterior</Link>
           </Button>
           <Button asChild className={cn(logsResult.page >= logsResult.totalPages && "pointer-events-none opacity-50")} variant="outline">
-            <Link href={buildPageHref(filters, Math.min(logsResult.page + 1, logsResult.totalPages))}>Proxima</Link>
+            <Link href={buildPageHref(filters, Math.min(logsResult.page + 1, logsResult.totalPages))}>Próxima</Link>
           </Button>
         </div>
       </div>

@@ -220,7 +220,7 @@ export function FechamentoMensalOverview({
   const effectiveStart = rangeStart || monthStartValue;
   const effectiveEnd = rangeEnd || monthEndValue;
   const effectivePeriodLabel = hasCustomRange ? `${toDate(effectiveStart)} a ${toDate(effectiveEnd)}` : monthLabel;
-  const comparisonLabel = hasCustomRange ? "Mesmo trecho no mes anterior" : "Vs. mes anterior";
+  const comparisonLabel = hasCustomRange ? "Mesmo trecho no mês anterior" : "Vs. mês anterior";
 
   const filteredMovements = useMemo(
     () =>
@@ -353,7 +353,7 @@ export function FechamentoMensalOverview({
       meta: biggestIncome
         ? `${toCategoryDisplay(biggestIncome.category)} · ${toShortDate(biggestIncome.occurred_on)}`
         : "Nenhuma entrada registrada",
-      title: biggestIncome ? biggestIncome.description : "Sem entradas no periodo",
+      title: biggestIncome ? biggestIncome.description : "Sem entradas no período",
       tone: "success" as const,
       value: biggestIncome ? toCurrency(biggestIncome.amount) : "R$ 0,00",
     },
@@ -363,7 +363,7 @@ export function FechamentoMensalOverview({
       meta: biggestExpense
         ? `${toCategoryDisplay(biggestExpense.category)} · ${toShortDate(biggestExpense.occurred_on)}`
         : "Nenhuma despesa registrada",
-      title: biggestExpense ? biggestExpense.description : "Sem despesas no periodo",
+      title: biggestExpense ? biggestExpense.description : "Sem despesas no período",
       tone: "danger" as const,
       value: biggestExpense ? toCurrency(biggestExpense.amount) : "R$ 0,00",
     },
@@ -371,7 +371,7 @@ export function FechamentoMensalOverview({
       icon: Tag,
       label: "Categoria top em gastos",
       meta: topExpenseCategory.top ? `${topCategoryShare.toFixed(0)}% das despesas` : "Nenhuma despesa registrada",
-      title: topExpenseCategory.top ? toCategoryDisplay(topExpenseCategory.top.category) : "Sem despesas no periodo",
+      title: topExpenseCategory.top ? toCategoryDisplay(topExpenseCategory.top.category) : "Sem despesas no período",
       tone: "warning" as const,
       value: topExpenseCategory.top ? toCurrency(topExpenseCategory.top.amount) : "R$ 0,00",
     },
@@ -418,7 +418,7 @@ export function FechamentoMensalOverview({
         <div className="max-w-2xl space-y-1.5">
           <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Fechamento mensal</h1>
           <p className="text-sm leading-6 text-muted-foreground">
-            Veja como foi o seu mes, compare com o anterior e acompanhe o saldo do seu MEI.
+            Veja como foi o seu mês, compare com o anterior e acompanhe o saldo do seu MEI.
           </p>
         </div>
       </header>
@@ -439,18 +439,18 @@ export function FechamentoMensalOverview({
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
               <Badge className="border-white/10 bg-white/14 text-white shadow-none" variant="outline">
-                {hasCustomRange ? "Resultado do trecho" : "Resultado do mes"}
+                {hasCustomRange ? "Resultado do trecho" : "Resultado do mês"}
               </Badge>
               <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/78">
                 {hasCustomRange
-                  ? `${formatCount(filteredMovements.length, "lancamento", "lancamentos")} no trecho`
-                  : `${formatCount(filteredMovements.length, "lancamento", "lancamentos")} em ${monthLabel}`}
+                  ? `${formatCount(filteredMovements.length, "lançamento", "lançamentos")} no trecho`
+                  : `${formatCount(filteredMovements.length, "lançamento", "lançamentos")} em ${monthLabel}`}
               </span>
             </div>
 
             <div className="space-y-2">
               <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-white/68">
-                {hasCustomRange ? effectivePeriodLabel : "Resultado do mes"}
+                {hasCustomRange ? effectivePeriodLabel : "Resultado do mês"}
               </p>
               <p
                 className={cn(
@@ -466,7 +466,7 @@ export function FechamentoMensalOverview({
                 </Badge>
               ) : null}
               <p className="text-sm leading-6 text-white/76">
-                {hasCustomRange ? effectivePeriodLabel : `${currentMonthHeaderLabel} • fechamento consolidado do periodo`}
+                {hasCustomRange ? effectivePeriodLabel : `${currentMonthHeaderLabel} • fechamento consolidado do período`}
               </p>
             </div>
 
@@ -516,7 +516,7 @@ export function FechamentoMensalOverview({
 
         <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 lg:grid-cols-3">
           <SummaryStatCard
-            detail={formatCount(monthlyTotals.incomeCount, "lancamento", "lancamentos")}
+            detail={formatCount(monthlyTotals.incomeCount, "lançamento", "lançamentos")}
             icon={ArrowDownLeft}
             label="Entradas"
             tone="success"
@@ -525,7 +525,7 @@ export function FechamentoMensalOverview({
             value={toCurrency(monthlyTotals.monthlyIncome)}
           />
           <SummaryStatCard
-            detail={formatCount(monthlyTotals.expenseCount, "lancamento", "lancamentos")}
+            detail={formatCount(monthlyTotals.expenseCount, "lançamento", "lançamentos")}
             icon={ArrowUpRight}
             label="Despesas"
             tone="danger"
@@ -547,7 +547,7 @@ export function FechamentoMensalOverview({
       <section className="space-y-3">
         <div className="flex items-end justify-between gap-3 px-1">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Destaques do mes</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Destaques do mês</p>
             <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">O que mais puxou o fechamento</h2>
           </div>
           <p className="text-xs font-semibold text-muted-foreground">{currentMonthHeaderLabel}</p>
@@ -577,7 +577,7 @@ export function FechamentoMensalOverview({
                   Registros do fechamento
                 </p>
                 <h2 className="text-lg font-extrabold tracking-tight text-foreground">
-                  {formatCount(filteredMovements.length, "registro", "registros")} no periodo
+                  {formatCount(filteredMovements.length, "registro", "registros")} no período
                 </h2>
                 <p className="text-sm leading-6 text-muted-foreground">
                   {mobileListShouldScroll
@@ -599,10 +599,10 @@ export function FechamentoMensalOverview({
           {movements.length === 0 ? (
             <div className="px-4 py-5 sm:px-6">
               <div className="rounded-[24px] border border-dashed border-border bg-muted/40 p-5 text-sm leading-6 text-muted-foreground">
-                <p className="font-bold text-foreground">Nenhum registro encontrado neste mes.</p>
-                <p className="mt-1">Se o periodo estiver certo, adicione entradas e despesas com datas deste mes.</p>
+                <p className="font-bold text-foreground">Nenhum registro encontrado neste mês.</p>
+                <p className="mt-1">Se o período estiver certo, adicione entradas e despesas com datas deste mês.</p>
                 <Button asChild className="mt-4" size="sm">
-                  <Link href="/app/movimentacoes">Lancar movimentacao</Link>
+                  <Link href="/app/movimentacoes">Lançar movimentação</Link>
                 </Button>
               </div>
             </div>
@@ -610,7 +610,7 @@ export function FechamentoMensalOverview({
             <div className="px-4 py-5 sm:px-6">
               <div className="rounded-[24px] border border-dashed border-border bg-muted/40 p-5 text-sm leading-6 text-muted-foreground">
                 <p className="font-bold text-foreground">Nenhum registro encontrado neste intervalo.</p>
-                <p className="mt-1">Ajuste as datas ou limpe o intervalo para voltar ao fechamento completo do mes.</p>
+                <p className="mt-1">Ajuste as datas ou limpe o intervalo para voltar ao fechamento completo do mês.</p>
                 <Button className="mt-4" onClick={clearRange} size="sm" type="button" variant="outline">
                   Limpar intervalo
                 </Button>

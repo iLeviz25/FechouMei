@@ -31,7 +31,7 @@ export function ReportActions({ monthValue, movements }: ReportActionsProps) {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-              Mes de referencia
+              Mês de referência
             </span>
             <input
               className="mt-1 w-full min-w-0 bg-transparent text-base font-extrabold text-foreground outline-none"
@@ -47,7 +47,7 @@ export function ReportActions({ monthValue, movements }: ReportActionsProps) {
           <MovementsCsvExportButton
             buttonClassName="w-full sm:w-auto"
             className="sm:min-w-[10rem]"
-            filename={`relatorio-fechoumei-${monthValue}.csv`}
+            filename={`relatório-fechoumei-${monthValue}.csv`}
             label="Exportar CSV"
             movements={movements}
           />

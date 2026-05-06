@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import type { AgentConversationSnapshot, AgentConversationState, AgentMessage } from "@/lib/agent/types";
 
 const examples = [
-  "Resumo do mes",
+  "Resumo do mês",
   "Quanto falta pro limite MEI",
   "DAS de Abril",
   "Maior despesa da semana",
@@ -19,7 +19,7 @@ const examples = [
 const welcomeMessage: AgentMessage = {
   id: "welcome",
   role: "agent",
-  content: "Oi, eu sou a Helena. Posso te ajudar com resumo do mes, limite do MEI, DAS e registros rapidos.",
+  content: "Oi, eu sou a Helena. Posso te ajudar com resumo do mês, limite do MEI, DAS e registros rápidos.",
 };
 
 export function AgentPlayground({
@@ -89,7 +89,7 @@ export function AgentPlayground({
         setMessages((current) => [
           ...current,
           {
-            content: "Nao consegui enviar sua mensagem agora. Tente novamente em instantes.",
+            content: "Não consegui enviar sua mensagem agora. Tente novamente em instantes.",
             id: crypto.randomUUID(),
             role: "agent",
           },
@@ -115,7 +115,7 @@ export function AgentPlayground({
         setMessages((current) => [
           ...current,
           {
-            content: "Nao consegui limpar a conversa agora. Tente novamente em instantes.",
+            content: "Não consegui limpar a conversa agora. Tente novamente em instantes.",
             id: crypto.randomUUID(),
             role: "agent",
           },
@@ -141,7 +141,7 @@ export function AgentPlayground({
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-base font-extrabold tracking-tight text-foreground">Helena</p>
-            <p className="text-sm text-muted-foreground">Chat de apoio - respostas rapidas</p>
+            <p className="text-sm text-muted-foreground">Chat de apoio - respostas rápidas</p>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="secondary">Aqui no app</Badge>
@@ -171,7 +171,7 @@ export function AgentPlayground({
               </div>
               <h2 className="mt-4 text-xl font-extrabold tracking-tight text-foreground">Como posso ajudar?</h2>
               <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
-                Pergunte sobre seu mes, limite do MEI, DAS ou qualquer movimentacao.
+                Pergunte sobre seu mês, limite do MEI, DAS ou qualquer movimentação.
               </p>
               <div className="mt-5 flex flex-wrap justify-center gap-2">
                 {examples.map((example) => (

@@ -18,7 +18,7 @@ export type ReportObligationSummary = {
   done: boolean;
   key: "das" | "dasn" | "revisao" | "comprovantes";
   label: string;
-  statusLabel: "Concluido" | "Pendente";
+  statusLabel: "Concluído" | "Pendente";
 };
 
 export type MonthlyReportData = {

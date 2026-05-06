@@ -13,7 +13,7 @@ const supportedXlsxMimeTypes = new Set([
 ]);
 
 export class UnsupportedImportFileError extends Error {
-  constructor(message = "Formato nao suportado. Envie um arquivo CSV ou XLSX.") {
+  constructor(message = "Formato não suportado. Envie um arquivo CSV ou XLSX.") {
     super(message);
     this.name = "UnsupportedImportFileError";
   }

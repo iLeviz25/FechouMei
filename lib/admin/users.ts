@@ -395,14 +395,14 @@ export async function updateAdminUserRole(targetUserId: string, newRole: AdminRo
 
   if (userError || !user) {
     return {
-      error: "Sessao admin nao encontrada.",
+      error: "Sessão admin não encontrada.",
       ok: false,
     };
   }
 
   if (targetUserId === user.id && newRole === "user") {
     return {
-      error: "Voce nao pode remover seu proprio acesso admin.",
+      error: "Você não pode remover seu próprio acesso admin.",
       ok: false,
     };
   }

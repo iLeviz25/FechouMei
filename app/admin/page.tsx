@@ -71,16 +71,16 @@ function formatDate(value: string | null) {
 function statusLabel(value: string) {
   const labels: Record<string, string> = {
     active: "Ativo",
-    available: "Disponivel",
+    available: "Disponível",
     connected: "Conectado",
-    unavailable: "Indisponivel",
+    unavailable: "Indisponível",
   };
 
   return labels[value] ?? value;
 }
 
 function metricDetail(available: boolean, detail: string, reason?: string) {
-  return available ? detail : reason ?? "Metrica indisponivel no momento.";
+  return available ? detail : reason ?? "Métrica indisponível no momento.";
 }
 
 function OverviewCard({
@@ -133,10 +133,10 @@ function RoleSummary({ metrics }: { metrics: AdminOverviewMetrics }) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Contas por role</p>
-            <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Permissoes ativas</h2>
+            <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Permissões ativas</h2>
           </div>
           <Badge variant={metrics.roles.available ? "success" : "danger"}>
-            {metrics.roles.available ? "Real" : "Indisponivel"}
+            {metrics.roles.available ? "Real" : "Indisponível"}
           </Badge>
         </div>
 
@@ -167,7 +167,7 @@ function RoleSummary({ metrics }: { metrics: AdminOverviewMetrics }) {
 
 function RecentUsersList({ users }: { users: RecentAdminUser[] }) {
   if (!users.length) {
-    return <p className="rounded-2xl bg-muted/50 p-4 text-sm text-muted-foreground">Nenhum usuario recente.</p>;
+    return <p className="rounded-2xl bg-muted/50 p-4 text-sm text-muted-foreground">Nenhum usuário recente.</p>;
   }
 
   return (
@@ -175,7 +175,7 @@ function RecentUsersList({ users }: { users: RecentAdminUser[] }) {
       {users.map((user) => (
         <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-background p-3" key={user.id}>
           <div className="min-w-0">
-            <p className="truncate text-sm font-extrabold text-foreground">{user.fullName ?? "Usuario sem nome"}</p>
+            <p className="truncate text-sm font-extrabold text-foreground">{user.fullName ?? "Usuário sem nome"}</p>
             <p className="text-xs font-semibold text-muted-foreground">{formatDate(user.createdAt)}</p>
           </div>
           <Badge variant={user.role === "admin" ? "success" : "secondary"}>{user.role}</Badge>
@@ -187,7 +187,7 @@ function RecentUsersList({ users }: { users: RecentAdminUser[] }) {
 
 function RecentMovementsList({ movements }: { movements: RecentAdminMovement[] }) {
   if (!movements.length) {
-    return <p className="rounded-2xl bg-muted/50 p-4 text-sm text-muted-foreground">Nenhuma movimentacao recente.</p>;
+    return <p className="rounded-2xl bg-muted/50 p-4 text-sm text-muted-foreground">Nenhuma movimentação recente.</p>;
   }
 
   return (
@@ -208,7 +208,7 @@ function RecentMovementsList({ movements }: { movements: RecentAdminMovement[] }
                 <p className="truncate text-sm font-extrabold text-foreground">{movement.description}</p>
               </div>
               <p className="mt-1 truncate text-xs font-semibold text-muted-foreground">
-                {movement.category} · {movement.userName ?? "Usuario"} · {formatDate(movement.occurredOn)}
+                {movement.category} · {movement.userName ?? "Usuário"} · {formatDate(movement.occurredOn)}
               </p>
             </div>
             <p className={cn("shrink-0 text-sm font-extrabold", isIncome ? "text-primary" : "text-destructive")}>
@@ -255,11 +255,11 @@ function HealthSection({ metrics }: { metrics: AdminOverviewMetrics }) {
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Saude do sistema</p>
-            <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Status basico</h2>
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Saúde do sistema</p>
+            <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Status básico</h2>
           </div>
           <Badge variant={metrics.health.available ? "success" : "danger"}>
-            {metrics.health.available ? "OK" : "Atencao"}
+            {metrics.health.available ? "OK" : "Atenção"}
           </Badge>
         </div>
 
@@ -297,7 +297,7 @@ export default async function AdminPage() {
         metrics.users.reason,
       ),
       icon: UsersRound,
-      label: "Usuarios cadastrados",
+      label: "Usuários cadastrados",
       tone: "green" as const,
       value: formatCount(metrics.users.total),
     },
@@ -305,7 +305,7 @@ export default async function AdminPage() {
       available: metrics.whatsapp.available,
       detail: metricDetail(
         metrics.whatsapp.available,
-        `${formatCount(metrics.whatsapp.linkedUsers)} vinculados · ${formatCount(metrics.whatsapp.unlinkedUsers)} sem vinculo`,
+        `${formatCount(metrics.whatsapp.linkedUsers)} vinculados · ${formatCount(metrics.whatsapp.unlinkedUsers)} sem vínculo`,
         metrics.whatsapp.reason,
       ),
       icon: MessageCircle,
@@ -321,7 +321,7 @@ export default async function AdminPage() {
         metrics.movements.reason,
       ),
       icon: WalletCards,
-      label: "Movimentacoes",
+      label: "Movimentações",
       tone: "amber" as const,
       value: formatCount(metrics.movements.total),
     },
@@ -330,8 +330,8 @@ export default async function AdminPage() {
       detail: metricDetail(
         metrics.errors.available,
         (metrics.errors.recentTotal ?? 0) > 0
-          ? "Eventos falhos nos ultimos 7 dias"
-          : "Nenhum erro recente nos ultimos 7 dias",
+          ? "Eventos falhos nos últimos 7 dias"
+          : "Nenhum erro recente nos últimos 7 dias",
         metrics.errors.reason,
       ),
       icon: AlertTriangle,
@@ -347,7 +347,7 @@ export default async function AdminPage() {
         <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Admin FechouMEI</p>
         <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Visao geral</h1>
         <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-          Acompanhe a saude geral do FechouMEI.
+          Acompanhe a saúde geral do FechouMEI.
         </p>
       </div>
 
@@ -377,7 +377,7 @@ export default async function AdminPage() {
                 <p className="mt-2 text-2xl font-extrabold text-foreground">{formatCount(metrics.helena.messagesTotal)}</p>
               </div>
               <div className="rounded-2xl border border-border/70 bg-background p-4">
-                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Ultimos 7 dias</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Últimos 7 dias</p>
                 <p className="mt-2 text-2xl font-extrabold text-foreground">{formatCount(metrics.helena.messagesLast7Days)}</p>
               </div>
             </div>
@@ -391,7 +391,7 @@ export default async function AdminPage() {
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Atividade recente</p>
-                <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Usuarios criados</h2>
+                <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Usuários criados</h2>
               </div>
               <TrendingUp className="h-5 w-5 text-primary" />
             </div>
@@ -404,7 +404,7 @@ export default async function AdminPage() {
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Sistema</p>
-                <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Ultimas movimentacoes</h2>
+                <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Últimas movimentações</h2>
               </div>
               <WalletCards className="h-5 w-5 text-primary" />
             </div>

@@ -260,11 +260,11 @@ export async function getAdminHelenaTechnicalHealth(): Promise<AdminHelenaTechni
     return {
       cards: [
         webhookCard,
-        createUnavailableHealthCard("Fila da Helena", "Admin client indisponivel para checar fila."),
-        createUnavailableHealthCard("Locks ativos", "Admin client indisponivel para contar locks."),
-        createUnavailableHealthCard("Turnos pendentes", "Admin client indisponivel para contar turnos."),
-        createUnavailableHealthCard("Falhas 24h", "Admin client indisponivel para contar falhas."),
-        createUnavailableHealthCard("Instabilidades Gemini/Helena 24h", "Admin client indisponivel para contar traces."),
+        createUnavailableHealthCard("Fila da Helena", "Admin client indisponível para checar fila."),
+        createUnavailableHealthCard("Locks ativos", "Admin client indisponível para contar locks."),
+        createUnavailableHealthCard("Turnos pendentes", "Admin client indisponível para contar turnos."),
+        createUnavailableHealthCard("Falhas 24h", "Admin client indisponível para contar falhas."),
+        createUnavailableHealthCard("Instabilidades Gemini/Helena 24h", "Admin client indisponível para contar traces."),
       ],
     };
   }
@@ -332,11 +332,11 @@ export async function getAdminHelenaTechnicalHealth(): Promise<AdminHelenaTechni
           }
         : createUnavailableHealthCard(
             "Fila da Helena",
-            queueMissing ? "Tabelas ou RPCs da fila ainda nao existem." : "A checagem da fila nao respondeu como esperado.",
+            queueMissing ? "Tabelas ou RPCs da fila ainda não existem." : "A checagem da fila não respondeu como esperado.",
           ),
       createCountHealthCard({
         count: activeLocks.count,
-        detail: "Locks nao expirados em agent_conversation_locks.",
+        detail: "Locks não expirados em agent_conversation_locks.",
         error: activeLocks.error,
         label: "Locks ativos",
         warningWhenPositive: true,
@@ -350,14 +350,14 @@ export async function getAdminHelenaTechnicalHealth(): Promise<AdminHelenaTechni
       }),
       createCountHealthCard({
         count: failedTurns.count,
-        detail: "Turnos failed, expired ou abandoned finalizados nas ultimas 24h.",
+        detail: "Turnos failed, expired ou abandoned finalizados nas últimas 24h.",
         error: failedTurns.error,
         label: "Falhas 24h",
         warningWhenPositive: true,
       }),
       createCountHealthCard({
         count: helenaInstabilities.count,
-        detail: "Fonte: agent_prompt_traces com status error nas ultimas 24h.",
+        detail: "Fonte: agent_prompt_traces com status error nas últimas 24h.",
         error: helenaInstabilities.error,
         label: "Instabilidades Gemini/Helena 24h",
         warningWhenPositive: true,
@@ -404,7 +404,7 @@ function createUnavailableHealthCard(label: string, detail: string): AdminHelena
     detail,
     label,
     status: "unavailable",
-    value: "Nao configurado",
+    value: "Não configurado",
   };
 }
 
@@ -424,7 +424,7 @@ function createCountHealthCard({
   if (error) {
     return createUnavailableHealthCard(
       label,
-      isMissingDatabaseObject(error) ? "Tabela ainda nao configurada." : "Nao foi possivel carregar este indicador.",
+      isMissingDatabaseObject(error) ? "Tabela ainda não configurada." : "Não foi possível carregar este indicador.",
     );
   }
 

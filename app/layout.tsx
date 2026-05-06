@@ -16,7 +16,7 @@ const jetBrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "FechouMEI",
-  description: "Controle financeiro simples para MEIs fecharem o mes com clareza.",
+  description: "Controle financeiro simples para MEIs fecharem o mês com clareza.",
 };
 
 export default function RootLayout({

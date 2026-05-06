@@ -19,7 +19,7 @@ export default async function ImportarPage() {
   }
 
   return (
-    <Suspense fallback={<RouteTransitionPending label="Carregando importacao" />}>
+    <Suspense fallback={<RouteTransitionPending label="Carregando importação" />}>
       <ImportUpload />
     </Suspense>
   );

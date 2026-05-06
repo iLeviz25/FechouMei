@@ -22,7 +22,7 @@ async function DashboardData() {
   const { profile, profileError, supabase, user } = await getCurrentUserProfile();
 
   if (!user) {
-    throw new Error("Usuario nao autenticado.");
+    throw new Error("Usuário não autenticado.");
   }
 
   if (profileError) {
@@ -84,11 +84,11 @@ async function DashboardData() {
   }
 
   if (recentResult.error) {
-    throw new Error(`Erro ao carregar ultimas movimentacoes: ${recentResult.error.message}`);
+    throw new Error(`Erro ao carregar últimas movimentações: ${recentResult.error.message}`);
   }
 
   if (checklistResult.error) {
-    throw new Error(`Erro ao carregar obrigacoes do mes: ${checklistResult.error.message}`);
+    throw new Error(`Erro ao carregar obrigações do mês: ${checklistResult.error.message}`);
   }
 
   const totals = (movementWindowResult.data ?? []).reduce(

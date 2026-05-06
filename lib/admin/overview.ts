@@ -73,7 +73,7 @@ export type AdminOverviewMetrics = {
   };
 };
 
-const unavailableReason = "Metrica admin indisponivel no momento.";
+const unavailableReason = "Métrica admin indisponível no momento.";
 
 function createUnavailableOverview(reason = unavailableReason): AdminOverviewMetrics {
   const section = { available: false, reason };

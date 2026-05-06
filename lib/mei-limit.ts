@@ -4,7 +4,7 @@ export type MeiLimitTone = "success" | "warning" | "orange" | "danger";
 
 export type MeiLimitStatus = {
   badgeClass: string;
-  label: "Tranquilo" | "Atencao" | "Cuidado" | "Quase no limite" | "Limite ultrapassado";
+  label: "Tranquilo" | "Atenção" | "Cuidado" | "Quase no limite" | "Limite ultrapassado";
   progressClass: string;
   tone: MeiLimitTone;
 };
@@ -50,7 +50,7 @@ export function getMeiLimitStatus(usage: number): MeiLimitStatus {
   if (usage > 0.5) {
     return {
       badgeClass: "bg-secondary/20 text-primary-foreground",
-      label: "Atencao",
+      label: "Atenção",
       progressClass: "bg-[linear-gradient(90deg,hsl(50_96%_58%)_0%,hsl(38_95%_55%)_100%)]",
       tone: "warning",
     };

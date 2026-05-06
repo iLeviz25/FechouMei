@@ -51,7 +51,7 @@ function formatDateTime(value: string) {
 function statusLabel(status: string) {
   const labels: Record<string, string> = {
     cancelled: "Cancelada",
-    draft: "Aguardando revisao",
+    draft: "Aguardando revisão",
     expired: "Expirada",
     failed: "Falhou",
     imported: "Importada",
@@ -66,7 +66,7 @@ function rowStatusLabel(row: ImportPreviewRow) {
     duplicate_existing: "Duplicada no app",
     duplicate_file: "Duplicada no arquivo",
     error: "Com erro",
-    valid: "Valida",
+    valid: "Válida",
   };
 
   return labels[row.status];
@@ -174,7 +174,7 @@ function PreviewCard({ row }: { row: ImportPreviewRow }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-extrabold text-foreground">{row.description || `Linha ${row.rowNumber}`}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{row.occurred_on ?? "Data invalida"}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{row.occurred_on ?? "Data inválida"}</p>
         </div>
         <p className={cn("font-mono text-sm font-extrabold tabular", income ? "text-primary" : "text-destructive")}>
           {row.amount !== null ? toCurrency(row.amount) : "-"}
@@ -182,7 +182,7 @@ function PreviewCard({ row }: { row: ImportPreviewRow }) {
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Badge className={income ? "border-primary/15 bg-primary/10 text-primary" : "border-destructive/15 bg-destructive/10 text-destructive"} variant="outline">
-          {row.type ?? "Tipo invalido"}
+          {row.type ?? "Tipo inválido"}
         </Badge>
         <span className="rounded-full bg-muted/65 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
           {row.category}
@@ -229,12 +229,12 @@ export default async function ImportSessionPage({ params }: { params: Promise<Se
         </Button>
         <Badge className="w-fit" variant="success">
           <MessageCircle className="mr-1 h-3 w-3" />
-          Importacao da Helena
+          Importação da Helena
         </Badge>
         <div className="max-w-2xl space-y-1.5">
-          <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Revisar importacao da Helena</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Revisar importação da Helena</h1>
           <p className="text-sm leading-6 text-muted-foreground">
-            A Helena preparou esta importacao a partir do arquivo enviado no WhatsApp. Revise antes de salvar.
+            A Helena preparou esta importação a partir do arquivo enviado no WhatsApp. Revise antes de salvar.
           </p>
         </div>
       </header>
@@ -242,7 +242,7 @@ export default async function ImportSessionPage({ params }: { params: Promise<Se
       {expired ? (
         <Card className="overflow-hidden rounded-[28px] border-secondary/20 bg-secondary-soft/60">
           <CardContent className="p-5 text-sm font-semibold leading-6 text-secondary-foreground">
-            Essa revisao expirou. Envie o arquivo novamente para a Helena.
+            Essa revisão expirou. Envie o arquivo novamente para a Helena.
           </CardContent>
         </Card>
       ) : null}
@@ -271,7 +271,7 @@ export default async function ImportSessionPage({ params }: { params: Promise<Se
             <SummaryBox label="Linhas" value={String(view.summary.totalRows)} />
             <SummaryBox label="Com erro" tone="danger" value={String(view.summary.errorCount)} />
             <SummaryBox label="Duplicadas" tone="warning" value={String(duplicateCount)} />
-            <SummaryBox label="Validas" tone="success" value={String(view.summary.importableCount)} />
+            <SummaryBox label="Válidas" tone="success" value={String(view.summary.importableCount)} />
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -284,10 +284,10 @@ export default async function ImportSessionPage({ params }: { params: Promise<Se
           {view.session.status === "imported" ? (
             <div className="flex flex-wrap gap-2 rounded-[24px] border border-primary/15 bg-primary-soft/45 p-4">
               <p className="basis-full text-sm font-semibold leading-6 text-primary">
-                Importacao concluida. Confira as movimentacoes criadas no app.
+                Importação concluída. Confira as movimentações criadas no app.
               </p>
               <Button asChild size="sm">
-                <Link href="/app/movimentacoes">Ver movimentacoes</Link>
+                <Link href="/app/movimentacoes">Ver movimentações</Link>
               </Button>
             </div>
           ) : null}
@@ -299,7 +299,7 @@ export default async function ImportSessionPage({ params }: { params: Promise<Se
           <div className="border-b border-border/70 px-4 py-4 sm:px-5">
             <h2 className="text-lg font-extrabold tracking-tight text-foreground">Linhas detectadas</h2>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              Linhas com erro ou duplicadas serao ignoradas por seguranca.
+              Linhas com erro ou duplicadas serão ignoradas por segurança.
             </p>
           </div>
 
@@ -319,7 +319,7 @@ export default async function ImportSessionPage({ params }: { params: Promise<Se
             </div>
           ) : (
             <div className="p-5 text-sm font-semibold leading-6 text-muted-foreground">
-              Nao encontramos linhas nesta planilha. Envie outro arquivo CSV ou XLSX para a Helena.
+              Não encontramos linhas nesta planilha. Envie outro arquivo CSV ou XLSX para a Helena.
             </div>
           )}
         </CardContent>

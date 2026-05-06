@@ -97,7 +97,7 @@ export function AdminHelenaPromptsPanel({
               Templates e execucoes recentes
             </h2>
             <p className="mt-1 max-w-2xl text-xs font-semibold leading-5 text-muted-foreground">
-              Visualizacao operacional para debug. Conteudos sao sanitizados e truncados antes de aparecer aqui.
+              Visualização operacional para debug. Conteúdos são sanitizados e truncados antes de aparecer aqui.
             </p>
           </div>
           <FileText className="hidden h-5 w-5 text-primary lg:block" />
@@ -200,10 +200,10 @@ export function AdminHelenaPromptsPanel({
                   <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0">
                       <p className="text-sm font-extrabold text-foreground">
-                        {trace.actionName ?? "Sem acao detectada"}
+                        {trace.actionName ?? "Sem ação detectada"}
                       </p>
                       <p className="mt-1 text-xs font-semibold leading-5 text-muted-foreground">
-                        {trace.userName ?? trace.userEmail ?? "Usuario nao identificado"} · {trace.model ?? "modelo nao informado"}
+                        {trace.userName ?? trace.userEmail ?? "Usuário não identificado"} · {trace.model ?? "modelo não informado"}
                       </p>
                     </div>
                     {trace.promptText ? <PromptCopyButton text={trace.promptText} /> : null}

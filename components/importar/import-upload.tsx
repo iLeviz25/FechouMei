@@ -78,7 +78,7 @@ export function ImportUpload() {
       if (!hasRequiredColumns(columnMap)) {
         setFeedback({
           ok: false,
-          message: "Nao identificamos todas as colunas automaticamente. Voce pode mapear manualmente abaixo.",
+          message: "Não identificamos todas as colunas automaticamente. Você pode mapear manualmente abaixo.",
         });
         setManualMappingOpen(true);
         return;
@@ -88,7 +88,7 @@ export function ImportUpload() {
     } catch (error) {
       setFeedback({
         ok: false,
-        message: error instanceof Error ? error.message : "Nao foi possivel ler o arquivo.",
+        message: error instanceof Error ? error.message : "Não foi possível ler o arquivo.",
       });
     }
   }
@@ -152,7 +152,7 @@ export function ImportUpload() {
 
   function confirmImport() {
     if (importableRows.length === 0) {
-      setFeedback({ ok: false, message: "Nao ha linhas validas para importar." });
+      setFeedback({ ok: false, message: "Não há linhas válidas para importar." });
       return;
     }
 
@@ -179,12 +179,12 @@ export function ImportUpload() {
       <header className="space-y-3">
         <Badge className="w-fit" variant="success">
           <Upload className="mr-1 h-3 w-3" />
-          Central de importacao
+          Central de importação
         </Badge>
         <div className="max-w-2xl space-y-1.5">
           <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Importar dados</h1>
           <p className="text-sm leading-6 text-muted-foreground">
-            Traga movimentacoes de uma planilha ou extrato CSV para continuar de onde parou.
+            Traga movimentações de uma planilha ou extrato CSV para continuar de onde parou.
           </p>
         </div>
       </header>
@@ -199,7 +199,7 @@ export function ImportUpload() {
               <div>
                 <h2 className="text-lg font-extrabold tracking-tight text-foreground">Envie seu arquivo</h2>
                 <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                  Envie um arquivo CSV ou XLSX com suas entradas e despesas. Voce podera revisar tudo antes de salvar.
+                  Envie um arquivo CSV ou XLSX com suas entradas e despesas. Você poderá revisar tudo antes de salvar.
                 </p>
               </div>
             </div>
@@ -219,12 +219,12 @@ export function ImportUpload() {
 
           <div className="grid gap-3 sm:grid-cols-3">
             <InfoPill label="Formatos" value="CSV e XLSX" />
-            <InfoPill label="Obrigatorio" value="Data, descricao e valor ou credito/debito" />
-            <InfoPill label="Seguranca" value="Revisao antes de salvar" />
+            <InfoPill label="Obrigatório" value="Data, descrição e valor ou crédito/débito" />
+            <InfoPill label="Segurança" value="Revisão antes de salvar" />
           </div>
 
           <div className="rounded-[24px] border border-secondary/20 bg-secondary-soft/70 p-4 text-sm leading-6 text-secondary-foreground">
-            Importacao OFX/extrato bancario automatico entrara em uma proxima versao.
+            Importação OFX/extrato bancário automático entrará em uma próxima versão.
           </div>
         </CardContent>
       </Card>
@@ -266,14 +266,14 @@ export function ImportUpload() {
         <Card className="overflow-hidden rounded-[30px]">
           <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-base font-extrabold text-foreground">Importacao concluida</p>
+              <p className="text-base font-extrabold text-foreground">Importação concluída</p>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                Confira os registros importados em Movimentacoes ou envie outro arquivo.
+                Confira os registros importados em Movimentações ou envie outro arquivo.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button asChild variant="outline">
-                <Link href="/app/movimentacoes">Ver movimentacoes</Link>
+                <Link href="/app/movimentacoes">Ver movimentações</Link>
               </Button>
               <Button onClick={resetImport} type="button">
                 Importar outro
@@ -307,7 +307,7 @@ function ImportPreview({
         <CardContent className="space-y-5 p-5 sm:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Previa da importacao</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Prévia da importação</p>
               <h2 className="mt-1 text-xl font-extrabold tracking-tight text-foreground">{result.fileName}</h2>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
                 Conferimos colunas, valores e duplicados antes de salvar no app.
@@ -329,7 +329,7 @@ function ImportPreview({
             <SummaryBox label="Linhas" value={String(summary.totalRows)} />
             <SummaryBox label="Com erro" tone="danger" value={String(summary.errorCount)} />
             <SummaryBox label="Duplicadas" tone="warning" value={String(summary.duplicateFileCount + summary.duplicateExistingCount)} />
-            <SummaryBox label="Validas" tone="success" value={String(summary.importableCount)} />
+            <SummaryBox label="Válidas" tone="success" value={String(summary.importableCount)} />
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -351,13 +351,13 @@ function ImportPreview({
             <p className="text-sm font-bold text-foreground">Colunas detectadas</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <ColumnBadge label="Data" value={result.columnMap.date} />
-              <ColumnBadge label="Descricao" value={result.columnMap.description} />
-              <ColumnBadge label="Valor" value={result.columnMap.amount ?? "Credito/Debito"} />
-              <ColumnBadge label="Credito" value={result.columnMap.credit} />
-              <ColumnBadge label="Debito" value={result.columnMap.debit} />
+              <ColumnBadge label="Descrição" value={result.columnMap.description} />
+              <ColumnBadge label="Valor" value={result.columnMap.amount ?? "Crédito/Débito"} />
+              <ColumnBadge label="Crédito" value={result.columnMap.credit} />
+              <ColumnBadge label="Débito" value={result.columnMap.debit} />
               <ColumnBadge label="Tipo" value={result.columnMap.type ?? "Inferido"} />
               <ColumnBadge label="Categoria" value={result.columnMap.category ?? "Sugerida"} />
-              <ColumnBadge label="Observacao" value={result.columnMap.notes ?? "Ignorada"} />
+              <ColumnBadge label="Observação" value={result.columnMap.notes ?? "Ignorada"} />
             </div>
           </div>
         </CardContent>
@@ -367,9 +367,9 @@ function ImportPreview({
         <CardContent className="p-0">
           <div className="flex flex-col gap-3 border-b border-border/70 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div>
-              <h2 className="text-lg font-extrabold tracking-tight text-foreground">Movimentacoes detectadas</h2>
+              <h2 className="text-lg font-extrabold tracking-tight text-foreground">Movimentações detectadas</h2>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                Linhas com erro ou duplicadas serao ignoradas por seguranca.
+                Linhas com erro ou duplicadas serão ignoradas por segurança.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -379,7 +379,7 @@ function ImportPreview({
               </Button>
               <Button disabled={isPending || summary.importableCount === 0} onClick={onConfirm} type="button">
                 {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                Importar movimentacoes
+                Importar movimentações
               </Button>
             </div>
           </div>
@@ -432,7 +432,7 @@ function ManualMappingCard({
           </Badge>
           <h2 className="text-xl font-extrabold tracking-tight text-foreground">Diga o que cada coluna representa</h2>
           <p className="text-sm leading-6 text-muted-foreground">
-            Preenchi o que consegui detectar. Ajuste os campos abaixo e continue para ver a previa.
+            Preenchi o que consegui detectar. Ajuste os campos abaixo e continue para ver a prévia.
           </p>
         </div>
 
@@ -440,26 +440,26 @@ function ManualMappingCard({
           <MappingSelect headers={headers} label="Data" required value={mapping.date} onChange={(value) => updateMapping("date", value)} />
           <MappingSelect
             headers={headers}
-            label="Descricao"
+            label="Descrição"
             required
             value={mapping.description}
             onChange={(value) => updateMapping("description", value)}
           />
           <MappingSelect headers={headers} label="Valor total" value={mapping.amount} onChange={(value) => updateMapping("amount", value)} />
           <MappingSelect headers={headers} label="Tipo" value={mapping.type} onChange={(value) => updateMapping("type", value)} />
-          <MappingSelect headers={headers} label="Credito" value={mapping.credit} onChange={(value) => updateMapping("credit", value)} />
-          <MappingSelect headers={headers} label="Debito" value={mapping.debit} onChange={(value) => updateMapping("debit", value)} />
+          <MappingSelect headers={headers} label="Crédito" value={mapping.credit} onChange={(value) => updateMapping("credit", value)} />
+          <MappingSelect headers={headers} label="Débito" value={mapping.debit} onChange={(value) => updateMapping("debit", value)} />
           <MappingSelect headers={headers} label="Categoria" value={mapping.category} onChange={(value) => updateMapping("category", value)} />
-          <MappingSelect headers={headers} label="Observacao" value={mapping.notes} onChange={(value) => updateMapping("notes", value)} />
+          <MappingSelect headers={headers} label="Observação" value={mapping.notes} onChange={(value) => updateMapping("notes", value)} />
         </div>
 
         <div className="rounded-[24px] border border-border/70 bg-muted/30 p-4 text-sm leading-6 text-muted-foreground">
-          Para continuar, informe Data, Descricao e Valor total ou use as colunas Credito/Debito.
+          Para continuar, informe Data, Descrição e Valor total ou use as colunas Crédito/Débito.
         </div>
 
         <Button disabled={isPending} onClick={onContinue} type="button">
           {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-          Continuar previa
+          Continuar prévia
         </Button>
       </CardContent>
     </Card>
@@ -486,7 +486,7 @@ function MappingSelect({
         {required ? " *" : ""}
       </span>
       <Select onChange={(event) => onChange(event.target.value)} value={value ?? ""}>
-        <option value="">Nao usar</option>
+        <option value="">Não usar</option>
         {headers.map((header) => (
           <option key={header} value={header}>
             {header}
@@ -524,7 +524,7 @@ function PreviewCard({ row }: { row: ImportPreviewRow }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-extrabold text-foreground">{row.description || `Linha ${row.rowNumber}`}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{row.occurred_on ?? "Data invalida"}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{row.occurred_on ?? "Data inválida"}</p>
         </div>
         <p className={cn("font-mono text-sm font-extrabold tabular", income ? "text-primary" : "text-destructive")}>
           {row.amount !== null ? toCurrency(row.amount) : "-"}
@@ -532,7 +532,7 @@ function PreviewCard({ row }: { row: ImportPreviewRow }) {
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Badge className={income ? "border-primary/15 bg-primary/10 text-primary" : "border-destructive/15 bg-destructive/10 text-destructive"} variant="outline">
-          {row.type ?? "Tipo invalido"}
+          {row.type ?? "Tipo inválido"}
         </Badge>
         <span className="rounded-full bg-muted/65 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
           {row.category}
@@ -546,7 +546,7 @@ function PreviewCard({ row }: { row: ImportPreviewRow }) {
 function RowStatus({ row }: { row: ImportPreviewRow }) {
   const label =
     row.status === "valid"
-      ? "Valida"
+      ? "Válida"
       : row.status === "duplicate_file"
         ? "Duplicada no arquivo"
         : row.status === "duplicate_existing"
@@ -617,7 +617,7 @@ function AmountBox({
 function ColumnBadge({ label, value }: { label: string; value?: string }) {
   return (
     <span className="rounded-full border border-border/70 bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground">
-      <span className="text-foreground">{label}:</span> {value ?? "Nao encontrada"}
+      <span className="text-foreground">{label}:</span> {value ?? "Não encontrada"}
     </span>
   );
 }
@@ -642,7 +642,7 @@ async function readImportFile(file: File): Promise<RawImportRow[]> {
     return parseXlsx(await file.arrayBuffer());
   }
 
-  throw new Error("Formato nao suportado. Envie um arquivo CSV ou XLSX.");
+  throw new Error("Formato não suportado. Envie um arquivo CSV ou XLSX.");
 }
 
 function getHeaders(rows: RawImportRow[]) {

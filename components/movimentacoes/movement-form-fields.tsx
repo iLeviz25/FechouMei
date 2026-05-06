@@ -87,15 +87,15 @@ export function validateMovementForm(form: MovementFormState) {
   const amount = form.amount.trim();
 
   if (!form.occurred_on) {
-    return "Informe a data da movimentacao.";
+    return "Informe a data da movimentação.";
   }
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(form.occurred_on)) {
-    return "Use uma data valida para a movimentacao.";
+    return "Use uma data válida para a movimentação.";
   }
 
   if (!amount) {
-    return "Informe o valor da movimentacao.";
+    return "Informe o valor da movimentação.";
   }
 
   if (!/^\d+([,.]\d{1,2})?$/.test(amount)) {
@@ -107,7 +107,7 @@ export function validateMovementForm(form: MovementFormState) {
   }
 
   if (!description) {
-    return "Informe uma descricao curta para identificar o registro.";
+    return "Informe uma descrição curta para identificar o registro.";
   }
 
   if (!form.category) {
@@ -182,7 +182,7 @@ export function MovementFields({
 
       <div className="space-y-2 md:col-span-2">
         <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground" htmlFor={`${idPrefix}-description`}>
-          Descricao curta
+          Descrição curta
         </Label>
         <Input
           id={`${idPrefix}-description`}

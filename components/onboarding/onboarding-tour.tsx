@@ -103,7 +103,7 @@ const tourSteps: TourStep[] = [
     id: "importacao",
     targetSelectors: ['[data-tour-id="quick-import"]', '[data-tour-target="importacao-nav"]'],
     title: "Importe seus registros antigos",
-    text: "Com o FechouMEI Completo, voce pode importar entradas e despesas por CSV ou XLSX, revisar os dados e salvar tudo com mais seguranca.",
+    text: "Com o FechouMEI Completo, você pode importar entradas e despesas por CSV ou XLSX, revisar os dados e salvar tudo com mais segurança.",
   },
   {
     icon: ClipboardCheck,
@@ -131,14 +131,14 @@ const tourSteps: TourStep[] = [
     id: "helena",
     targetSelectors: ['[data-tour-id="quick-helena"]', '[data-tour-target="helena-nav"]'],
     title: "Use a Helena pelo WhatsApp",
-    text: "A Helena ajuda voce a registrar movimentacoes e consultar informacoes. Arquivos pelo WhatsApp fazem parte do acesso completo.",
+    text: "A Helena ajuda você a registrar movimentações e consultar informações. Arquivos pelo WhatsApp fazem parte do acesso completo.",
   },
   {
     icon: Sparkles,
     id: "final",
     targetSelectors: [],
     title: "Pronto para começar",
-    text: "Agora voce ja sabe o basico. Comece registrando uma entrada ou despesa, exporte seus dados pelo app ou chame a Helena no WhatsApp.",
+    text: "Agora você já sabe o básico. Comece registrando uma entrada ou despesa, exporte seus dados pelo app ou chame a Helena no WhatsApp.",
   },
 ];
 

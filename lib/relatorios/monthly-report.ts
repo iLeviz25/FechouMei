@@ -35,7 +35,7 @@ export async function getMonthlyReportData(monthParam?: string): Promise<Monthly
   const { profile, profileError, supabase, user } = await getCurrentUserProfile();
 
   if (!user) {
-    throw new Error("Usuario nao autenticado.");
+    throw new Error("Usuário não autenticado.");
   }
 
   if (profileError) {
@@ -69,7 +69,7 @@ export async function getMonthlyReportData(monthParam?: string): Promise<Monthly
   ]);
 
   if (monthMovementsResult.error) {
-    throw new Error(`Erro ao carregar movimentacoes do relatorio: ${monthMovementsResult.error.message}`);
+    throw new Error(`Erro ao carregar movimentações do relatório: ${monthMovementsResult.error.message}`);
   }
 
   if (yearMovementsResult.error) {
@@ -77,7 +77,7 @@ export async function getMonthlyReportData(monthParam?: string): Promise<Monthly
   }
 
   if (checklistResult.error) {
-    throw new Error(`Erro ao carregar obrigacoes do relatorio: ${checklistResult.error.message}`);
+    throw new Error(`Erro ao carregar obrigações do relatório: ${checklistResult.error.message}`);
   }
 
   const movements = (monthMovementsResult.data ?? []) as ReportMovement[];
@@ -230,7 +230,7 @@ function buildObligationSummary(rows: ChecklistRow[]): MonthlyReportData["obliga
   const items: ReportObligationSummary[] = [
     toObligationItem("das", "DAS mensal", Boolean(doneMap.get("pagar-das"))),
     toObligationItem("dasn", "DASN-SIMEI", Boolean(doneMap.get("entregar-dasn"))),
-    toObligationItem("revisao", "Revisao mensal", revisionDone),
+    toObligationItem("revisao", "Revisão mensal", revisionDone),
     toObligationItem("comprovantes", "Comprovantes", Boolean(doneMap.get("guardar-comprovantes"))),
   ];
   const totalDone = CHECKLIST_TEMPLATE.reduce((total, key) => total + (doneMap.get(key) ? 1 : 0), 0);
@@ -251,6 +251,6 @@ function toObligationItem(
     done,
     key,
     label,
-    statusLabel: done ? "Concluido" : "Pendente",
+    statusLabel: done ? "Concluído" : "Pendente",
   };
 }

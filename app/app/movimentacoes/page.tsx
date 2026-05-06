@@ -15,7 +15,7 @@ async function MovimentacoesData() {
   const { profile, profileError, supabase, user } = await getCurrentUserProfile();
 
   if (!user) {
-    throw new Error("Usuario nao autenticado.");
+    throw new Error("Usuário não autenticado.");
   }
 
   const movementsResult = await supabase

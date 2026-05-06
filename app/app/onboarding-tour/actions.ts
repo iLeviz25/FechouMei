@@ -21,7 +21,7 @@ export async function completeOnboardingTour(): Promise<CompleteOnboardingTourRe
 
   if (userError || !user) {
     return {
-      message: "Nao foi possivel confirmar sua sessao. Entre novamente para salvar o guia.",
+      message: "Não foi possível confirmar sua sessão. Entre novamente para salvar o guia.",
       ok: false,
     };
   }
@@ -35,7 +35,7 @@ export async function completeOnboardingTour(): Promise<CompleteOnboardingTourRe
   if (error) {
     console.error("[onboarding-tour] Falha ao salvar conclusao do tour", error);
     return {
-      message: "Nao foi possivel salvar agora. Tente concluir ou pular novamente.",
+      message: "Não foi possível salvar agora. Tente concluir ou pular novamente.",
       ok: false,
     };
   }

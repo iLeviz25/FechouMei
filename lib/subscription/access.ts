@@ -36,18 +36,18 @@ export const helenaDailyLimitReply =
   "Você atingiu o limite diário da Helena do seu plano. Tente novamente amanhã ou atualize seu plano.";
 
 export const appImportProFeatureReply =
-  "A importacao pelo app faz parte do FechouMEI Completo. A exportacao pelo app continua liberada na sua assinatura atual.";
+  "A importação pelo app faz parte do FechouMEI Completo. A exportação pelo app continua liberada na sua assinatura atual.";
 
 export const helenaImportExportProFeatureReply =
-  "Importacao e exportacao pela Helena/WhatsApp fazem parte do plano Pro. No Essencial, voce pode continuar registrando e consultando pela Helena e exportando pelo app.";
+  "Importação e exportação pela Helena/WhatsApp fazem parte do plano Pro. No Essencial, você pode continuar registrando e consultando pela Helena e exportando pelo app.";
 
 export const helenaProFeatureReply = helenaImportExportProFeatureReply;
 
 const subscriptionBlockedReplies: Record<SubscriptionStatus, string> = {
   active: "",
-  canceled: "Seu acesso ao FechouMEI esta cancelado. Regularize sua assinatura para voltar a usar o app.",
+  canceled: "Seu acesso ao FechouMEI está cancelado. Regularize sua assinatura para voltar a usar o app.",
   past_due: "Existe um pagamento pendente na sua assinatura. Regularize para voltar a usar o FechouMEI.",
-  pending_payment: "Seu acesso ao FechouMEI esta aguardando a confirmacao do pagamento.",
+  pending_payment: "Seu acesso ao FechouMEI está aguardando a confirmação do pagamento.",
 };
 
 export function normalizeSubscriptionPlan(value: unknown): SubscriptionPlan {

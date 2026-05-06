@@ -92,7 +92,7 @@ function whatsappLabel(status: string) {
   const labels: Record<string, string> = {
     expired: "Expirado",
     linked: "Vinculado",
-    none: "Nao vinculado",
+    none: "Não vinculado",
     pending: "Pendente",
     revoked: "Revogado",
   };
@@ -106,9 +106,9 @@ function roleErrorMessage(error: string | null) {
   }
 
   const messages: Record<string, string> = {
-    "invalid-role": "Role invalida.",
-    "invalid-user": "Usuario invalido.",
-    "missing-confirmation": "Confirme visualmente a alteracao antes de continuar.",
+    "invalid-role": "Role inválida.",
+    "invalid-user": "Usuário inválido.",
+    "missing-confirmation": "Confirme visualmente a alteração antes de continuar.",
   };
 
   return messages[error] ?? error;
@@ -120,10 +120,10 @@ function subscriptionErrorMessage(error: string | null) {
   }
 
   const messages: Record<string, string> = {
-    "invalid-plan": "Plano invalido.",
-    "invalid-status": "Status invalido.",
-    "invalid-user": "Usuario invalido.",
-    "missing-confirmation": "Confirme visualmente a alteracao antes de continuar.",
+    "invalid-plan": "Plano inválido.",
+    "invalid-status": "Status inválido.",
+    "invalid-user": "Usuário inválido.",
+    "missing-confirmation": "Confirme visualmente a alteração antes de continuar.",
   };
 
   return messages[error] ?? error;
@@ -211,7 +211,7 @@ function SubscriptionManagement({ user }: { user: AdminUserDetail }) {
           <label className="flex gap-3 rounded-2xl border border-border/70 bg-background p-4 text-sm font-semibold leading-6 text-muted-foreground">
             <input className="mt-1 h-4 w-4 shrink-0 accent-primary" name="confirmSubscriptionChange" required type="checkbox" value="confirm" />
             <span>
-              Confirmo a alteracao manual de plano/status deste usuario.
+              Confirmo a alteração manual de plano/status deste usuário.
             </span>
           </label>
           <Button type="submit">Salvar assinatura</Button>
@@ -236,19 +236,19 @@ function RoleManagement({
       <CardContent className="space-y-4 p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Permissoes</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Permissões</p>
             <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Alterar role</h2>
           </div>
           {roleBadge(user.role)}
         </div>
 
         <p className="text-sm leading-6 text-muted-foreground">
-          Esta acao usa a RPC segura <span className="font-bold text-foreground">set_user_role</span> e atualiza apenas a permissao de acesso.
+          Esta ação usa a RPC segura <span className="font-bold text-foreground">set_user_role</span> e atualiza apenas a permissão de acesso.
         </p>
 
         {isDemotingSelf ? (
           <div className="rounded-2xl border border-secondary/20 bg-secondary-soft/60 p-4 text-sm font-semibold leading-6 text-secondary-foreground">
-            Para evitar lockout, voce nao pode remover o proprio acesso admin por aqui.
+            Para evitar lockout, você não pode remover o próprio acesso admin por aqui.
           </div>
         ) : (
           <form action={changeAdminUserRoleAction} className="space-y-4">
@@ -257,7 +257,7 @@ function RoleManagement({
             <label className="flex gap-3 rounded-2xl border border-border/70 bg-background p-4 text-sm font-semibold leading-6 text-muted-foreground">
               <input className="mt-1 h-4 w-4 shrink-0 accent-primary" name="confirmRoleChange" required type="checkbox" value="confirm" />
               <span>
-                Confirmo que quero transformar este usuario em <span className="font-extrabold text-foreground">{nextRole}</span>.
+                Confirmo que quero transformar este usuário em <span className="font-extrabold text-foreground">{nextRole}</span>.
               </span>
             </label>
             <Button type="submit" variant={nextRole === "admin" ? "default" : "outline"}>
@@ -297,12 +297,12 @@ export default async function AdminUsuarioDetalhePage({
         <Button asChild variant="outline">
           <Link href="/admin/usuarios">
             <ArrowLeft className="h-4 w-4" />
-            Voltar para usuarios
+            Voltar para usuários
           </Link>
         </Button>
         <Card className="overflow-hidden rounded-[26px] border-destructive/20 bg-destructive/5">
           <CardContent className="p-5">
-            <h1 className="text-xl font-extrabold text-foreground">Nao foi possivel carregar este usuario</h1>
+            <h1 className="text-xl font-extrabold text-foreground">Não foi possível carregar este usuário</h1>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {detailResult.error ?? "Aplique a migration da Fase 4 e tente novamente."}
             </p>
@@ -322,17 +322,17 @@ export default async function AdminUsuarioDetalhePage({
           <Button asChild variant="outline">
             <Link href="/admin/usuarios">
               <ArrowLeft className="h-4 w-4" />
-              Voltar para usuarios
+              Voltar para usuários
             </Link>
           </Button>
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Detalhe do usuario</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Detalhe do usuário</p>
             <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
-              {user.fullName ?? "Usuario sem nome"}
+              {user.fullName ?? "Usuário sem nome"}
             </h1>
             <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-muted-foreground">
               <Mail className="h-4 w-4" />
-              {user.email ?? "E-mail indisponivel"}
+              {user.email ?? "E-mail indisponível"}
             </p>
           </div>
         </div>
@@ -371,7 +371,7 @@ export default async function AdminUsuarioDetalhePage({
       ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard icon={WalletCards} label="Movimentacoes" tone="slate" value={formatCount(user.metrics.movementsTotal)} />
+        <MetricCard icon={WalletCards} label="Movimentações" tone="slate" value={formatCount(user.metrics.movementsTotal)} />
         <MetricCard icon={WalletCards} label="Entradas" tone="green" value={formatCount(user.metrics.entradasTotal)} />
         <MetricCard icon={WalletCards} label="Despesas" tone="red" value={formatCount(user.metrics.despesasTotal)} />
         <MetricCard icon={MessageCircle} label="Mensagens Helena" tone="green" value={formatCount(user.metrics.helenaMessagesTotal)} />
@@ -389,15 +389,15 @@ export default async function AdminUsuarioDetalhePage({
             </div>
             <InfoRow label="Cadastro" value={formatDateTime(user.createdAt)} />
             <InfoRow label="Atualizado em" value={formatDateTime(user.updatedAt)} />
-            <InfoRow label="Ultimo login" value={formatDateTime(user.lastSignInAt)} />
+            <InfoRow label="Último login" value={formatDateTime(user.lastSignInAt)} />
             <InfoRow label="Atividade recente" value={formatDateTime(user.metrics.lastActivityAt)} />
             <InfoRow label="Plano" value={subscriptionPlanLabel(user.subscriptionPlan)} />
             <InfoRow label="Status assinatura" value={subscriptionStatusLabel(user.subscriptionStatus)} />
-            <InfoRow label="Onboarding" value={user.onboardingCompleted ? "Concluido" : "Pendente"} />
-            <InfoRow label="Atuacao" value={user.workType ?? "Nao informado"} />
-            <InfoRow label="Tipo de trabalho" value={user.businessMode ?? "Nao informado"} />
-            <InfoRow label="Categoria" value={user.mainCategory ?? "Nao informado"} />
-            <InfoRow label="Objetivo" value={user.mainGoal ?? "Nao informado"} />
+            <InfoRow label="Onboarding" value={user.onboardingCompleted ? "Concluído" : "Pendente"} />
+            <InfoRow label="Atuação" value={user.workType ?? "Não informado"} />
+            <InfoRow label="Tipo de trabalho" value={user.businessMode ?? "Não informado"} />
+            <InfoRow label="Categoria" value={user.mainCategory ?? "Não informado"} />
+            <InfoRow label="Objetivo" value={user.mainGoal ?? "Não informado"} />
           </CardContent>
         </Card>
 
@@ -409,13 +409,13 @@ export default async function AdminUsuarioDetalhePage({
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">WhatsApp</p>
-                  <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Vinculo Helena</h2>
+                  <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Vínculo Helena</h2>
                 </div>
                 <MessageCircle className="h-5 w-5 text-primary" />
               </div>
               <InfoRow label="Status" value={whatsappLabel(user.whatsapp.status)} />
               <InfoRow label="Vinculado em" value={formatDateTime(user.whatsapp.linkedAt)} />
-              <InfoRow label="Ultima mensagem" value={formatDateTime(user.whatsapp.lastInboundAt)} />
+              <InfoRow label="Última mensagem" value={formatDateTime(user.whatsapp.lastInboundAt)} />
             </CardContent>
           </Card>
 
@@ -428,7 +428,7 @@ export default async function AdminUsuarioDetalhePage({
           <div className="mb-5 flex items-start justify-between gap-3">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Eventos</p>
-              <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Ultimos registros resumidos</h2>
+              <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Últimos registros resumidos</h2>
             </div>
             <CalendarClock className="h-5 w-5 text-primary" />
           </div>
@@ -452,7 +452,7 @@ export default async function AdminUsuarioDetalhePage({
           ) : (
             <div className="flex items-center gap-3 rounded-2xl bg-primary-soft/45 p-4 text-sm font-semibold text-primary">
               <CheckCircle2 className="h-5 w-5" />
-              Nenhum evento recente encontrado para este usuario.
+              Nenhum evento recente encontrado para este usuário.
             </div>
           )}
         </CardContent>
