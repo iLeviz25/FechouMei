@@ -291,6 +291,49 @@ export function DashboardOverview({
         </div>
       </section>
 
+      <section className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2">
+        <SummaryCard
+          detail={currentMonthLabel}
+          icon={ArrowDownLeft}
+          label="Entradas"
+          tone="success"
+          trend={getMetricDelta(monthlyIncome, previousMonthIncome, "higher-is-better")}
+          value={toCurrency(monthlyIncome)}
+        />
+        <SummaryCard
+          detail={currentMonthLabel}
+          icon={ArrowUpRight}
+          label="Despesas"
+          tone="danger"
+          trend={getMetricDelta(monthlyExpense, previousMonthExpense, "lower-is-better")}
+          value={toCurrency(monthlyExpense)}
+        />
+        <SummaryCard
+          detail={monthBalance >= 0 ? "entradas - despesas" : "requer revisao do mes"}
+          icon={Wallet}
+          label="Saldo do mes"
+          tone="neutral"
+          trend={getMetricDelta(monthBalance, previousMonthBalance, "higher-is-better")}
+          value={toCurrency(monthBalance)}
+          valueTone={monthBalance >= 0 ? "neutral" : "danger"}
+        />
+        <SummaryCard
+          detail={`acumulado ${currentYear}`}
+          icon={Landmark}
+          label="Faturamento"
+          tone="warning"
+          trendLabel={
+            exceededLimit > 0
+              ? `${toCurrency(exceededLimit)} acima do teto`
+              : remainingLimit > 0
+                ? `${toCurrency(remainingLimit)} livres no teto`
+                : "Teto anual atingido"
+          }
+          value={toCurrency(annualIncome)}
+          valueTone="warning"
+        />
+      </section>
+
       <section>
         <div className="relative overflow-hidden rounded-[30px] bg-gradient-hero px-4 py-4 text-primary-foreground shadow-elevated min-[380px]:px-5 sm:py-5">
           <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(hsl(0_0%_100%/0.08)_1px,transparent_1px),linear-gradient(90deg,hsl(0_0%_100%/0.08)_1px,transparent_1px)] [background-size:22px_22px]" />
@@ -365,49 +408,6 @@ export function DashboardOverview({
             </div>
           </div>
         </div>
-      </section>
-
-      <section className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2">
-        <SummaryCard
-          detail={currentMonthLabel}
-          icon={ArrowDownLeft}
-          label="Entradas"
-          tone="success"
-          trend={getMetricDelta(monthlyIncome, previousMonthIncome, "higher-is-better")}
-          value={toCurrency(monthlyIncome)}
-        />
-        <SummaryCard
-          detail={currentMonthLabel}
-          icon={ArrowUpRight}
-          label="Despesas"
-          tone="danger"
-          trend={getMetricDelta(monthlyExpense, previousMonthExpense, "lower-is-better")}
-          value={toCurrency(monthlyExpense)}
-        />
-        <SummaryCard
-          detail={monthBalance >= 0 ? "entradas - despesas" : "requer revisao do mes"}
-          icon={Wallet}
-          label="Saldo do mes"
-          tone="neutral"
-          trend={getMetricDelta(monthBalance, previousMonthBalance, "higher-is-better")}
-          value={toCurrency(monthBalance)}
-          valueTone={monthBalance >= 0 ? "neutral" : "danger"}
-        />
-        <SummaryCard
-          detail={`acumulado ${currentYear}`}
-          icon={Landmark}
-          label="Faturamento"
-          tone="warning"
-          trendLabel={
-            exceededLimit > 0
-              ? `${toCurrency(exceededLimit)} acima do teto`
-              : remainingLimit > 0
-                ? `${toCurrency(remainingLimit)} livres no teto`
-                : "Teto anual atingido"
-          }
-          value={toCurrency(annualIncome)}
-          valueTone="warning"
-        />
       </section>
 
       <section>
