@@ -71,7 +71,7 @@ export function PasswordRecoveryForm() {
               autoComplete="email"
               inputMode="email"
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="voce@empresa.com"
+              placeholder="seu@email.com"
               required
               type="email"
               value={email}

@@ -173,7 +173,7 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
 
   function getStepValue(stepId: OnboardingStepId) {
     if (stepId === "businessMode") {
-      return businessMode;
+      return getBusinessModeLabel(businessMode);
     }
 
     if (stepId === "workType") {
@@ -516,6 +516,10 @@ function getKnownOrOther(value: string | null | undefined, options: string[], fa
   }
 
   return options.includes(value) ? value : "Outro";
+}
+
+function getBusinessModeLabel(value: string) {
+  return businessModeOptions.find((option) => option.value === value)?.label ?? value;
 }
 
 function getCustomValue(value: string | null | undefined, options: string[]) {

@@ -23,7 +23,7 @@ export function DashboardGreeting({ className }: DashboardGreetingProps) {
         className,
       )}
     >
-      Ola, {firstName}
+      Olá, {firstName}
     </h1>
   );
 }

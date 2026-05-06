@@ -188,7 +188,7 @@ export function MovementFields({
           id={`${idPrefix}-description`}
           name="description"
           onChange={(event) => onChange("description", event.target.value)}
-          placeholder="Ex.: servico para cliente"
+          placeholder="Ex.: serviço para cliente"
           required
           value={form.description}
         />

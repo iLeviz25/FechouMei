@@ -70,27 +70,27 @@ type ProfileValues = {
 type DeleteAccountStep = "intro" | "text-confirmation" | "final-confirmation";
 
 const workTypeOptions = [
-  "Prestador de servico",
-  "Comercio",
-  "Autonomo formalizado",
+  "Prestador de serviço",
+  "Comércio",
+  "Autônomo formalizado",
   "Criador ou profissional digital",
   "Outro",
 ];
 
 const businessModeOptions = [
-  { value: "servico", label: "Servico" },
+  { value: "servico", label: "Serviço" },
   { value: "produto", label: "Produto" },
   { value: "ambos", label: "Ambos" },
 ];
 
 const categoryOptions = [
-  "Beleza e estetica",
-  "Alimentacao",
+  "Beleza e estética",
+  "Alimentação",
   "Consultoria",
-  "Educacao",
+  "Educação",
   "Manutenção e reparos",
-  "Comercio varejista",
-  "Marketing e conteudo",
+  "Comércio varejista",
+  "Marketing e conteúdo",
   "Tecnologia",
   "Outro",
 ];
@@ -1098,11 +1098,15 @@ function getKnownOrOther(value: string | null | undefined, options: string[], fa
     return fallback;
   }
 
-  return options.includes(value) ? value : "Outro";
+  return options.find((option) => normalizeOptionLabel(option) === normalizeOptionLabel(value)) ?? "Outro";
 }
 
 function getCustomValue(value: string | null | undefined, options: string[]) {
-  return value && !options.includes(value) ? value : "";
+  return value && !options.some((option) => normalizeOptionLabel(option) === normalizeOptionLabel(value)) ? value : "";
+}
+
+function normalizeOptionLabel(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
 function resolveOtherValue(value: string, customValue: string) {

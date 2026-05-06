@@ -100,7 +100,7 @@ export function AuthShell({
                   <p className="font-mono mt-0.5 text-sm font-bold tabular text-foreground">+ R$ 12.300</p>
                 </div>
                 <div className="rounded-2xl bg-destructive/10 p-3">
-                  <p className="text-[10px] font-bold uppercase text-destructive">Saidas</p>
+                  <p className="text-[10px] font-bold uppercase text-destructive">Saídas</p>
                   <p className="font-mono mt-0.5 text-sm font-bold tabular text-foreground">- R$ 3.880</p>
                 </div>
               </div>
@@ -126,7 +126,7 @@ export function AuthShell({
             <ul className="space-y-1.5 text-sm text-primary-foreground/80">
               {[
                 "Entradas, despesas e saldo no mesmo lugar",
-                "Limite anual do MEI sempre visivel",
+                "Limite anual do MEI sempre visível",
                 "Checklist, fechamento e Helena integrados",
               ].map((item) => (
                 <li className="flex items-center gap-2" key={item}>

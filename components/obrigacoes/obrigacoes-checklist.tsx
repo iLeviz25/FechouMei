@@ -174,7 +174,7 @@ export function ObrigacoesChecklist({ items, monthKey, onItemsChange }: Obrigaco
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 min-[430px]:flex-row min-[430px]:items-center min-[430px]:justify-between">
-        <p className="text-sm leading-6 text-muted-foreground">Filtre o checklist sem perder a marcacao real dos itens.</p>
+        <p className="text-sm leading-6 text-muted-foreground">Filtre o checklist sem perder a marcação real dos itens.</p>
 
         <div className="inline-flex w-full flex-wrap rounded-full border border-border/70 bg-muted/30 p-1 min-[430px]:w-auto">
           {filterOptions.map((option) => {
@@ -379,7 +379,7 @@ function enrichChecklistItem(item: ChecklistItem, monthInfo: MonthInfo): Enriche
       ...item,
       ...base,
       category: "Financeiro",
-      description: "Confirme despesas e saidas registradas",
+      description: "Confirme despesas e saídas registradas",
       title: "Revisar despesas do mês",
     };
   }

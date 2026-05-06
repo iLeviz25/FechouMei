@@ -413,7 +413,7 @@ export function FechamentoMensalOverview({
       <header className="space-y-3">
         <Badge className="w-fit" variant="success">
           <Sparkles className="mr-1 h-3 w-3" />
-          Visao consolidada
+          Visão consolidada
         </Badge>
         <div className="max-w-2xl space-y-1.5">
           <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Fechamento mensal</h1>
@@ -535,7 +535,7 @@ export function FechamentoMensalOverview({
           />
           <SummaryStatCard
             className="min-[430px]:col-span-2 lg:col-span-1"
-            detail={hasCustomRange ? `ate ${toDate(effectiveEnd)}` : `ate ${monthLabel}`}
+            detail={hasCustomRange ? `até ${toDate(effectiveEnd)}` : `até ${monthLabel}`}
             icon={Wallet}
             label="Saldo acumulado"
             tone="neutral"

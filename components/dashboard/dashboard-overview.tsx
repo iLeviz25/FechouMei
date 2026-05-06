@@ -101,38 +101,32 @@ function toDateTime(value: string) {
   }).format(new Date(value));
 }
 
-function normalizeLabel(value: string) {
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
-
 function toHeadlineDate(value: Date) {
-  return normalizeLabel(
-    new Intl.DateTimeFormat("pt-BR", {
-      day: "2-digit",
-      month: "long",
-      timeZone: "America/Sao_Paulo",
-      weekday: "long",
-    }).format(value),
-  ).toUpperCase();
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "long",
+    timeZone: "America/Sao_Paulo",
+    weekday: "long",
+  })
+    .format(value)
+    .toUpperCase();
 }
 
 function toMonthCardLabel(value: Date) {
-  return normalizeLabel(
-    new Intl.DateTimeFormat("pt-BR", {
-      month: "long",
-      timeZone: "America/Sao_Paulo",
-      year: "numeric",
-    }).format(value),
-  ).replace(" de ", "/");
+  return new Intl.DateTimeFormat("pt-BR", {
+    month: "long",
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+  })
+    .format(value)
+    .replace(" de ", "/");
 }
 
 function toMonthName(value: Date) {
-  return normalizeLabel(
-    new Intl.DateTimeFormat("pt-BR", {
-      month: "long",
-      timeZone: "America/Sao_Paulo",
-    }).format(value),
-  );
+  return new Intl.DateTimeFormat("pt-BR", {
+    month: "long",
+    timeZone: "America/Sao_Paulo",
+  }).format(value);
 }
 
 function getDashboardMovementTone(type: RecentMovement["type"]) {
@@ -232,7 +226,7 @@ export function DashboardOverview({
       cta: "Ver projecao",
       description:
         limitUsage >= 1
-          ? `Seu faturamento anual passou do teto do MEI em ${toCurrency(exceededLimit)}. Revise o fechamento para decidir os proximos passos.`
+          ? `Seu faturamento anual passou do teto do MEI em ${toCurrency(exceededLimit)}. Revise o fechamento para decidir os próximos passos.`
           : `${limitUsageDisplayPercent.toFixed(1).replace(".", ",")}% do limite anual usado. Ainda restam ${toCurrency(remainingLimit)} no teto.`,
       href: "/app/fechamento-mensal",
       icon: TrendingUp,
@@ -270,7 +264,7 @@ export function DashboardOverview({
             <div className="space-y-2">
               <DashboardGreeting />
               <p className="max-w-[18rem] text-sm leading-6 text-muted-foreground">
-                Aqui esta o resumo do seu MEI hoje.
+                Aqui está o resumo do seu MEI hoje.
               </p>
             </div>
           </div>
@@ -388,10 +382,10 @@ export function DashboardOverview({
                   </div>
                   <div className="rounded-[18px] bg-white/8 px-3 py-2 text-right sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
                     <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-primary-foreground/58 sm:hidden">
-                      {exceededLimit > 0 ? "Excedido" : "Disponivel"}
+                      {exceededLimit > 0 ? "Excedido" : "Disponível"}
                     </p>
                     <p className="mt-1 text-sm font-semibold text-primary-foreground sm:mt-0 sm:text-sm">
-                      {exceededLimit > 0 ? `${toCurrency(exceededLimit)} acima` : `${toCurrency(remainingLimit)} disponiveis`}
+                      {exceededLimit > 0 ? `${toCurrency(exceededLimit)} acima` : `${toCurrency(remainingLimit)} disponíveis`}
                     </p>
                   </div>
                 </div>

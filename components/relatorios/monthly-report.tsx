@@ -116,13 +116,13 @@ export function MonthlyReport({ report }: MonthlyReportProps) {
               <SectionTitle
                 description="Dados usados para identificar o mês de referência."
                 icon={FileText}
-                title="Identificacao"
+                title="Identificação"
               />
               <div className="grid gap-3 sm:grid-cols-2 print:grid-cols-2">
                 <InfoRow label="Nome / MEI" value={report.identification.fullName ?? "Não informado"} />
                 <InfoRow label="E-mail" value={report.identification.email ?? "Não informado"} />
                 <InfoRow label="Atuação" value={report.identification.workType ?? "Não informado"} />
-                <InfoRow label="Tipo de trabalho" value={report.identification.businessMode ?? "Não informado"} />
+                <InfoRow label="Tipo de trabalho" value={toBusinessModeLabel(report.identification.businessMode)} />
                 <InfoRow label="Categoria principal" value={report.identification.mainCategory ?? "Não informado"} />
                 <InfoRow label="Mês" value={report.identification.monthLabel} />
               </div>
@@ -209,7 +209,7 @@ export function MonthlyReport({ report }: MonthlyReportProps) {
               <SectionTitle
                 description="Resumo gerado com base nos registros informados pelo usuário."
                 icon={ReceiptText}
-                title="Observacoes finais"
+                title="Observações finais"
               />
               <div className="rounded-[22px] bg-primary-soft/55 p-4 text-sm leading-6 text-foreground print:border print:border-border print:bg-white">
                 <p>
@@ -419,4 +419,14 @@ function toCurrency(value: number) {
 
 function formatPercent(value: number) {
   return percentFormatter.format(value);
+}
+
+function toBusinessModeLabel(value: string | null | undefined) {
+  const labels: Record<string, string> = {
+    ambos: "ambos",
+    produto: "produto",
+    servico: "serviço",
+  };
+
+  return value ? labels[value] ?? value : "Não informado";
 }
