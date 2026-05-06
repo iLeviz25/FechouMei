@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, type ReactNode, useEffect, useMemo, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -66,6 +67,8 @@ type ProfileValues = {
   mainGoal: string;
 };
 
+type DeleteAccountStep = "intro" | "text-confirmation" | "final-confirmation";
+
 const workTypeOptions = [
   "Prestador de servico",
   "Comercio",
@@ -112,7 +115,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
-  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteStep, setDeleteStep] = useState<DeleteAccountStep | null>(null);
   const [isSavingProfile, startProfileTransition] = useTransition();
   const [isUpdatingPassword, startPasswordTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
@@ -231,7 +234,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
   }
 
   function openDeleteDialog() {
-    setDeleteOpen(true);
+    setDeleteStep("intro");
     setDeleteMessage(null);
     setDeleteConfirmation("");
   }
@@ -241,9 +244,26 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
       return;
     }
 
-    setDeleteOpen(false);
+    setDeleteStep(null);
     setDeleteConfirmation("");
     setDeleteMessage(null);
+  }
+
+  function continueToDeleteTextConfirmation() {
+    setDeleteMessage(null);
+    setDeleteConfirmation("");
+    setDeleteStep("text-confirmation");
+  }
+
+  function continueToFinalDeleteConfirmation() {
+    setDeleteMessage(null);
+
+    if (deleteConfirmation.trim().toUpperCase() !== "EXCLUIR") {
+      setDeleteMessage("Digite EXCLUIR para confirmar a exclusao definitiva da conta.");
+      return;
+    }
+
+    setDeleteStep("final-confirmation");
   }
 
   function handleDeleteAccount() {
@@ -603,14 +623,41 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
         </ResponsiveOverlay>
       ) : null}
 
-      {deleteOpen ? (
+      {deleteStep === "intro" ? (
         <ResponsiveOverlay
           closeDisabled={isDeleting}
-          description="Essa acao remove seu login, perfil, movimentacoes, checklist e preferencias salvas."
+          description="Essa ação é permanente e merece uma confirmação antes de continuar."
           icon={<AlertTriangle className="h-4 w-4" />}
           maxWidthClass="sm:max-w-md"
           onClose={closeDeleteDialog}
-          title="Excluir conta definitivamente"
+          title="Tem certeza que deseja excluir sua conta?"
+          tone="danger"
+        >
+          <div className="space-y-5">
+            <p className="rounded-[22px] border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm leading-6 text-destructive">
+              Essa ação é permanente e removerá seu login, perfil, movimentações, fechamentos, checklist e preferências salvas.
+            </p>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button onClick={closeDeleteDialog} type="button" variant="outline">
+                Cancelar
+              </Button>
+              <Button onClick={continueToDeleteTextConfirmation} type="button" variant="destructive">
+                Sim, quero continuar
+              </Button>
+            </div>
+          </div>
+        </ResponsiveOverlay>
+      ) : null}
+
+      {deleteStep === "text-confirmation" ? (
+        <ResponsiveOverlay
+          closeDisabled={isDeleting}
+          description="Digite EXCLUIR para habilitar a próxima confirmação."
+          icon={<Trash2 className="h-4 w-4" />}
+          maxWidthClass="sm:max-w-md"
+          onClose={closeDeleteDialog}
+          title="Confirmar exclusão"
           tone="danger"
         >
           <div className="space-y-4">
@@ -640,13 +687,47 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
                 Cancelar
               </Button>
               <Button
-                disabled={isDeleting || deleteConfirmation.trim().toUpperCase() !== "EXCLUIR"}
-                onClick={handleDeleteAccount}
+                disabled={deleteConfirmation.trim().toUpperCase() !== "EXCLUIR"}
+                onClick={continueToFinalDeleteConfirmation}
                 type="button"
                 variant="destructive"
               >
-                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                <Trash2 className="h-4 w-4" />
                 Excluir
+              </Button>
+            </div>
+          </div>
+        </ResponsiveOverlay>
+      ) : null}
+
+      {deleteStep === "final-confirmation" ? (
+        <ResponsiveOverlay
+          closeDisabled={isDeleting}
+          description="Depois disso, não será possível recuperar sua conta nem seus dados."
+          icon={<AlertTriangle className="h-4 w-4" />}
+          maxWidthClass="sm:max-w-md"
+          onClose={closeDeleteDialog}
+          title="Última confirmação"
+          tone="danger"
+        >
+          <div className="space-y-5">
+            <p className="rounded-[22px] border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm leading-6 text-destructive">
+              Depois disso, não será possível recuperar sua conta nem seus dados.
+            </p>
+
+            {deleteMessage ? (
+              <p className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm leading-6 text-destructive">
+                {deleteMessage}
+              </p>
+            ) : null}
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button disabled={isDeleting} onClick={closeDeleteDialog} type="button" variant="outline">
+                Cancelar
+              </Button>
+              <Button disabled={isDeleting} onClick={handleDeleteAccount} type="button" variant="destructive">
+                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Excluir definitivamente
               </Button>
             </div>
           </div>
@@ -804,7 +885,7 @@ function ActionCard({
           "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
           tone === "danger" ? "bg-destructive/10 text-destructive" : "bg-primary-soft text-primary",
         )}
-        >
+      >
         {icon}
       </div>
       <div className="min-w-0 flex-1">
@@ -846,10 +927,14 @@ function ResponsiveOverlay({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [closeDisabled, onClose]);
 
-  return (
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
     <div
       aria-modal="true"
-            className="fixed inset-0 z-50 flex items-end bg-neutral-950/45 p-3 sm:items-center sm:justify-center sm:p-4"
+      className="fixed inset-0 z-[90] flex min-h-dvh items-center justify-center overflow-y-auto bg-neutral-950/45 px-3 pb-[calc(6.25rem+env(safe-area-inset-bottom))] pt-[calc(1.5rem+env(safe-area-inset-top))] sm:p-4"
       onClick={() => {
         if (!closeDisabled) {
           onClose();
@@ -859,7 +944,7 @@ function ResponsiveOverlay({
     >
       <div
         className={cn(
-          "w-full overflow-hidden rounded-[28px] border bg-card shadow-elevated",
+          "w-full overflow-hidden rounded-[30px] border bg-card shadow-elevated",
           tone === "danger" ? "border-destructive/20" : "border-border/70",
           maxWidthClass,
         )}
@@ -889,11 +974,12 @@ function ResponsiveOverlay({
           </button>
         </div>
 
-        <div className="max-h-[calc(100vh-8.5rem)] overflow-y-auto px-5 py-5 sm:max-h-[min(85vh,48rem)] sm:px-6">
+        <div className="max-h-[min(72dvh,42rem)] overflow-y-auto px-5 py-5 sm:max-h-[min(85vh,48rem)] sm:px-6">
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
