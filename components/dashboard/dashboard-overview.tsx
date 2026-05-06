@@ -291,75 +291,6 @@ export function DashboardOverview({
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2">
-        <SummaryCard
-          detail={currentMonthLabel}
-          icon={ArrowDownLeft}
-          label="Entradas"
-          tone="success"
-          trend={getMetricDelta(monthlyIncome, previousMonthIncome, "higher-is-better")}
-          value={toCurrency(monthlyIncome)}
-        />
-        <SummaryCard
-          detail={currentMonthLabel}
-          icon={ArrowUpRight}
-          label="Despesas"
-          tone="danger"
-          trend={getMetricDelta(monthlyExpense, previousMonthExpense, "lower-is-better")}
-          value={toCurrency(monthlyExpense)}
-        />
-        <SummaryCard
-          detail={monthBalance >= 0 ? "entradas - despesas" : "requer revisao do mes"}
-          icon={Wallet}
-          label="Saldo do mes"
-          tone="neutral"
-          trend={getMetricDelta(monthBalance, previousMonthBalance, "higher-is-better")}
-          value={toCurrency(monthBalance)}
-          valueTone={monthBalance >= 0 ? "neutral" : "danger"}
-        />
-        <SummaryCard
-          detail={`acumulado ${currentYear}`}
-          icon={Landmark}
-          label="Faturamento"
-          tone="warning"
-          trendLabel={
-            exceededLimit > 0
-              ? `${toCurrency(exceededLimit)} acima do teto`
-              : remainingLimit > 0
-                ? `${toCurrency(remainingLimit)} livres no teto`
-                : "Teto anual atingido"
-          }
-          value={toCurrency(annualIncome)}
-          valueTone="warning"
-        />
-      </section>
-
-      <section>
-        <Card className="overflow-hidden rounded-[30px]">
-          <CardContent className="space-y-4 p-4 min-[380px]:space-y-5 min-[380px]:p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary/70">
-                  Acoes rapidas
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Atalhos para o que voce resolve primeiro no celular.
-                </p>
-              </div>
-              <div className="icon-tile flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-primary">
-                <Sparkles className="h-4 w-4" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2.5 min-[430px]:grid-cols-4">
-              {quickActions.map((action) => (
-                <QuickActionCard key={action.label} {...action} />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </section>
-
       <section>
         <div className="relative overflow-hidden rounded-[30px] bg-gradient-hero px-4 py-4 text-primary-foreground shadow-elevated min-[380px]:px-5 sm:py-5">
           <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(hsl(0_0%_100%/0.08)_1px,transparent_1px),linear-gradient(90deg,hsl(0_0%_100%/0.08)_1px,transparent_1px)] [background-size:22px_22px]" />
@@ -434,6 +365,75 @@ export function DashboardOverview({
             </div>
           </div>
         </div>
+      </section>
+
+      <section>
+        <Card className="overflow-hidden rounded-[30px]">
+          <CardContent className="space-y-4 p-4 min-[380px]:space-y-5 min-[380px]:p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-primary/70">
+                  Acoes rapidas
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Atalhos para o que voce resolve primeiro no celular.
+                </p>
+              </div>
+              <div className="icon-tile flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+                <Sparkles className="h-4 w-4" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5 min-[430px]:grid-cols-4">
+              {quickActions.map((action) => (
+                <QuickActionCard key={action.label} {...action} />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2">
+        <SummaryCard
+          detail={currentMonthLabel}
+          icon={ArrowDownLeft}
+          label="Entradas"
+          tone="success"
+          trend={getMetricDelta(monthlyIncome, previousMonthIncome, "higher-is-better")}
+          value={toCurrency(monthlyIncome)}
+        />
+        <SummaryCard
+          detail={currentMonthLabel}
+          icon={ArrowUpRight}
+          label="Despesas"
+          tone="danger"
+          trend={getMetricDelta(monthlyExpense, previousMonthExpense, "lower-is-better")}
+          value={toCurrency(monthlyExpense)}
+        />
+        <SummaryCard
+          detail={monthBalance >= 0 ? "entradas - despesas" : "requer revisao do mes"}
+          icon={Wallet}
+          label="Saldo do mes"
+          tone="neutral"
+          trend={getMetricDelta(monthBalance, previousMonthBalance, "higher-is-better")}
+          value={toCurrency(monthBalance)}
+          valueTone={monthBalance >= 0 ? "neutral" : "danger"}
+        />
+        <SummaryCard
+          detail={`acumulado ${currentYear}`}
+          icon={Landmark}
+          label="Faturamento"
+          tone="warning"
+          trendLabel={
+            exceededLimit > 0
+              ? `${toCurrency(exceededLimit)} acima do teto`
+              : remainingLimit > 0
+                ? `${toCurrency(remainingLimit)} livres no teto`
+                : "Teto anual atingido"
+          }
+          value={toCurrency(annualIncome)}
+          valueTone="warning"
+        />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
