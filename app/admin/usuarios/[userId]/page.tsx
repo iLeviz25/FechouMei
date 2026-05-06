@@ -64,7 +64,7 @@ function roleBadge(role: AdminRole) {
 }
 
 function subscriptionPlanLabel(plan: AdminSubscriptionPlan) {
-  return plan === "pro" ? "Pro" : "Essencial";
+  return plan === "pro" ? "FechouMEI Completo" : "Legado técnico";
 }
 
 function subscriptionStatusLabel(status: AdminSubscriptionStatus) {
@@ -120,7 +120,7 @@ function subscriptionErrorMessage(error: string | null) {
   }
 
   const messages: Record<string, string> = {
-    "invalid-plan": "Plano inválido.",
+    "invalid-plan": "Acesso inválido.",
     "invalid-status": "Status inválido.",
     "invalid-user": "Usuário inválido.",
     "missing-confirmation": "Confirme visualmente a alteração antes de continuar.",
@@ -180,7 +180,7 @@ function SubscriptionManagement({ user }: { user: AdminUserDetail }) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Assinatura</p>
-            <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Plano e status</h2>
+            <h2 className="mt-2 text-lg font-extrabold tracking-tight text-foreground">Acesso e status</h2>
           </div>
           <div className="flex flex-wrap justify-end gap-1.5">
             {planBadge(user.subscriptionPlan)}
@@ -192,10 +192,10 @@ function SubscriptionManagement({ user }: { user: AdminUserDetail }) {
           <input name="userId" type="hidden" value={user.id} />
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-2 text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
-              Plano
+              Acesso técnico
               <Select defaultValue={user.subscriptionPlan} name="subscriptionPlan">
-                <option value="essential">Essencial</option>
-                <option value="pro">Pro</option>
+                <option value="essential">Legado técnico</option>
+                <option value="pro">FechouMEI Completo</option>
               </Select>
             </label>
             <label className="space-y-2 text-xs font-bold uppercase tracking-[0.1em] text-muted-foreground">
@@ -211,10 +211,10 @@ function SubscriptionManagement({ user }: { user: AdminUserDetail }) {
           <label className="flex gap-3 rounded-2xl border border-border/70 bg-background p-4 text-sm font-semibold leading-6 text-muted-foreground">
             <input className="mt-1 h-4 w-4 shrink-0 accent-primary" name="confirmSubscriptionChange" required type="checkbox" value="confirm" />
             <span>
-              Confirmo a alteração manual de plano/status deste usuário.
+              Confirmo a alteração manual de acesso/status deste usuário.
             </span>
           </label>
-          <Button type="submit">Salvar assinatura</Button>
+          <Button type="submit">Salvar acesso</Button>
         </form>
       </CardContent>
     </Card>
@@ -391,7 +391,7 @@ export default async function AdminUsuarioDetalhePage({
             <InfoRow label="Atualizado em" value={formatDateTime(user.updatedAt)} />
             <InfoRow label="Último login" value={formatDateTime(user.lastSignInAt)} />
             <InfoRow label="Atividade recente" value={formatDateTime(user.metrics.lastActivityAt)} />
-            <InfoRow label="Plano" value={subscriptionPlanLabel(user.subscriptionPlan)} />
+            <InfoRow label="Acesso" value={subscriptionPlanLabel(user.subscriptionPlan)} />
             <InfoRow label="Status assinatura" value={subscriptionStatusLabel(user.subscriptionStatus)} />
             <InfoRow label="Onboarding" value={user.onboardingCompleted ? "Concluído" : "Pendente"} />
             <InfoRow label="Atuação" value={user.workType ?? "Não informado"} />

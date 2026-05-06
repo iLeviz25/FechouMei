@@ -33,21 +33,21 @@ export const essentialHelenaDailyMessageLimit = 15;
 export const proHelenaDailyMessageLimit = 50;
 
 export const helenaDailyLimitReply =
-  "Você atingiu o limite diário da Helena do seu plano. Tente novamente amanhã ou atualize seu plano.";
+  "Você atingiu o limite diário da Helena. Tente novamente amanhã.";
 
 export const appImportProFeatureReply =
-  "A importação pelo app faz parte do FechouMEI Completo. A exportação pelo app continua liberada na sua assinatura atual.";
+  "Para importar arquivos, sua assinatura precisa estar ativa. Finalize sua assinatura para liberar o acesso completo ao FechouMEI.";
 
 export const helenaImportExportProFeatureReply =
-  "Importação e exportação pela Helena/WhatsApp fazem parte do plano Pro. No Essencial, você pode continuar registrando e consultando pela Helena e exportando pelo app.";
+  "Para importar ou exportar arquivos pela Helena/WhatsApp, sua assinatura precisa estar ativa. Finalize ou regularize sua assinatura para liberar o acesso completo ao FechouMEI.";
 
 export const helenaProFeatureReply = helenaImportExportProFeatureReply;
 
 const subscriptionBlockedReplies: Record<SubscriptionStatus, string> = {
   active: "",
-  canceled: "Seu acesso ao FechouMEI está cancelado. Regularize sua assinatura para voltar a usar o app.",
-  past_due: "Existe um pagamento pendente na sua assinatura. Regularize para voltar a usar o FechouMEI.",
-  pending_payment: "Seu acesso ao FechouMEI está aguardando a confirmação do pagamento.",
+  canceled: "Seu acesso ao FechouMEI está cancelado. Finalize ou regularize sua assinatura para continuar.",
+  past_due: "Existe um pagamento pendente na sua assinatura. Regularize sua assinatura para continuar.",
+  pending_payment: "Seu acesso ao FechouMEI ainda não está ativo. Finalize sua assinatura para continuar.",
 };
 
 export function normalizeSubscriptionPlan(value: unknown): SubscriptionPlan {
@@ -69,15 +69,14 @@ export function getSubscriptionAccessFromProfile(profile: SubscriptionProfile): 
   const plan = isAdmin ? "pro" : normalizeSubscriptionPlan(profile?.subscription_plan);
   const status = isAdmin ? "active" : normalizeSubscriptionStatus(profile?.subscription_status);
   const hasActiveAccess = isAdmin || status === "active";
-  const hasProFeatures = hasActiveAccess && (isAdmin || plan === "pro");
 
   return {
     canAccessApp: hasActiveAccess,
-    canUseAdvancedHelena: hasProFeatures,
+    canUseAdvancedHelena: hasActiveAccess,
     canUseAppExport: hasActiveAccess,
-    canUseAppImport: hasProFeatures,
-    canUseHelenaImportExport: hasProFeatures,
-    dailyHelenaLimit: isAdmin ? null : getDailyHelenaLimit(plan),
+    canUseAppImport: hasActiveAccess,
+    canUseHelenaImportExport: hasActiveAccess,
+    dailyHelenaLimit: isAdmin ? null : proHelenaDailyMessageLimit,
     isAdmin,
     plan,
     status,
@@ -97,7 +96,18 @@ export function getSubscriptionBlockedTitle(status: SubscriptionStatus) {
     return "Acesso cancelado";
   }
 
-  return "Aguardando pagamento";
+  return "Acesso ainda não ativo";
+}
+
+export function getSubscriptionStatusLabel(status: SubscriptionStatus) {
+  const labels: Record<SubscriptionStatus, string> = {
+    active: "Ativo",
+    canceled: "Cancelado",
+    past_due: "Pagamento pendente",
+    pending_payment: "Aguardando confirmação",
+  };
+
+  return labels[status];
 }
 
 export async function getUserSubscriptionAccess({

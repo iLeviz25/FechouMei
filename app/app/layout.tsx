@@ -8,6 +8,7 @@ import {
   getSubscriptionAccessFromProfile,
   getSubscriptionBlockedReply,
   getSubscriptionBlockedTitle,
+  getSubscriptionStatusLabel,
   type SubscriptionAccess,
 } from "@/lib/subscription/access";
 
@@ -60,6 +61,7 @@ export default async function AuthenticatedLayout({
 function SubscriptionBlockedScreen({ access }: { access: SubscriptionAccess }) {
   const title = getSubscriptionBlockedTitle(access.status);
   const reply = getSubscriptionBlockedReply(access.status);
+  const statusLabel = getSubscriptionStatusLabel(access.status);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/35 px-4 py-10">
@@ -70,11 +72,11 @@ function SubscriptionBlockedScreen({ access }: { access: SubscriptionAccess }) {
               <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">FechouMEI</p>
               <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-foreground">{title}</h1>
             </div>
-            <Badge variant="secondary">{access.status}</Badge>
+            <Badge variant="secondary">{statusLabel}</Badge>
           </div>
           <p className="text-sm leading-6 text-muted-foreground">{reply}</p>
           <div className="rounded-2xl border border-border/70 bg-background p-4 text-sm font-semibold leading-6 text-muted-foreground">
-            Assinatura: <span className="font-extrabold text-foreground">{access.status === "active" ? "Ativa" : title}</span>
+            Acesso: <span className="font-extrabold text-foreground">{access.status === "active" ? "Ativo" : statusLabel}</span>
           </div>
         </CardContent>
       </Card>

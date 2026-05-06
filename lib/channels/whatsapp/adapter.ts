@@ -623,7 +623,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
         remoteNumber,
         reply: helenaProFeatureReply,
         status: "discarded",
-        summary: "Importacao por arquivo via WhatsApp bloqueada para plano Essencial.",
+        summary: "Importacao por arquivo via WhatsApp bloqueada por assinatura sem acesso completo.",
         trace,
         userId: resolvedUserId,
       });
@@ -1347,7 +1347,7 @@ async function handleWhatsAppExportTextIntent({
       reason: "whatsapp_export_requires_pro",
       reply: helenaProFeatureReply,
       status: "discarded",
-      summary: "Exportacao pelo WhatsApp bloqueada para plano Essencial.",
+      summary: "Exportacao pelo WhatsApp bloqueada por assinatura sem acesso completo.",
     };
   }
 
@@ -1459,7 +1459,7 @@ async function handleWhatsAppImportTextIntent({
       reason: "whatsapp_import_requires_pro",
       reply: helenaProFeatureReply,
       status: "discarded",
-      summary: "Fluxo de importacao por WhatsApp bloqueado para plano Essencial.",
+      summary: "Fluxo de importacao por WhatsApp bloqueado por assinatura sem acesso completo.",
     };
   }
 
@@ -1515,7 +1515,7 @@ async function handleWhatsAppImportTextIntent({
         reason: "whatsapp_import_confirm_requires_pro",
         reply: helenaProFeatureReply,
         status: "discarded",
-        summary: "Confirmacao de importacao por WhatsApp bloqueada para plano Essencial.",
+        summary: "Confirmacao de importacao por WhatsApp bloqueada por assinatura sem acesso completo.",
       };
     }
 

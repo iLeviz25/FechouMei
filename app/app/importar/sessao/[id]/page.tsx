@@ -199,7 +199,7 @@ export default async function ImportSessionPage({ params }: { params: Promise<Se
   const { profile, profileError } = await getCurrentUserProfile();
 
   if (profileError) {
-    throw new Error(`Erro ao carregar plano: ${profileError.message}`);
+    throw new Error(`Erro ao carregar acesso: ${profileError.message}`);
   }
 
   const access = getSubscriptionAccessFromProfile(profile);

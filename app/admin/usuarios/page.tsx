@@ -53,7 +53,7 @@ function roleBadge(role: AdminRole) {
 }
 
 function planBadge(plan: AdminSubscriptionPlan) {
-  return <Badge variant={plan === "pro" ? "success" : "secondary"}>{plan === "pro" ? "Pro" : "Essencial"}</Badge>;
+  return <Badge variant={plan === "pro" ? "success" : "secondary"}>{plan === "pro" ? "FechouMEI Completo" : "Legado técnico"}</Badge>;
 }
 
 function subscriptionStatusBadge(status: AdminSubscriptionStatus) {

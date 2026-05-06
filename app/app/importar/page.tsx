@@ -9,7 +9,7 @@ export default async function ImportarPage() {
   const { profile, profileError } = await getCurrentUserProfile();
 
   if (profileError) {
-    throw new Error(`Erro ao carregar plano: ${profileError.message}`);
+    throw new Error(`Erro ao carregar acesso: ${profileError.message}`);
   }
 
   const access = getSubscriptionAccessFromProfile(profile);

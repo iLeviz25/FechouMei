@@ -35,6 +35,7 @@ import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 import {
   getSubscriptionAccessFromProfile,
+  getSubscriptionStatusLabel,
   type SubscriptionAccess,
 } from "@/lib/subscription/access";
 import { cn } from "@/lib/utils";
@@ -742,13 +743,14 @@ function SubscriptionSummaryCard({ access }: { access: SubscriptionAccess }) {
   const description = access.isAdmin
     ? "Acesso administrativo completo ao app."
     : access.status === "active"
-      ? "FechouMEI Completo ativo. O ciclo de pagamento e gerenciado fora desta tela."
-      : "Aguardando confirmação ou regularização do acesso.";
+      ? "FechouMEI Completo ativo. O ciclo de pagamento é gerenciado fora desta tela."
+      : "Aguardando confirmação ou regularização da assinatura.";
   const helenaLabel = access.isAdmin
     ? "Sem limite bloqueante"
     : access.status === "active"
       ? "50 mensagens/dia"
-      : "Disponivel ao ativar";
+      : "Disponível ao ativar";
+  const enabledLabel = access.canAccessApp ? "Liberado" : "Aguardando acesso";
   const importLabel = access.canUseAppImport ? "Liberada" : "Aguardando acesso";
   const reportsLabel = access.canUseAppExport ? "Liberados" : "Aguardando acesso";
 
@@ -773,6 +775,8 @@ function SubscriptionSummaryCard({ access }: { access: SubscriptionAccess }) {
           <SubscriptionSummaryItem label="Helena" value={helenaLabel} />
           <SubscriptionSummaryItem label="Importação" value={importLabel} />
           <SubscriptionSummaryItem label="Relatórios" value={reportsLabel} />
+          <SubscriptionSummaryItem label="Movimentações" value={enabledLabel} />
+          <SubscriptionSummaryItem label="Fechamento mensal" value={enabledLabel} />
         </div>
       </CardContent>
     </Card>
@@ -784,7 +788,7 @@ function getAccessStatusLabel(access: SubscriptionAccess) {
     return "Admin";
   }
 
-  return access.status === "active" ? "Ativo" : "Pendente";
+  return getSubscriptionStatusLabel(access.status);
 }
 
 function SubscriptionSummaryItem({ label, value }: { label: string; value: string }) {

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Download, LockKeyhole, Upload } from "lucide-react";
+import { ArrowRight, LockKeyhole, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -14,33 +14,26 @@ export function ImportProRequired() {
             </div>
             <div className="max-w-2xl space-y-2">
               <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-secondary-foreground">Acesso completo</p>
-              <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Importação incluída no FechouMEI Completo</h1>
+              <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Importação disponível no FechouMEI Completo</h1>
               <p className="text-sm leading-6 text-muted-foreground">
-                No seu acesso atual, a exportação pelo app continua liberada. Importação pelo app e arquivos pela Helena fazem parte do acesso completo.
+                Para importar arquivos, sua assinatura precisa estar ativa. Finalize sua assinatura para liberar o acesso completo ao FechouMEI.
               </p>
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-[24px] border border-border/70 bg-background/80 p-4">
-              <div className="flex items-center gap-2 text-sm font-extrabold text-foreground">
-                <Download className="h-4 w-4 text-primary" />
-                Exportação pelo app
-              </div>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">Liberada para assinaturas ativas.</p>
+          <div className="rounded-[24px] border border-border/70 bg-background/80 p-4">
+            <div className="flex items-center gap-2 text-sm font-extrabold text-foreground">
+              <Upload className="h-4 w-4 text-secondary-foreground" />
+              Acesso completo
             </div>
-            <div className="rounded-[24px] border border-border/70 bg-background/80 p-4">
-              <div className="flex items-center gap-2 text-sm font-extrabold text-foreground">
-                <Upload className="h-4 w-4 text-secondary-foreground" />
-                Importação
-              </div>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">Incluída no FechouMEI Completo pelo app e pela Helena/WhatsApp.</p>
-            </div>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Assim que o pagamento for confirmado, a importação pelo app e pela Helena/WhatsApp fica liberada automaticamente.
+            </p>
           </div>
 
           <Button asChild className="w-full sm:w-fit">
             <Link href="/app/configuracoes">
-              Ver assinatura em Configurações
+              Ver acesso
               <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
