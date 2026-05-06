@@ -6,10 +6,14 @@ export type SubscriptionStatus = "active" | "pending_payment" | "past_due" | "ca
 
 export type SubscriptionAccess = {
   canAccessApp: boolean;
+  canImport: boolean;
   canUseAppExport: boolean;
   canUseAppImport: boolean;
   canUseAdvancedHelena: boolean;
+  canUseFileFeatures: boolean;
   canUseHelenaImportExport: boolean;
+  canUseHelena: boolean;
+  canUseReports: boolean;
   dailyHelenaLimit: number | null;
   isAdmin: boolean;
   plan: SubscriptionPlan;
@@ -35,13 +39,8 @@ export const proHelenaDailyMessageLimit = 50;
 export const helenaDailyLimitReply =
   "Você atingiu o limite diário da Helena. Tente novamente amanhã.";
 
-export const appImportProFeatureReply =
-  "Para importar arquivos, sua assinatura precisa estar ativa. Finalize sua assinatura para liberar o acesso completo ao FechouMEI.";
-
-export const helenaImportExportProFeatureReply =
-  "Para importar ou exportar arquivos pela Helena/WhatsApp, sua assinatura precisa estar ativa. Finalize ou regularize sua assinatura para liberar o acesso completo ao FechouMEI.";
-
-export const helenaProFeatureReply = helenaImportExportProFeatureReply;
+export const helenaFileAccessBlockedReply =
+  "Seu acesso ao FechouMEI ainda não está ativo. Finalize ou regularize sua assinatura para usar arquivos pela Helena/WhatsApp.";
 
 const subscriptionBlockedReplies: Record<SubscriptionStatus, string> = {
   active: "",
@@ -61,7 +60,7 @@ export function normalizeSubscriptionStatus(value: unknown): SubscriptionStatus 
 }
 
 export function getDailyHelenaLimit(plan: SubscriptionPlan) {
-  return plan === "pro" ? proHelenaDailyMessageLimit : essentialHelenaDailyMessageLimit;
+  return proHelenaDailyMessageLimit;
 }
 
 export function getSubscriptionAccessFromProfile(profile: SubscriptionProfile): SubscriptionAccess {
@@ -72,10 +71,14 @@ export function getSubscriptionAccessFromProfile(profile: SubscriptionProfile): 
 
   return {
     canAccessApp: hasActiveAccess,
+    canImport: hasActiveAccess,
     canUseAdvancedHelena: hasActiveAccess,
     canUseAppExport: hasActiveAccess,
     canUseAppImport: hasActiveAccess,
+    canUseFileFeatures: hasActiveAccess,
     canUseHelenaImportExport: hasActiveAccess,
+    canUseHelena: hasActiveAccess,
+    canUseReports: hasActiveAccess,
     dailyHelenaLimit: isAdmin ? null : proHelenaDailyMessageLimit,
     isAdmin,
     plan,

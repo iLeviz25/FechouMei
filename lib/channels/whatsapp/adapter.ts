@@ -58,7 +58,7 @@ import {
   consumeHelenaDailyMessage,
   getSubscriptionBlockedReply,
   getUserSubscriptionAccess,
-  helenaProFeatureReply,
+  helenaFileAccessBlockedReply,
 } from "@/lib/subscription/access";
 
 const genericFallbackReply = "Tive uma instabilidade agora para processar isso. Tente novamente em instantes.";
@@ -621,7 +621,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
         reason: "whatsapp_import_document_requires_pro",
         remoteId: normalized.remoteJid,
         remoteNumber,
-        reply: helenaProFeatureReply,
+        reply: helenaFileAccessBlockedReply,
         status: "discarded",
         summary: "Importacao por arquivo via WhatsApp bloqueada por assinatura sem acesso completo.",
         trace,
@@ -1345,7 +1345,7 @@ async function handleWhatsAppExportTextIntent({
   if (!canUseHelenaImportExport) {
     return {
       reason: "whatsapp_export_requires_pro",
-      reply: helenaProFeatureReply,
+      reply: helenaFileAccessBlockedReply,
       status: "discarded",
       summary: "Exportacao pelo WhatsApp bloqueada por assinatura sem acesso completo.",
     };
@@ -1457,7 +1457,7 @@ async function handleWhatsAppImportTextIntent({
   if (intent === "request_file" && !canUseHelenaImportExport) {
     return {
       reason: "whatsapp_import_requires_pro",
-      reply: helenaProFeatureReply,
+      reply: helenaFileAccessBlockedReply,
       status: "discarded",
       summary: "Fluxo de importacao por WhatsApp bloqueado por assinatura sem acesso completo.",
     };
@@ -1513,7 +1513,7 @@ async function handleWhatsAppImportTextIntent({
     if (!canUseHelenaImportExport) {
       return {
         reason: "whatsapp_import_confirm_requires_pro",
-        reply: helenaProFeatureReply,
+        reply: helenaFileAccessBlockedReply,
         status: "discarded",
         summary: "Confirmacao de importacao por WhatsApp bloqueada por assinatura sem acesso completo.",
       };

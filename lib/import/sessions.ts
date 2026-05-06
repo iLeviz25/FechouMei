@@ -5,10 +5,8 @@ import { getExistingImportDuplicateKeys, insertImportMovements } from "@/lib/imp
 import { processImportFileForPreview, resolveImportFileKind } from "@/lib/import/process-file";
 import { createClient } from "@/lib/supabase/server";
 import {
-  appImportProFeatureReply,
   getSubscriptionBlockedReply,
   getUserSubscriptionAccess,
-  helenaImportExportProFeatureReply,
 } from "@/lib/subscription/access";
 import type { Database, ImportSession, ImportSessionRow, Json } from "@/types/database";
 import type { ImportableMovement, ImportColumnMap, ImportParseResult, ImportPreviewRow, ImportSummary, RawImportRow } from "./types";
@@ -598,7 +596,6 @@ function isExpired(session: ImportSession) {
 }
 
 async function assertImportFeatureAccess({
-  source,
   supabase,
   userId,
 }: {
@@ -607,14 +604,9 @@ async function assertImportFeatureAccess({
   userId: string;
 }) {
   const access = await getUserSubscriptionAccess({ supabase, userId });
-  const allowed = source === "whatsapp" ? access.canUseHelenaImportExport : access.canUseAppImport;
 
   if (!access.canAccessApp) {
     throw new Error(getSubscriptionBlockedReply(access.status));
-  }
-
-  if (!allowed) {
-    throw new Error(source === "whatsapp" ? helenaImportExportProFeatureReply : appImportProFeatureReply);
   }
 }
 

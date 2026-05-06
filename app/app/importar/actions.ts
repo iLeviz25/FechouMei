@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getExistingImportDuplicateKeys, insertImportMovements, isImportableMovement } from "@/lib/import/persistence";
 import { createClient } from "@/lib/supabase/server";
-import { appImportProFeatureReply, getSubscriptionBlockedReply, getUserSubscriptionAccess } from "@/lib/subscription/access";
+import { getSubscriptionBlockedReply, getUserSubscriptionAccess } from "@/lib/subscription/access";
 import type { ImportableMovement } from "@/lib/import/types";
 
 export type ImportActionResult = {
@@ -29,10 +29,6 @@ async function getAuthenticatedContext() {
 
   if (!access.canAccessApp) {
     throw new Error(getSubscriptionBlockedReply(access.status));
-  }
-
-  if (!access.canUseAppImport) {
-    throw new Error(appImportProFeatureReply);
   }
 
   return { supabase, userId: user.id };
