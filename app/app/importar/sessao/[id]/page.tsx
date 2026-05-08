@@ -60,8 +60,8 @@ function statusLabel(status: string) {
 
 function rowStatusLabel(row: ImportPreviewRow) {
   const labels: Record<ImportPreviewRow["status"], string> = {
-    duplicate_existing: "Duplicada no app",
-    duplicate_file: "Duplicada no arquivo",
+    duplicate_existing: "Duplicada",
+    duplicate_file: "Duplicada",
     error: "Com erro",
     valid: "Válida",
   };
@@ -269,7 +269,7 @@ export default async function ImportSessionPage({ params }: { params: Promise<Se
           {view.session.status === "imported" ? (
             <div className="flex flex-wrap gap-2 rounded-[24px] border border-primary/15 bg-primary-soft/45 p-4">
               <p className="basis-full text-sm font-semibold leading-6 text-primary">
-                Importação concluída. Confira as movimentações criadas no app.
+                Importação concluída. Confira as movimentações salvas no app.
               </p>
               <Button asChild size="sm">
                 <Link href="/app/movimentacoes">Ver movimentações</Link>
@@ -282,7 +282,7 @@ export default async function ImportSessionPage({ params }: { params: Promise<Se
       <Card className="overflow-hidden rounded-[32px]">
         <CardContent className="p-0">
           <div className="border-b border-border/70 px-4 py-4 sm:px-5">
-            <h2 className="text-lg font-extrabold tracking-tight text-foreground">Linhas detectadas</h2>
+            <h2 className="text-lg font-extrabold tracking-tight text-foreground">Movimentações detectadas</h2>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
               Linhas com erro ou duplicadas serão ignoradas por segurança.
             </p>

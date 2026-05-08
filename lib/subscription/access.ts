@@ -40,13 +40,13 @@ export const helenaDailyLimitReply =
   "Você atingiu o limite diário da Helena. Tente novamente amanhã.";
 
 export const helenaFileAccessBlockedReply =
-  "Seu acesso ao FechouMEI ainda não está ativo. Finalize ou regularize sua assinatura para usar arquivos pela Helena/WhatsApp.";
+  "Seu acesso ao FechouMEI ainda está pendente. Ative ou regularize sua assinatura para usar arquivos pela Helena no WhatsApp.";
 
 const subscriptionBlockedReplies: Record<SubscriptionStatus, string> = {
   active: "",
-  canceled: "Seu acesso ao FechouMEI está cancelado. Finalize ou regularize sua assinatura para continuar.",
-  past_due: "Existe um pagamento pendente na sua assinatura. Regularize sua assinatura para continuar.",
-  pending_payment: "Seu acesso ao FechouMEI ainda não está ativo. Finalize sua assinatura para continuar.",
+  canceled: "Seu acesso ao FechouMEI está inativo. Regularize sua assinatura para continuar.",
+  past_due: "Seu acesso ao FechouMEI está pendente. Regularize sua assinatura para continuar.",
+  pending_payment: "Seu acesso ao FechouMEI está pendente. Ative sua assinatura para continuar.",
 };
 
 export function normalizeSubscriptionPlan(value: unknown): SubscriptionPlan {
@@ -92,22 +92,22 @@ export function getSubscriptionBlockedReply(status: SubscriptionStatus) {
 
 export function getSubscriptionBlockedTitle(status: SubscriptionStatus) {
   if (status === "past_due") {
-    return "Pagamento pendente";
+    return "Acesso pendente";
   }
 
   if (status === "canceled") {
-    return "Acesso cancelado";
+    return "Acesso inativo";
   }
 
-  return "Acesso ainda não ativo";
+  return "Acesso pendente";
 }
 
 export function getSubscriptionStatusLabel(status: SubscriptionStatus) {
   const labels: Record<SubscriptionStatus, string> = {
-    active: "Ativo",
-    canceled: "Cancelado",
-    past_due: "Pagamento pendente",
-    pending_payment: "Aguardando confirmação",
+    active: "Acesso ativo",
+    canceled: "Acesso inativo",
+    past_due: "Acesso pendente",
+    pending_payment: "Acesso pendente",
   };
 
   return labels[status];

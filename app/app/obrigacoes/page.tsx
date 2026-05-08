@@ -7,17 +7,17 @@ import { getCurrentUserProfile } from "@/lib/profile";
 import type { Database } from "@/types/database";
 
 const checklistTemplate = [
-  { key: "conferir-entradas", label: "Conferir entradas do mês" },
-  { key: "conferir-despesas", label: "Conferir despesas do mês" },
-  { key: "revisar-fechamento", label: "Revisar o fechamento do mês" },
-  { key: "pagar-das", label: "Pagar DAS mensal" },
-  { key: "entregar-dasn", label: "Entregar DASN-SIMEI anual" },
-  { key: "guardar-comprovantes", label: "Guardar comprovantes do mês" },
+  { key: "conferir-entradas", label: "Conferir entradas" },
+  { key: "conferir-despesas", label: "Conferir despesas" },
+  { key: "revisar-fechamento", label: "Revisar o mês" },
+  { key: "pagar-das", label: "Pagar DAS" },
+  { key: "entregar-dasn", label: "Enviar DASN-SIMEI" },
+  { key: "guardar-comprovantes", label: "Guardar comprovantes" },
 ];
 
 export default function ObrigacoesPage() {
   return (
-    <Suspense fallback={<RouteTransitionPending label="Carregando obrigações do mês" />}>
+    <Suspense fallback={<RouteTransitionPending label="Carregando obrigações" />}>
       <ObrigacoesData />
     </Suspense>
   );
@@ -31,7 +31,7 @@ async function ObrigacoesData() {
   }
 
   if (profileError) {
-    throw new Error(`Erro ao carregar perfil: ${profileError.message}`);
+    throw new Error(`Não foi possível carregar suas obrigações agora. Tente novamente em instantes. ${profileError.message}`);
   }
 
   const now = new Date();
@@ -70,7 +70,7 @@ async function getChecklistRows(
     .eq("month", monthKey);
 
   if (error) {
-    throw new Error(`Erro ao carregar checklist de obrigações: ${error.message}`);
+    throw new Error(`Não foi possível carregar suas obrigações agora. Tente novamente em instantes. ${error.message}`);
   }
 
   return data ?? [];

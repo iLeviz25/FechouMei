@@ -31,7 +31,7 @@ export function ReportActions({ monthValue, movements }: ReportActionsProps) {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-              Mês de referência
+              Período do relatório
             </span>
             <input
               className="mt-1 w-full min-w-0 bg-transparent text-base font-extrabold text-foreground outline-none"

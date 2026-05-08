@@ -13,7 +13,7 @@ export async function confirmImportSessionAction(
   if (!sessionId) {
     return {
       ok: false,
-      message: "Sessão de importação inválida.",
+      message: "Não foi possível encontrar esta revisão.",
     };
   }
 
@@ -29,7 +29,7 @@ export async function cancelImportSessionAction(
   if (!sessionId) {
     return {
       ok: false,
-      message: "Sessão de importação inválida.",
+      message: "Não foi possível encontrar esta revisão.",
     };
   }
 

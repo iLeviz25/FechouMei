@@ -94,7 +94,7 @@ export function normalizeImportRows(rawRows: RawImportRow[], columnMap: ImportCo
     if (row.duplicateKey && row.status === "valid") {
       if (fileKeys.has(row.duplicateKey)) {
         row.status = "duplicate_file";
-        row.errors.push("Duplicado dentro do arquivo.");
+        row.errors.push("Parece repetida no arquivo.");
       } else {
         fileKeys.add(row.duplicateKey);
       }
@@ -161,7 +161,7 @@ export function markExistingDuplicates(rows: ImportPreviewRow[], duplicateKeys: 
 
     return {
       ...row,
-      errors: [...row.errors, "Possível duplicado já existente no app."],
+      errors: [...row.errors, "Parece já existir no app."],
       status: "duplicate_existing" as const,
     };
   });
@@ -230,7 +230,7 @@ function normalizeImportRow(raw: RawImportRow, columnMap: ImportColumnMap, rowNu
   if (signedAmount === null) {
     errors.push("Valor inválido.");
   } else if (signedAmount === 0) {
-    errors.push("Valor precisa ser diferente de zero.");
+    errors.push("O valor precisa ser diferente de zero.");
   }
 
   if (amountInfo.error) {
@@ -366,7 +366,7 @@ function resolveSignedAmount({
 
   if (hasCredit && hasDebit) {
     return {
-      error: "Crédito e débito preenchidos na mesma linha.",
+      error: "Crédito e débito estão preenchidos na mesma linha.",
       signedAmount: fallbackAmount,
       type: null,
     };

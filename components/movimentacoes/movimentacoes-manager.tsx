@@ -346,7 +346,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
     startTransition(async () => {
       const result = await createMovimentacao(formData);
       setCreateFeedback(result.ok ? null : result);
-      setFeedback(result.ok ? { ok: true, message: "Movimentação salva com sucesso." } : null);
+      setFeedback(result.ok ? { ok: true, message: "Movimentação adicionada." } : null);
 
       if (result.ok) {
         setCreateForm(createEmptyMovementForm());
@@ -369,7 +369,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
 
     startTransition(async () => {
       const result = await updateMovimentacao(id, formData);
-      setFeedback(result.ok ? { ok: true, message: "Alterações salvas com sucesso." } : result);
+      setFeedback(result.ok ? { ok: true, message: "Alterações salvas." } : result);
 
       if (result.ok) {
         cancelEdit();
@@ -391,7 +391,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
 
     startTransition(async () => {
       const result = await deleteMovimentacao(movement.id);
-      setFeedback(result.ok ? { ok: true, message: "Movimentação excluída com sucesso." } : result);
+      setFeedback(result.ok ? { ok: true, message: "Movimentação excluída." } : result);
 
       if (result.ok) {
         setPendingDelete(null);
@@ -419,8 +419,8 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
               ok: true,
               message:
                 result.deletedCount === 1
-                  ? "Movimentação excluída com sucesso."
-                  : `${result.deletedCount ?? selectedCount} movimentações excluídas com sucesso.`,
+                  ? "Movimentação excluída."
+                  : `${result.deletedCount ?? selectedCount} movimentações excluídas.`,
             }
           : result,
       );
@@ -436,11 +436,11 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
   return (
     <div className="mobile-section-gap">
       <header className="space-y-3">
-        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Caixa do MEI</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Histórico do MEI</p>
         <div className="max-w-2xl space-y-1.5">
-          <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Entradas e despesas</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Movimentações</h1>
           <p className="text-sm leading-6 text-muted-foreground">
-            Registre o que entra e o que sai do seu MEI com busca, filtros e leitura pensados para o uso diário no celular.
+            Registre e acompanhe o que entrou e saiu do seu MEI.
           </p>
         </div>
       </header>
@@ -448,14 +448,14 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
       <section className="summary-shell rounded-[32px] p-3.5 sm:p-5">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
           <SummaryCard
-            helper={formatCount(summary.incomeCount, "lançamento", "lançamentos")}
+            helper={formatCount(summary.incomeCount, "entrada registrada", "entradas registradas")}
             icon={<ArrowDownLeft className="h-4 w-4" />}
             label="Entradas"
             tone="success"
             value={toCurrency(summary.income)}
           />
           <SummaryCard
-            helper={formatCount(summary.expenseCount, "lançamento", "lançamentos")}
+            helper={formatCount(summary.expenseCount, "despesa registrada", "despesas registradas")}
             icon={<ArrowUpRight className="h-4 w-4" />}
             label="Despesas"
             tone="danger"
@@ -464,7 +464,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
           <SummaryCard
             className="col-span-2 lg:col-span-1"
             featured
-            helper={safeInitialBalance !== 0 ? "Inclui saldo inicial do caixa" : "Entradas menos despesas acumuladas"}
+            helper={safeInitialBalance !== 0 ? "Inclui saldo atual" : "Entradas menos despesas"}
             icon={<WalletCards className="h-4 w-4" />}
             iconTone={balance >= 0 ? "success" : "danger"}
             label="Saldo atual"
@@ -494,8 +494,8 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
             <CardContent className="space-y-5 p-5 sm:p-6">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Lançar agora</p>
-                  <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">Nova movimentação</h2>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Adicionar agora</p>
+                  <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">Adicionar movimentação</h2>
                 </div>
                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary-soft text-primary">
                   <Plus className="h-4 w-4" />
@@ -535,7 +535,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                 <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
                   Busca e filtros
                 </p>
-                <h2 className="text-lg font-extrabold tracking-tight text-foreground">Encontre o que precisa</h2>
+                <h2 className="text-lg font-extrabold tracking-tight text-foreground">Encontre movimentações antigas</h2>
               </div>
 
               <div className="surface-panel-muted flex min-w-0 items-center gap-3 rounded-[24px] border border-border/60 px-3.5 py-1.5">
@@ -543,7 +543,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                 <Input
                   className="h-10 min-w-0 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Buscar movimentação..."
+                  placeholder="Buscar por descrição ou categoria"
                   value={searchTerm}
                 />
               </div>
@@ -554,7 +554,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                   name="type-filter"
                   onChange={(value) => setTypeFilter(value as TypeFilter)}
                   options={[
-                    { value: "todos", label: "Todos" },
+                    { value: "todos", label: "Todas" },
                     { value: "entrada", label: "Entradas" },
                     { value: "despesa", label: "Despesas" },
                   ]}
@@ -597,7 +597,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
 
               {hasActiveFilters ? (
                 <div className="surface-panel-muted flex flex-col gap-2 rounded-[24px] border border-border/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-sm text-muted-foreground">Mostrando apenas os registros que combinam com a busca e os filtros ativos.</p>
+                  <p className="text-sm text-muted-foreground">Mostrando apenas o que combina com sua busca e filtros.</p>
                   <Button onClick={clearFilters} size="sm" type="button" variant="ghost">
                     <Filter className="h-4 w-4" />
                     Limpar filtros
@@ -618,11 +618,11 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                     </span>
                   </div>
                   <div className="space-y-1">
-                    <h2 className="text-lg font-extrabold tracking-tight text-foreground">Últimos registros</h2>
+                    <h2 className="text-lg font-extrabold tracking-tight text-foreground">Histórico de movimentações</h2>
                     <p className="text-sm leading-6 text-muted-foreground">
                       {mobileListShouldScroll
-                        ? "As 4 mais recentes ficam visíveis primeiro. Role dentro desta caixa para ver mais."
-                        : "A lista segue organizada aqui dentro, com leitura mais limpa no celular."}
+                        ? "As mais recentes aparecem primeiro. Role para ver mais."
+                        : "Confira entradas e despesas por data."}
                     </p>
                   </div>
                 </div>
@@ -655,10 +655,12 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-bold text-foreground">
-                    {selectedCount === 0 ? "Selecione os registros que deseja excluir" : `${selectedCount} registro(s) selecionado(s)`}
+                    {selectedCount === 0
+                      ? "Selecione as movimentações que deseja excluir"
+                      : formatCount(selectedCount, "movimentação selecionada", "movimentações selecionadas")}
                   </p>
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    Toque em qualquer card para marcar ou desmarcar. A exclusão em massa sempre pede confirmação.
+                    Toque em qualquer card para marcar ou desmarcar. A exclusão sempre pede confirmação.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -679,7 +681,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                     variant="destructive"
                   >
                     <Trash2 className="h-4 w-4" />
-                    Excluir selecionados
+                    Excluir selecionadas
                   </Button>
                 </div>
               </div>
@@ -688,16 +690,17 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
 
           {movements.length === 0 ? (
             <EmptyState
-              description="Use o botão Nova para lançar sua primeira entrada ou despesa."
+              actionLabel="Adicionar movimentação"
+              description="Adicione uma entrada ou despesa para começar a acompanhar seu mês."
               onAction={openMobileCreate}
               title="Nenhuma movimentação registrada ainda."
             />
           ) : filteredMovements.length === 0 ? (
             <EmptyState
               actionLabel="Limpar filtros"
-              description="Ajuste a busca, o tipo, a categoria ou o período para ver outros registros."
+              description="Tente mudar o período, tipo ou termo de busca."
               onAction={clearFilters}
-              title="Nenhum registro encontrado."
+              title="Nada encontrado com esses filtros."
             />
           ) : (
             <div className="max-w-full overflow-hidden rounded-[28px] border border-border/70 bg-white/70 p-2.5 sm:p-3">
@@ -822,7 +825,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                                 {editing ? (
                                   <form className="surface-panel-muted space-y-4 rounded-[24px] p-4" noValidate onSubmit={(event) => handleUpdate(movement.id, event)}>
                                     <div className="flex items-center justify-between gap-3">
-                                      <Badge variant="success">Editando este registro</Badge>
+                                      <Badge variant="success">Editando movimentação</Badge>
                                       <Button onClick={cancelEdit} size="sm" type="button" variant="ghost">
                                         <X className="h-4 w-4" />
                                         Cancelar
@@ -869,7 +872,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
       </div>
 
       <MovementCreateSheet
-        onCreated={() => setFeedback({ ok: true, message: "Movimentação salva com sucesso." })}
+        onCreated={() => setFeedback({ ok: true, message: "Movimentação adicionada." })}
         onOpenChange={setMobileCreateOpen}
         open={mobileCreateOpen}
         viewportClassName="xl:hidden"
@@ -884,10 +887,10 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
         >
           <div className="w-full rounded-[28px] bg-card p-5 shadow-elevated sm:max-w-sm">
             <h2 className="text-base font-extrabold text-foreground" id="delete-movement-title">
-              Excluir este registro?
+              Excluir movimentação?
             </h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Você está prestes a excluir "{pendingDelete.description}". Esta ação não pode ser desfeita.
+              Essa movimentação será removida do seu histórico. Essa ação não pode ser desfeita.
             </p>
             <div className="mt-4 grid grid-cols-2 gap-2">
               <Button disabled={isPending} onClick={() => setPendingDelete(null)} type="button" variant="outline">
@@ -911,10 +914,10 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
         >
           <div className="w-full rounded-[28px] bg-card p-5 shadow-elevated sm:max-w-sm">
             <h2 className="text-base font-extrabold text-foreground" id="bulk-delete-movement-title">
-              Excluir registros selecionados?
+              Excluir movimentações selecionadas?
             </h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Você está prestes a excluir {selectedCount} registro(s). Essa ação não pode ser desfeita.
+              As movimentações selecionadas serão removidas do seu histórico. Essa ação não pode ser desfeita.
             </p>
             {selectedMovements.length > 0 ? (
               <div className="mt-3 max-h-32 space-y-1 overflow-y-auto rounded-[20px] border border-border/70 bg-muted/30 p-3">
@@ -925,7 +928,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
                 ))}
                 {selectedMovements.length > 5 ? (
                   <p className="text-xs font-semibold text-muted-foreground">
-                    +{selectedMovements.length - 5} outro(s) registro(s)
+                    +{formatCount(selectedMovements.length - 5, "outra movimentação", "outras movimentações")}
                   </p>
                 ) : null}
               </div>
@@ -936,7 +939,7 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
               </Button>
               <Button disabled={isPending || selectedCount === 0} onClick={confirmBulkDelete} type="button" variant="destructive">
                 {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                Excluir
+                Excluir selecionadas
               </Button>
             </div>
           </div>
@@ -1029,7 +1032,7 @@ function SummaryCard({
 }
 
 function EmptyState({
-  actionLabel = "Nova movimentação",
+  actionLabel = "Adicionar movimentação",
   description,
   onAction,
   title,

@@ -42,13 +42,13 @@ export async function checkImportDuplicates(rows: ImportableMovement[]): Promise
     return {
       duplicateKeys: Array.from(duplicateKeys),
       ok: true,
-      message: duplicateKeys.size > 0 ? "Encontramos possiveis duplicados no app." : "Nenhum duplicado encontrado no app.",
+      message: duplicateKeys.size > 0 ? "Encontramos possíveis duplicadas no app." : "Nenhuma duplicada encontrada no app.",
     };
   } catch (error) {
     return {
       duplicateKeys: [],
       ok: false,
-      message: error instanceof Error ? error.message : "Não foi possível verificar duplicados.",
+      message: error instanceof Error ? error.message : "Não foi possível conferir duplicadas.",
     };
   }
 }
@@ -58,7 +58,7 @@ export async function importMovimentacoes(rows: ImportableMovement[]): Promise<I
     const validRows = rows.filter(isImportableMovement);
 
     if (validRows.length === 0) {
-      throw new Error("Nenhuma movimentação válida para importar.");
+      throw new Error("Nenhuma movimentação válida para salvar.");
     }
 
     const { supabase, userId } = await getAuthenticatedContext();
@@ -70,7 +70,7 @@ export async function importMovimentacoes(rows: ImportableMovement[]): Promise<I
         importedCount: 0,
         ok: true,
         skippedDuplicateCount: validRows.length,
-        message: "Nenhuma movimentação nova importada. Todas pareciam duplicadas.",
+        message: "Nenhuma movimentação nova foi salva. Todas pareciam duplicadas.",
       };
     }
 
@@ -87,8 +87,8 @@ export async function importMovimentacoes(rows: ImportableMovement[]): Promise<I
       skippedDuplicateCount: validRows.length - rowsToInsert.length,
       message:
         rowsToInsert.length === 1
-          ? "1 movimentação importada com sucesso."
-          : `${rowsToInsert.length} movimentações importadas com sucesso.`,
+          ? "1 movimentação importada."
+          : `${rowsToInsert.length} movimentações importadas.`,
     };
   } catch (error) {
     return {

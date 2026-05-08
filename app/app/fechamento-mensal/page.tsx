@@ -21,7 +21,7 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
   const { profile, profileError, supabase, user } = await getCurrentUserProfile();
 
   if (!user) {
-    throw new Error("Usuário não autenticado.");
+    throw new Error("Faça login para ver o fechamento mensal.");
   }
 
   const resolvedSearchParams = await searchParams;
@@ -59,15 +59,15 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
   ]);
 
   if (movementsResult.error) {
-    throw new Error(`Erro ao carregar fechamento mensal: ${movementsResult.error.message}`);
+    throw new Error(`Não foi possível carregar o fechamento agora. Tente novamente em instantes. ${movementsResult.error.message}`);
   }
 
   if (balanceUntilMonthResult.error) {
-    throw new Error(`Erro ao carregar saldo do fechamento: ${balanceUntilMonthResult.error.message}`);
+    throw new Error(`Não foi possível carregar o saldo do fechamento agora. ${balanceUntilMonthResult.error.message}`);
   }
 
   if (profileError) {
-    throw new Error(`Erro ao carregar ajuste de saldo: ${profileError.message}`);
+    throw new Error(`Não foi possível carregar seu saldo atual. Tente novamente em instantes. ${profileError.message}`);
   }
 
   const monthLabel = formatMonthLabel(selectedMonth);

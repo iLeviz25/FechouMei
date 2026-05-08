@@ -12,7 +12,7 @@ function toDateInputValue(date: Date) {
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<RouteTransitionPending label="Carregando visao geral" />}>
+    <Suspense fallback={<RouteTransitionPending label="Carregando visão geral" />}>
       <DashboardData />
     </Suspense>
   );
@@ -22,11 +22,11 @@ async function DashboardData() {
   const { profile, profileError, supabase, user } = await getCurrentUserProfile();
 
   if (!user) {
-    throw new Error("Usuário não autenticado.");
+    throw new Error("Faça login para ver seu resumo.");
   }
 
   if (profileError) {
-    throw new Error(`Erro ao carregar ajuste de saldo: ${profileError.message}`);
+    throw new Error(`Não foi possível carregar seu resumo agora. Tente novamente em instantes. ${profileError.message}`);
   }
 
   const now = new Date();
@@ -76,19 +76,19 @@ async function DashboardData() {
   ]);
 
   if (movementWindowResult.error) {
-    throw new Error(`Erro ao carregar resumo anual: ${movementWindowResult.error.message}`);
+    throw new Error(`Não foi possível carregar o resumo anual agora. Tente novamente em instantes. ${movementWindowResult.error.message}`);
   }
 
   if (allMovementsResult.error) {
-    throw new Error(`Erro ao carregar saldo atual: ${allMovementsResult.error.message}`);
+    throw new Error(`Não foi possível carregar o saldo atual agora. Tente novamente em instantes. ${allMovementsResult.error.message}`);
   }
 
   if (recentResult.error) {
-    throw new Error(`Erro ao carregar últimas movimentações: ${recentResult.error.message}`);
+    throw new Error(`Não foi possível carregar suas últimas movimentações agora. Tente novamente em instantes. ${recentResult.error.message}`);
   }
 
   if (checklistResult.error) {
-    throw new Error(`Erro ao carregar obrigações do mês: ${checklistResult.error.message}`);
+    throw new Error(`Não foi possível carregar suas obrigações agora. Tente novamente em instantes. ${checklistResult.error.message}`);
   }
 
   const totals = (movementWindowResult.data ?? []).reduce(

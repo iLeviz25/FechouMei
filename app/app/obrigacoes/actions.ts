@@ -60,11 +60,11 @@ export async function toggleChecklistItem({
       throw new Error(error.message);
     }
 
-    return { ok: true, message: "Checklist atualizado." };
+    return { ok: true, message: done ? "Item marcado como concluído." : "Item marcado como pendente." };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Não foi possível atualizar o checklist.",
+      message: error instanceof Error ? error.message : "Não foi possível atualizar a obrigação.",
     };
   }
 }
@@ -89,7 +89,7 @@ export async function updateReminderPreferences(
       throw new Error(error.message);
     }
 
-    return { ok: true, message: "Preferências salvas no app." };
+    return { ok: true, message: "Lembretes salvos." };
   } catch (error) {
     return {
       ok: false,

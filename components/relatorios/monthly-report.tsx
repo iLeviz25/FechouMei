@@ -40,14 +40,14 @@ export function MonthlyReport({ report }: MonthlyReportProps) {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-3">
             <Badge className="w-fit border-0 bg-primary-soft px-3 py-1 text-primary shadow-none">
-              RELATÓRIO
+              RELATÓRIOS
             </Badge>
             <div>
               <h1 className="text-[2rem] font-extrabold tracking-tight text-foreground sm:text-[2.45rem]">
-                Relatório do mês
+                Relatórios
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-                Gere um resumo mensal para conferência própria ou envio ao contador.
+                Gere um resumo do mês para conferir, salvar ou enviar ao contador.
               </p>
             </div>
           </div>
@@ -67,11 +67,11 @@ export function MonthlyReport({ report }: MonthlyReportProps) {
                 Relatório mensal - {report.identification.monthLabel}
               </h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-primary-foreground/78 print:max-w-[31rem] print:text-[12px] print:leading-5">
-                Este relatório é uma conferência operacional e não substitui orientação contábil.
+                Este relatório usa as movimentações e obrigações registradas no período selecionado.
               </p>
             </div>
             <div className="shrink-0 rounded-[22px] bg-white/12 px-4 py-3 text-sm print:min-w-[13.5rem] print:rounded-[14px] print:border print:border-white/20 print:bg-white/12 print:px-3 print:py-2.5">
-              <p className="font-bold">{report.identification.fullName ?? "Usuário FechouMEI"}</p>
+              <p className="font-bold">{report.identification.fullName ?? "Nome não informado"}</p>
               <p className="mt-1 break-words text-primary-foreground/72 print:text-[11px] print:leading-4">
                 {report.identification.email ?? "E-mail não informado"}
               </p>
@@ -85,25 +85,25 @@ export function MonthlyReport({ report }: MonthlyReportProps) {
             label="Entradas"
             tone="success"
             value={toCurrency(report.summary.totalIncome)}
-            detail={`${report.summary.incomeCount} lançamentos`}
+            detail={formatCount(report.summary.incomeCount, "entrada", "entradas")}
           />
           <SummaryCard
             icon={ArrowUpRight}
             label="Despesas"
             tone="danger"
             value={toCurrency(report.summary.totalExpense)}
-            detail={`${report.summary.expenseCount} lançamentos`}
+            detail={formatCount(report.summary.expenseCount, "despesa", "despesas")}
           />
           <SummaryCard
             icon={Wallet}
-            label="Saldo do mês"
+            label="Resultado"
             tone={report.summary.balance >= 0 ? "neutral" : "danger"}
             value={toCurrency(report.summary.balance)}
-            detail={`${report.summary.totalMovements} movimentações`}
+            detail={formatCount(report.summary.totalMovements, "movimentação", "movimentações")}
           />
           <SummaryCard
             icon={Landmark}
-            label="Limite MEI"
+            label="Limite MEI utilizado"
             tone={report.meiLimit.status.tone === "danger" ? "danger" : "success"}
             value={`${formatPercent(report.meiLimit.usageDisplayPercent)}%`}
             detail={report.meiLimit.status.label}
@@ -114,17 +114,17 @@ export function MonthlyReport({ report }: MonthlyReportProps) {
           <Card className="print-break-inside-avoid print:shadow-none">
             <CardContent className="space-y-4 p-5 print:p-4">
               <SectionTitle
-                description="Dados usados para identificar o mês de referência."
+                description="Dados do MEI usados neste relatório."
                 icon={FileText}
-                title="Identificação"
+                title="Dados do MEI"
               />
               <div className="grid gap-3 sm:grid-cols-2 print:grid-cols-2">
-                <InfoRow label="Nome / MEI" value={report.identification.fullName ?? "Não informado"} />
+                <InfoRow label="Nome do MEI" value={report.identification.fullName ?? "Não informado"} />
                 <InfoRow label="E-mail" value={report.identification.email ?? "Não informado"} />
-                <InfoRow label="Atuação" value={report.identification.workType ?? "Não informado"} />
+                <InfoRow label="Atividade" value={report.identification.workType ?? "Não informado"} />
                 <InfoRow label="Tipo de trabalho" value={toBusinessModeLabel(report.identification.businessMode)} />
                 <InfoRow label="Categoria principal" value={report.identification.mainCategory ?? "Não informado"} />
-                <InfoRow label="Mês" value={report.identification.monthLabel} />
+                <InfoRow label="Período" value={report.identification.monthLabel} />
               </div>
             </CardContent>
           </Card>
@@ -132,15 +132,15 @@ export function MonthlyReport({ report }: MonthlyReportProps) {
           <Card className="print-break-inside-avoid print:shadow-none">
             <CardContent className="space-y-4 p-5 print:p-4">
               <SectionTitle
-                description="Acompanhamento do teto anual de faturamento do MEI."
+                description="Veja quanto do limite anual já foi usado."
                 icon={Landmark}
-                title="Faturamento e limite MEI"
+                title="Limite MEI"
               />
               <div className="space-y-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">
-                      Faturamento acumulado no ano
+                      Faturamento anual
                     </p>
                     <p className="mt-2 font-mono text-2xl font-extrabold tabular text-foreground">
                       {toCurrency(report.meiLimit.annualIncome)}
@@ -157,10 +157,10 @@ export function MonthlyReport({ report }: MonthlyReportProps) {
                   />
                 </div>
                 <div className="grid gap-2 sm:grid-cols-3 print:grid-cols-3">
-                  <InfoRow label="Limite anual" value={toCurrency(report.meiLimit.limit)} />
-                  <InfoRow label="Usado" value={`${formatPercent(report.meiLimit.usageDisplayPercent)}%`} />
+                  <InfoRow label="Limite MEI anual" value={toCurrency(report.meiLimit.limit)} />
+                  <InfoRow label="Limite MEI utilizado" value={`${formatPercent(report.meiLimit.usageDisplayPercent)}%`} />
                   <InfoRow
-                    label={report.meiLimit.exceededLimit > 0 ? "Acima do limite" : "Restante"}
+                    label={report.meiLimit.exceededLimit > 0 ? "Acima do limite" : "Disponível no limite"}
                     value={toCurrency(
                       report.meiLimit.exceededLimit > 0
                         ? report.meiLimit.exceededLimit
@@ -176,14 +176,16 @@ export function MonthlyReport({ report }: MonthlyReportProps) {
         <section className="grid gap-4 lg:grid-cols-2 print:grid-cols-2">
           <CategorySection
             categories={report.categories.entradas}
-            emptyLabel="Nenhuma entrada categorizada neste mês."
-            title="Categorias de entradas"
+            description="Veja onde o dinheiro entrou no período."
+            emptyLabel="Nenhuma entrada neste período."
+            title="Entradas por categoria"
             tone="success"
           />
           <CategorySection
             categories={report.categories.despesas}
-            emptyLabel="Nenhuma despesa categorizada neste mês."
-            title="Categorias de despesas"
+            description="Veja onde o dinheiro saiu no período."
+            emptyLabel="Nenhuma despesa neste período."
+            title="Despesas por categoria"
             tone="danger"
           />
         </section>
@@ -192,9 +194,9 @@ export function MonthlyReport({ report }: MonthlyReportProps) {
           <Card className="print-break-inside-avoid print:shadow-none">
             <CardContent className="space-y-4 p-5 print:p-4">
               <SectionTitle
-                description={`${report.obligations.totalDone} concluídas . ${report.obligations.totalPending} pendentes`}
+                description={`${report.obligations.totalDone} concluídas e ${report.obligations.totalPending} pendentes.`}
                 icon={CheckCircle2}
-                title="Obrigações do mês"
+                title="Obrigações do período"
               />
               <div className="space-y-2">
                 {report.obligations.items.map((item) => (
@@ -207,16 +209,16 @@ export function MonthlyReport({ report }: MonthlyReportProps) {
           <Card className="print-break-inside-avoid print:shadow-none">
             <CardContent className="space-y-4 p-5 print:p-4">
               <SectionTitle
-                description="Resumo gerado com base nos registros informados pelo usuário."
+                description="Use este resumo para conferir o mês."
                 icon={ReceiptText}
-                title="Observações finais"
+                title="Antes de salvar ou enviar"
               />
               <div className="rounded-[22px] bg-primary-soft/55 p-4 text-sm leading-6 text-foreground print:border print:border-border print:bg-white">
                 <p>
-                  Relatório gerado pelo FechouMEI com base nos registros informados pelo usuário.
+                  Este relatório usa as movimentações e obrigações registradas no período selecionado.
                 </p>
                 <p className="mt-2 text-muted-foreground">
-                  Confira valores, categorias e obrigações antes de enviar ao contador ou usar como apoio na sua rotina.
+                  Confira valores, categorias e obrigações antes de salvar em PDF ou enviar ao contador.
                 </p>
               </div>
             </CardContent>
@@ -228,7 +230,7 @@ export function MonthlyReport({ report }: MonthlyReportProps) {
             <CardContent className="p-0">
               <div className="flex flex-col gap-2 border-b border-border/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between print:px-0">
                 <SectionTitle
-                  description={`${report.movements.length} lançamentos no período`}
+                  description="Lista de entradas e despesas usadas neste relatório."
                   icon={ReceiptText}
                   title="Movimentações do mês"
                 />
@@ -327,11 +329,13 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 function CategorySection({
   categories,
+  description,
   emptyLabel,
   title,
   tone,
 }: {
   categories: ReportCategorySummary[];
+  description: string;
   emptyLabel: string;
   title: string;
   tone: "success" | "danger";
@@ -340,7 +344,7 @@ function CategorySection({
     <Card className="print-break-inside-avoid print:shadow-none">
       <CardContent className="space-y-4 p-5 print:p-4">
         <SectionTitle
-          description="Totais por categoria no mês selecionado."
+          description={description}
           icon={tone === "success" ? ArrowDownLeft : ArrowUpRight}
           title={title}
         />
@@ -358,7 +362,7 @@ function CategorySection({
                 <div className="min-w-0">
                   <p className="truncate text-sm font-extrabold text-foreground">{category.category}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {category.count} lanc. . {formatPercent(category.percent)}% do total
+                    {formatCount(category.count, "movimentação", "movimentações")} - {formatPercent(category.percent)}% do total
                   </p>
                 </div>
                 <p
@@ -383,7 +387,7 @@ function ObligationRow({ item }: { item: ReportObligationSummary }) {
     <div className="flex items-center justify-between gap-3 rounded-[18px] border border-border/70 bg-white/75 px-3 py-3 print:rounded-lg print:bg-white">
       <div className="min-w-0">
         <p className="text-sm font-extrabold text-foreground">{item.label}</p>
-        <p className="mt-1 text-xs text-muted-foreground">Status do checklist do mês</p>
+        <p className="mt-1 text-xs text-muted-foreground">Status no período</p>
       </div>
       <Badge
         className={cn(
@@ -421,9 +425,13 @@ function formatPercent(value: number) {
   return percentFormatter.format(value);
 }
 
+function formatCount(count: number, singular: string, plural: string) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
 function toBusinessModeLabel(value: string | null | undefined) {
   const labels: Record<string, string> = {
-    ambos: "ambos",
+    ambos: "produtos e serviços",
     produto: "produto",
     servico: "serviço",
   };

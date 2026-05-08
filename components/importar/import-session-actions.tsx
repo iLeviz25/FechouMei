@@ -60,7 +60,9 @@ export function ImportSessionActions({
         >
           {state.message}
           {state.ok && typeof state.skippedDuplicateCount === "number" && state.skippedDuplicateCount > 0
-            ? ` ${state.skippedDuplicateCount} duplicada(s) ignorada(s).`
+            ? ` ${state.skippedDuplicateCount} ${
+                state.skippedDuplicateCount === 1 ? "duplicada ignorada" : "duplicadas ignoradas"
+              }.`
             : ""}
         </p>
       ) : null}

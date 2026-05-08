@@ -29,8 +29,11 @@ export function ReportTransactionsList({ movements }: ReportTransactionsListProp
 
   if (movements.length === 0) {
     return (
-      <div className="px-5 py-8 text-center text-sm font-semibold text-muted-foreground print:px-0">
-        Nenhuma movimentação registrada neste mês.
+      <div className="px-5 py-8 text-center text-sm text-muted-foreground print:px-0">
+        <p className="font-bold text-foreground">Nenhum dado para este relatório.</p>
+        <p className="mt-1 font-medium">
+          Adicione movimentações ou escolha outro período para gerar um relatório completo.
+        </p>
       </div>
     );
   }
@@ -107,7 +110,7 @@ function ScreenMovementsCards({ movements }: { movements: ReportMovement[] }) {
             <div className="min-w-0">
               <p className="text-sm font-extrabold text-foreground">{movement.description}</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {toDate(movement.occurred_on)} . {movement.category}
+                {toDate(movement.occurred_on)} - {movement.category}
               </p>
             </div>
             <p className={cn("whitespace-nowrap font-mono text-sm font-extrabold tabular", amountClass(movement.type))}>

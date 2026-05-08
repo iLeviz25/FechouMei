@@ -35,7 +35,6 @@ import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 import {
   getSubscriptionAccessFromProfile,
-  getSubscriptionStatusLabel,
   type SubscriptionAccess,
 } from "@/lib/subscription/access";
 import { cn } from "@/lib/utils";
@@ -182,13 +181,13 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
       );
 
       if (error) {
-        setProfileMessage("Não foi possível salvar essas alterações agora.");
+        setProfileMessage("Não foi possível salvar agora. Tente novamente em instantes.");
         return;
       }
 
       setValues(draft);
       setIsEditingProfile(false);
-      setProfileMessage("Perfil atualizado.");
+      setProfileMessage("Alterações salvas.");
       router.refresh();
     });
   }
@@ -216,11 +215,11 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
       const { error } = await supabase.auth.updateUser({ password });
 
       if (error) {
-        setPasswordMessage("Não foi possível atualizar a senha agora.");
+        setPasswordMessage("Não foi possível salvar agora. Tente novamente em instantes.");
         return;
       }
 
-      setPasswordMessage("Senha atualizada com sucesso.");
+      setPasswordMessage("Alterações salvas.");
       setPassword("");
       setConfirmPassword("");
       setShowPassword(false);
@@ -260,7 +259,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
     setDeleteMessage(null);
 
     if (deleteConfirmation.trim().toUpperCase() !== "EXCLUIR") {
-      setDeleteMessage("Digite EXCLUIR para confirmar a exclusão definitiva da conta.");
+      setDeleteMessage("Digite EXCLUIR para confirmar que entende o risco.");
       return;
     }
 
@@ -271,7 +270,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
     setDeleteMessage(null);
 
     if (deleteConfirmation.trim().toUpperCase() !== "EXCLUIR") {
-      setDeleteMessage("Digite EXCLUIR para confirmar a exclusão definitiva da conta.");
+      setDeleteMessage("Digite EXCLUIR para confirmar que entende o risco.");
       return;
     }
 
@@ -300,7 +299,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
         <div className="max-w-2xl space-y-1.5">
           <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Configurações</h1>
           <p className="text-sm leading-6 text-muted-foreground">
-            Gerencie seu perfil, preferências e ações da conta. Tudo num lugar só.
+            Ajuste seus dados, acesso e preferências quando precisar.
           </p>
         </div>
       </header>
@@ -339,13 +338,13 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
       <section className="space-y-3">
         <Badge className="w-fit" variant="secondary">
           <UserRound className="mr-1 h-3 w-3" />
-          Perfil
+          Dados da conta
         </Badge>
         <div className="flex flex-col gap-3 min-[430px]:flex-row min-[430px]:items-start min-[430px]:justify-between">
           <div className="space-y-1">
-            <h2 className="text-lg font-extrabold tracking-tight text-foreground">Informações do perfil</h2>
+            <h2 className="text-lg font-extrabold tracking-tight text-foreground">Dados da conta</h2>
             <p className="text-sm leading-6 text-muted-foreground">
-              Dados vindos do onboarding. Atualize quando sua rotina ou categoria mudar.
+              Mantenha seus dados atualizados para personalizar sua experiência no FechouMEI.
             </p>
           </div>
           <Button onClick={openProfileEditor} size="sm" type="button" variant="outline">
@@ -356,13 +355,13 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
 
         <Card className="overflow-hidden rounded-[30px]">
           <CardContent className="space-y-3 p-5 sm:p-6">
-            <InfoRow icon={<Building2 className="h-4 w-4" />} label="Atuação" value={businessModeLabel} />
+            <InfoRow icon={<Building2 className="h-4 w-4" />} label="Dados do MEI" value={businessModeLabel} />
             <InfoRow icon={<BriefcaseBusiness className="h-4 w-4" />} label="Tipo de trabalho" value={resolvedWorkType} />
             <InfoRow icon={<Sparkles className="h-4 w-4" />} label="Categoria principal" value={resolvedCategory} />
             <InfoRow icon={<Target className="h-4 w-4" />} label="Objetivo no app" value={resolvedGoal} />
-            <InfoRow icon={<Wallet className="h-4 w-4" />} label="Saldo inicial" value={formatInitialBalanceLabel(values.initialBalance)} />
+            <InfoRow icon={<Wallet className="h-4 w-4" />} label="Saldo atual" value={formatInitialBalanceLabel(values.initialBalance)} />
 
-            {profileMessage === "Perfil atualizado." ? (
+            {profileMessage === "Alterações salvas." ? (
               <p className="rounded-2xl border border-success/20 bg-success/10 px-4 py-3 text-sm leading-6 text-success">
                 {profileMessage}
               </p>
@@ -374,10 +373,10 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
       <section className="space-y-3">
         <Badge className="w-fit" variant="secondary">
           <Sparkles className="mr-1 h-3 w-3" />
-          Guia
+          Guia do app
         </Badge>
         <ActionCard
-          description="Reabra o tour rápido pelas áreas principais do FechouMEI."
+          description="Veja novamente o passo a passo das principais áreas do FechouMEI."
           icon={<Sparkles className="h-4 w-4" />}
           label="Ver guia do app"
           onClick={openTour}
@@ -387,11 +386,11 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
       <section className="space-y-3">
         <Badge className="w-fit" variant="secondary">
           <ShieldCheck className="mr-1 h-3 w-3" />
-          Segurança
+          Senha e acesso
         </Badge>
         <div className="space-y-1">
-          <h2 className="text-lg font-extrabold tracking-tight text-foreground">Acesso a conta</h2>
-          <p className="text-sm leading-6 text-muted-foreground">Mantenha sua senha forte e atualizada.</p>
+          <h2 className="text-lg font-extrabold tracking-tight text-foreground">Senha e acesso</h2>
+          <p className="text-sm leading-6 text-muted-foreground">Altere sua senha quando quiser reforçar a segurança da conta.</p>
         </div>
 
         <Card className="overflow-hidden rounded-[30px]">
@@ -403,7 +402,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
               <div className="min-w-0 flex-1">
                 <p className="text-base font-extrabold tracking-tight text-foreground">Alterar senha</p>
                 <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                  Recomendamos trocar a cada 90 dias.
+                  Use uma senha com pelo menos 6 caracteres.
                 </p>
               </div>
               <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
@@ -432,7 +431,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
                   <p
                     className={cn(
                       "rounded-2xl border px-4 py-3 text-sm leading-6",
-                      passwordMessage === "Senha atualizada com sucesso."
+                      passwordMessage === "Alterações salvas."
                         ? "border-success/20 bg-success/10 text-success"
                         : "border-destructive/20 bg-destructive/10 text-destructive",
                     )}
@@ -444,7 +443,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
                 <div className="flex justify-end">
                   <Button disabled={isUpdatingPassword} type="submit">
                     {isUpdatingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
-                    Salvar nova senha
+                    {isUpdatingPassword ? "Salvando alterações" : "Salvar nova senha"}
                   </Button>
                 </div>
               </form>
@@ -461,7 +460,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
         <div className="space-y-1">
           <h2 className="text-lg font-extrabold tracking-tight text-foreground">Ações da conta</h2>
           <p className="text-sm leading-6 text-muted-foreground">
-            Sair do app ou encerrar sua conta no FechouMEI.
+            Saia do app ou exclua sua conta quando precisar.
           </p>
         </div>
 
@@ -480,10 +479,10 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
               </div>
               <div className="min-w-0">
                 <p className="text-base font-extrabold tracking-tight text-destructive">
-                  Excluir conta permanentemente
+                  Excluir conta
                 </p>
                 <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                  Todos os seus dados, movimentações, fechamentos e histórico serão removidos. Esta ação não pode ser desfeita.
+                  Essa ação remove sua conta e seus dados do FechouMEI. Depois de confirmar, não será possível desfazer.
                 </p>
               </div>
             </div>
@@ -491,7 +490,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
             <div className="flex justify-start">
               <Button onClick={openDeleteDialog} type="button" variant="destructive">
                 <Trash2 className="h-4 w-4" />
-                Excluir conta
+                Excluir minha conta
               </Button>
             </div>
           </CardContent>
@@ -505,11 +504,11 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
       {isEditingProfile ? (
         <ResponsiveOverlay
           closeDisabled={isSavingProfile}
-          description="Atualize seus dados sem poluir a tela principal. Se fechar sem salvar, nada será alterado."
+          description="Essas informações ajudam a deixar relatórios e orientações mais úteis."
           icon={<Pencil className="h-4 w-4" />}
           maxWidthClass="sm:max-w-3xl"
           onClose={cancelProfileEditor}
-          title="Editar perfil"
+          title="Dados do MEI"
         >
           <div className="space-y-5">
             <div className="grid gap-4 md:grid-cols-2">
@@ -593,7 +592,8 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
 
               <Field
                 icon={<Wallet className="h-4 w-4" />}
-                label="Saldo inicial"
+                helper="Ajuste o saldo base usado para acompanhar seu mês. Isso não deve ser usado como entrada ou faturamento."
+                label="Saldo atual"
                 onBlur={() =>
                   updateDraft({
                     initialBalance: formatOptionalAmount(parseOptionalAmount(draft.initialBalance)),
@@ -605,7 +605,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
               />
             </div>
 
-            {profileMessage && profileMessage !== "Perfil atualizado." ? (
+            {profileMessage && profileMessage !== "Alterações salvas." ? (
               <p className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm leading-6 text-destructive">
                 {profileMessage}
               </p>
@@ -617,7 +617,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
               </Button>
               <Button disabled={isSavingProfile} onClick={saveProfile} type="button">
                 {isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Salvar alterações
+                {isSavingProfile ? "Salvando alterações" : "Salvar alterações"}
               </Button>
             </div>
           </div>
@@ -627,16 +627,16 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
       {deleteStep === "intro" ? (
         <ResponsiveOverlay
           closeDisabled={isDeleting}
-          description="Essa ação é permanente e merece uma confirmação antes de continuar."
+          description="Essa ação remove sua conta e seus dados do FechouMEI. Depois de confirmar, não será possível desfazer."
           icon={<AlertTriangle className="h-4 w-4" />}
           maxWidthClass="sm:max-w-md"
           onClose={closeDeleteDialog}
-          title="Tem certeza que deseja excluir sua conta?"
+          title="Excluir conta"
           tone="danger"
         >
           <div className="space-y-5">
             <p className="rounded-[22px] border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm leading-6 text-destructive">
-              Essa ação é permanente e removerá seu login, perfil, movimentações, fechamentos, checklist e preferências salvas.
+              Sua conta, movimentações, fechamentos, obrigações e preferências serão removidos.
             </p>
 
             <div className="grid gap-2 sm:grid-cols-2">
@@ -644,7 +644,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
                 Cancelar
               </Button>
               <Button onClick={continueToDeleteTextConfirmation} type="button" variant="destructive">
-                Sim, quero continuar
+                Continuar
               </Button>
             </div>
           </div>
@@ -654,16 +654,16 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
       {deleteStep === "text-confirmation" ? (
         <ResponsiveOverlay
           closeDisabled={isDeleting}
-          description="Digite EXCLUIR para habilitar a próxima confirmação."
+          description="Digite EXCLUIR para confirmar que entende o risco."
           icon={<Trash2 className="h-4 w-4" />}
           maxWidthClass="sm:max-w-md"
           onClose={closeDeleteDialog}
-          title="Confirmar exclusão"
+          title="Confirmar exclusão de conta"
           tone="danger"
         >
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="deleteConfirmation">Digite EXCLUIR para confirmar</Label>
+              <Label htmlFor="deleteConfirmation">Digite EXCLUIR para confirmar que entende o risco.</Label>
               <Input
                 autoComplete="off"
                 className="border-destructive/20 focus-visible:ring-destructive/10"
@@ -694,7 +694,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
                 variant="destructive"
               >
                 <Trash2 className="h-4 w-4" />
-                Excluir
+                Continuar
               </Button>
             </div>
           </div>
@@ -704,16 +704,16 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
       {deleteStep === "final-confirmation" ? (
         <ResponsiveOverlay
           closeDisabled={isDeleting}
-          description="Depois disso, não será possível recuperar sua conta nem seus dados."
+          description="Depois de confirmar, não será possível recuperar sua conta nem seus dados."
           icon={<AlertTriangle className="h-4 w-4" />}
           maxWidthClass="sm:max-w-md"
           onClose={closeDeleteDialog}
-          title="Última confirmação"
+          title="Tem certeza que deseja excluir sua conta?"
           tone="danger"
         >
           <div className="space-y-5">
             <p className="rounded-[22px] border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm leading-6 text-destructive">
-              Depois disso, não será possível recuperar sua conta nem seus dados.
+              Essa ação remove sua conta e seus dados do FechouMEI. Depois de confirmar, não será possível desfazer.
             </p>
 
             {deleteMessage ? (
@@ -728,7 +728,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
               </Button>
               <Button disabled={isDeleting} onClick={handleDeleteAccount} type="button" variant="destructive">
                 {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                Excluir definitivamente
+                Excluir minha conta
               </Button>
             </div>
           </div>
@@ -740,19 +740,15 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
 
 function SubscriptionSummaryCard({ access }: { access: SubscriptionAccess }) {
   const statusLabel = getAccessStatusLabel(access);
-  const description = access.isAdmin
-    ? "Acesso administrativo completo ao app."
-    : access.status === "active"
-      ? "FechouMEI Completo ativo. O ciclo de pagamento é gerenciado fora desta tela."
-      : "Aguardando confirmação ou regularização da assinatura.";
+  const description = "Veja o status da sua assinatura e do acesso ao app.";
   const helenaLabel = access.isAdmin
-    ? "Sem limite bloqueante"
+    ? "Sem limite de uso"
     : access.status === "active"
       ? "50 mensagens/dia"
-      : "Disponível ao ativar";
-  const enabledLabel = access.canAccessApp ? "Liberado" : "Aguardando acesso";
-  const importLabel = access.canUseAppImport ? "Liberada" : "Aguardando acesso";
-  const reportsLabel = access.canUseAppExport ? "Liberados" : "Aguardando acesso";
+      : "Disponível com acesso ativo";
+  const enabledLabel = access.canAccessApp ? "Disponível" : "Acesso pendente";
+  const importLabel = access.canUseAppImport ? "Disponível" : "Acesso pendente";
+  const reportsLabel = access.canUseAppExport ? "Disponíveis" : "Acesso pendente";
 
   return (
     <Card className="overflow-hidden rounded-[28px] border-primary/15 bg-primary-soft/30">
@@ -760,7 +756,7 @@ function SubscriptionSummaryCard({ access }: { access: SubscriptionAccess }) {
         <div className="flex flex-col gap-3 min-[430px]:flex-row min-[430px]:items-start min-[430px]:justify-between">
           <div className="min-w-0 space-y-1">
             <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Acesso ao FechouMEI</p>
-            <h2 className="text-lg font-extrabold tracking-tight text-foreground">FechouMEI Completo</h2>
+            <h2 className="text-lg font-extrabold tracking-tight text-foreground">Acesso ao FechouMEI</h2>
             <p className="text-sm leading-6 text-muted-foreground">{description}</p>
           </div>
           <div className="flex flex-wrap gap-2 min-[430px]:justify-end">
@@ -784,11 +780,15 @@ function SubscriptionSummaryCard({ access }: { access: SubscriptionAccess }) {
 }
 
 function getAccessStatusLabel(access: SubscriptionAccess) {
-  if (access.isAdmin) {
-    return "Admin";
+  if (access.isAdmin || access.status === "active") {
+    return "Acesso ativo";
   }
 
-  return getSubscriptionStatusLabel(access.status);
+  if (access.status === "canceled") {
+    return "Acesso inativo";
+  }
+
+  return "Acesso pendente";
 }
 
 function SubscriptionSummaryItem({ label, value }: { label: string; value: string }) {
@@ -824,15 +824,15 @@ function validateProfileDraft(values: ProfileValues) {
   }
 
   if (values.workType === "Outro" && !values.customWorkType.trim()) {
-    return "Escreva qual e o seu tipo de trabalho.";
+    return "Escreva qual é o seu tipo de trabalho.";
   }
 
   if (values.mainCategory === "Outro" && !values.customMainCategory.trim()) {
-    return "Escreva qual e a sua categoria principal.";
+    return "Escreva qual é a sua categoria principal.";
   }
 
   if (parseOptionalAmount(values.initialBalance) === null) {
-    return "Use um valor de saldo valido, como 2000 ou 1200,50.";
+    return "Use um valor de saldo válido, como 2000 ou 1200,50.";
   }
 
   return null;
@@ -988,6 +988,7 @@ function ResponsiveOverlay({
 }
 
 function Field({
+  helper,
   icon,
   label,
   onBlur,
@@ -995,6 +996,7 @@ function Field({
   placeholder,
   value,
 }: {
+  helper?: string;
   icon?: ReactNode;
   label: string;
   onBlur?: () => void;
@@ -1015,6 +1017,7 @@ function Field({
           value={value}
         />
       </div>
+      {helper ? <p className="text-xs leading-5 text-muted-foreground">{helper}</p> : null}
     </label>
   );
 }

@@ -23,12 +23,12 @@ type ChecklistItem = {
 const DAY_IN_MS = 1000 * 60 * 60 * 24;
 
 const checklistTemplate = [
-  { key: "conferir-entradas", label: "Conferir entradas do mês" },
-  { key: "conferir-despesas", label: "Conferir despesas do mês" },
-  { key: "revisar-fechamento", label: "Revisar o fechamento do mês" },
-  { key: "pagar-das", label: "Pagar DAS mensal" },
-  { key: "entregar-dasn", label: "Entregar DASN-SIMEI anual" },
-  { key: "guardar-comprovantes", label: "Guardar comprovantes do mês" },
+  { key: "conferir-entradas", label: "Conferir entradas" },
+  { key: "conferir-despesas", label: "Conferir despesas" },
+  { key: "revisar-fechamento", label: "Revisar o mês" },
+  { key: "pagar-das", label: "Pagar DAS" },
+  { key: "entregar-dasn", label: "Enviar DASN-SIMEI" },
+  { key: "guardar-comprovantes", label: "Guardar comprovantes" },
 ];
 
 export async function getObligationNotificationsForUser({
@@ -93,10 +93,10 @@ export function deriveObligationNotifications({
   if (preferences.das_monthly_enabled && isPending(checklist, "pagar-das")) {
     notifications.push(
       createNotification({
-        description: "O DAS mensal ainda está pendente no checklist.",
+        description: "Marque quando o boleto mensal do MEI estiver pago.",
         dueDate: dasDueDate,
         id: "pagar-das",
-        title: "Pagar DAS mensal",
+        title: "Pagar DAS",
       }),
     );
   }
@@ -104,10 +104,10 @@ export function deriveObligationNotifications({
   if (preferences.dasn_annual_enabled && isPending(checklist, "entregar-dasn")) {
     notifications.push(
       createNotification({
-        description: `A declaração anual referente a ${year - 1} ainda está pendente.`,
+        description: "Declaração anual do MEI. Normalmente é feita uma vez por ano.",
         dueDate: dasnDueDate,
         id: "entregar-dasn",
-        title: "Entregar DASN-SIMEI",
+        title: "Enviar DASN-SIMEI",
       }),
     );
   }
@@ -120,10 +120,10 @@ export function deriveObligationNotifications({
   ) {
     notifications.push(
       createNotification({
-        description: "Revise entradas, despesas e fechamento antes de virar o mês.",
+        description: "Confira entradas, despesas e pendências antes de fechar o mês.",
         dueDate: reviewDate,
         id: "revisao-mensal",
-        title: "Revisão mensal pendente",
+        title: "Revisar o mês",
       }),
     );
   }
@@ -131,10 +131,10 @@ export function deriveObligationNotifications({
   if (preferences.receipts_enabled && isPending(checklist, "guardar-comprovantes")) {
     notifications.push(
       createNotification({
-        description: "Separe notas, recibos e comprovantes do período.",
+        description: "Separe recibos, notas e comprovantes importantes do mês.",
         dueDate: monthEndDate,
         id: "guardar-comprovantes",
-        title: "Separar comprovantes",
+        title: "Guardar comprovantes",
       }),
     );
   }

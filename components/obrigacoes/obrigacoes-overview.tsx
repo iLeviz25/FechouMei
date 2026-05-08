@@ -81,7 +81,7 @@ function formatHeroMonth(monthKey: string) {
 
 function getDueHelper(status: DueStatus, dueDate: Date, daysUntil: number) {
   if (status === "Concluido") {
-    return "Marcado como concluído no checklist.";
+    return "Concluído no checklist.";
   }
 
   if (status === "Atrasado") {
@@ -153,11 +153,6 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
   const monthEndDate = new Date(currentYear, currentMonth, 0);
   const reviewWindowDate = new Date(currentYear, currentMonth, 0);
   const closingReviewDate = new Date(currentYear, currentMonth, 3);
-  const currentMonthTitle = new Intl.DateTimeFormat("pt-BR", {
-    month: "long",
-    year: "numeric",
-  }).format(new Date(currentYear, monthIndex, 1));
-
   const dasDone = getChecklistItem(optimisticChecklist, "pagar-das")?.done ?? false;
   const dasInfo = getDueInfo({
     done: dasDone,
@@ -205,10 +200,10 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
   if (!dasDone && (dasInfo.status === "Atrasado" || dasInfo.status === "Hoje" || dasInfo.status === "Em breve")) {
     alertItems.push({
       dateLabel: formatShortDate(new Date(currentYear, monthIndex, DAS_DUE_DAY)),
-      detail: "Documento de Arrecadação do Simples Nacional",
+      detail: "Marque quando o boleto mensal do MEI estiver pago.",
       eyebrow: formatDeadlineLabel(dasInfo.status, dasInfo.daysUntil),
       icon: Receipt,
-      title: `Pagar DAS - ${capitalizeMonthYear(currentMonthTitle)}`,
+      title: "Pagar DAS",
       tone: getAlertTone(dasInfo.status, dasInfo.daysUntil),
     });
   }
@@ -216,10 +211,10 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
   if (!reviewEntriesDone || !reviewExpensesDone) {
     alertItems.push({
       dateLabel: formatShortDate(reviewWindowDate),
-      detail: "Confira entradas e despesas registradas antes do fechamento.",
+      detail: "Confira entradas, despesas e pendências antes de fechar o mês.",
       eyebrow: formatDeadlineLabel(reviewWindowInfo.status, reviewWindowInfo.daysUntil),
       icon: ClipboardCheck,
-      title: "Revisar movimentações do mês",
+      title: "Revisar o mês",
       tone: getAlertTone(reviewWindowInfo.status, reviewWindowInfo.daysUntil),
     });
   }
@@ -227,10 +222,10 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
   if (!receiptsDone) {
     alertItems.push({
       dateLabel: formatShortDate(monthEndDate),
-      detail: "Organize notas, recibos e comprovantes do período.",
+      detail: "Separe recibos, notas e comprovantes importantes do mês.",
       eyebrow: formatDeadlineLabel(receiptsInfo.status, receiptsInfo.daysUntil),
       icon: FileText,
-      title: "Separar comprovantes",
+      title: "Guardar comprovantes",
       tone: getAlertTone(receiptsInfo.status, receiptsInfo.daysUntil),
     });
   }
@@ -238,10 +233,10 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
   if (!closingDone && alertItems.length < 3) {
     alertItems.push({
       dateLabel: formatShortDate(closingReviewDate),
-      detail: "Valide o resultado consolidado antes da virada do próximo mês.",
+      detail: "Confira entradas, despesas e pendências antes de fechar o mês.",
       eyebrow: formatDeadlineLabel(closingInfo.status, closingInfo.daysUntil),
       icon: ClipboardCheck,
-      title: "Conferir fechamento do mês",
+      title: "Revisar o mês",
       tone: getAlertTone(closingInfo.status, closingInfo.daysUntil),
     });
   }
@@ -249,10 +244,10 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
   if (!dasnDone && alertItems.length < 3 && dasnInfo.status !== "Em dia") {
     alertItems.push({
       dateLabel: formatShortDate(new Date(currentYear, DASN_DUE_MONTH, DASN_DUE_DAY)),
-      detail: `Declaração anual do MEI referente a ${currentYear - 1}.`,
+      detail: "Declaração anual do MEI. Normalmente é feita uma vez por ano.",
       eyebrow: formatDeadlineLabel(dasnInfo.status, dasnInfo.daysUntil),
       icon: FileText,
-      title: `DASN-SIMEI ${currentYear - 1}`,
+      title: "Enviar DASN-SIMEI",
       tone: getAlertTone(dasnInfo.status, dasnInfo.daysUntil),
     });
   }
@@ -268,10 +263,10 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
 
   const supportCopy =
     pendingCount === 0
-      ? "Checklist concluído neste mês. Continue acompanhando para manter o MEI em dia."
+      ? "Tudo em dia. Continue acompanhando para manter seu MEI organizado."
       : alertItems.length > 0
-        ? `${alertItems[0].title} está no radar agora. Marcar cada etapa concluída ajuda a evitar multa e correria.`
-        : "Mantenha o checklist atualizado para chegar no fechamento com tudo organizado.";
+        ? "Revise suas obrigações do mês. Marque cada item conforme for resolvendo."
+        : "Faltam alguns itens. Marque o que já foi feito e acompanhe o que ainda precisa de atenção.";
 
   return (
     <div className="mobile-section-gap">
@@ -281,10 +276,10 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
           Sua rotina MEI
         </Badge>
         <div className="max-w-2xl space-y-1.5">
-          <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Obrigações do mês</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Obrigações</h1>
           <p className="text-sm leading-6 text-muted-foreground">
             Acompanhe o que precisa ser feito em{" "}
-            <span className="font-semibold text-foreground">{monthLabel}</span> e mantenha seu MEI em dia.
+            <span className="font-semibold text-foreground">{monthLabel}</span> para manter seu MEI em dia.
           </p>
         </div>
       </header>
@@ -300,7 +295,7 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
                 {progressPercent}%
               </p>
               <p className="text-sm font-semibold text-white/82">
-                {doneCount} de {total} concluídas - {pendingCount} pendentes
+                {doneCount} de {total} concluídos - {pendingCount} pendentes
               </p>
             </div>
 
@@ -319,7 +314,7 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
             <div className="flex items-center justify-between gap-3 text-sm font-semibold text-white/88">
               <span className="inline-flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-full bg-secondary" />
-                {doneCount} concluídas
+                {doneCount} concluídos
               </span>
               <span className="inline-flex items-center gap-2">
                 {pendingCount} pendentes
@@ -329,7 +324,7 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
           </div>
 
           <div className="grid grid-cols-3 gap-2 rounded-[24px] bg-white/6 p-3">
-            <HeroSummaryCell label="Concluídas" value={`${doneCount}/${total}`} />
+            <HeroSummaryCell label="Concluídos" value={`${doneCount}/${total}`} />
             <HeroSummaryCell label="Pendentes" value={String(pendingCount)} />
             <HeroSummaryCell label="Alertas" value={String(alertItems.length)} />
           </div>
@@ -339,7 +334,7 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
       <section className="space-y-3">
         <div className="flex items-center justify-between px-1">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-foreground">Alertas de prazo</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-foreground">Atenção do mês</p>
           </div>
           <p className="text-xs font-semibold text-muted-foreground">
             {alertItems.length} {alertItems.length === 1 ? "item" : "itens"}
@@ -367,9 +362,9 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
                     <CheckCircle2 className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-foreground">Nenhum prazo crítico agora</p>
+                    <p className="text-sm font-bold text-foreground">Tudo em dia por agora</p>
                     <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                      Alertas e progresso seguem ligados aos estados reais do checklist e das obrigações do app.
+                      Quando houver algo para revisar, pagar ou guardar, o aviso aparecerá aqui.
                     </p>
                   </div>
                 </div>
@@ -386,7 +381,7 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
               <div className="space-y-1">
                 <h2 className="text-lg font-extrabold tracking-tight text-foreground">Checklist do mês</h2>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  Toque para marcar como concluída e acompanhe o que ainda falta neste ciclo.
+                  Marque cada item conforme for resolvendo. Assim você sabe o que já foi feito e o que ainda precisa de atenção.
                 </p>
               </div>
 
@@ -400,7 +395,7 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
                 )}
                 variant="secondary"
               >
-                {pendingCount === 0 ? "Tudo em dia" : `${pendingCount} pendente${pendingCount === 1 ? "" : "s"}`}
+                {pendingCount === 0 ? "Tudo em dia" : pendingCount <= 2 ? "Faltam alguns itens" : "Revise suas obrigações do mês"}
               </Badge>
             </div>
           </div>
@@ -421,7 +416,7 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
             </div>
             <div className="min-w-0">
               <p className="text-lg font-extrabold tracking-tight text-foreground">
-                Manter o checklist em dia evita correria e multa
+                Mantenha sua rotina em dia
               </p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">{supportCopy}</p>
             </div>
@@ -553,12 +548,5 @@ function formatDeadlineLabel(status: DueStatus, daysUntil: number) {
     return "Concluído";
   }
 
-  return "No radar";
-}
-
-function capitalizeMonthYear(value: string) {
-  return value
-    .split(" ")
-    .map((part, index) => (index === 0 ? part.charAt(0).toUpperCase() + part.slice(1) : part))
-    .join(" ");
+  return "Pendente";
 }

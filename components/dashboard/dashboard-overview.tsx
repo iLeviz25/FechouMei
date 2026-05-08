@@ -58,7 +58,7 @@ const quickActions = [
   {
     href: "/app/movimentacoes",
     icon: ArrowDownLeft,
-    label: "Entrada",
+    label: "Registrar entrada",
     tone: "success",
   },
   {
@@ -76,7 +76,7 @@ const quickActions = [
   {
     href: "/app/movimentacoes",
     icon: ArrowUpRight,
-    label: "Despesa",
+    label: "Registrar despesa",
     tone: "danger",
   },
 ] as const;
@@ -110,16 +110,6 @@ function toHeadlineDate(value: Date) {
   })
     .format(value)
     .toUpperCase();
-}
-
-function toMonthCardLabel(value: Date) {
-  return new Intl.DateTimeFormat("pt-BR", {
-    month: "long",
-    timeZone: "America/Sao_Paulo",
-    year: "numeric",
-  })
-    .format(value)
-    .replace(" de ", "/");
 }
 
 function toMonthName(value: Date) {
@@ -168,11 +158,11 @@ function getDashboardStatus({
   monthBalance: number;
 }) {
   if (dasLate || limitUsage >= 1 || monthBalance < 0) {
-    return { label: "Atenção", tone: "danger" } as const;
+    return { label: "Precisa agir", tone: "danger" } as const;
   }
 
   if (!dasDone || limitUsage >= 0.75) {
-    return { label: "No radar", tone: "warning" } as const;
+    return { label: "Fique de olho", tone: "warning" } as const;
   }
 
   return { label: "Tudo em dia", tone: "success" } as const;
@@ -199,7 +189,6 @@ export function DashboardOverview({
   const today = new Date();
   const dasLate = !dasDone && today.getDate() > DAS_DUE_DAY;
   const currentYear = today.getFullYear();
-  const currentMonthLabel = toMonthCardLabel(today);
   const previousMonthBalance = previousMonthIncome - previousMonthExpense;
   const status = getDashboardStatus({
     dasDone,
@@ -210,45 +199,45 @@ export function DashboardOverview({
   const limitStatus = limitInfo.status;
   const alerts = [
     {
-      cta: dasDone ? "Abrir obrigações" : "Pagar agora",
+      cta: dasDone ? "Ver obrigações" : dasLate ? "Revisar DAS" : "Marcar como pago",
       description: dasDone
-        ? "O pagamento mensal já foi marcado no checklist deste mês."
+        ? "O DAS do mês já está marcado como pago no checklist."
         : dasLate
-          ? "O prazo do DAS passou. Entre em obrigações para regularizar sem perder o controle."
-          : `O DAS de ${toMonthName(today)} ainda está em aberto. Atualize o checklist assim que concluir o pagamento.`,
+          ? "O prazo do DAS passou. Abra obrigações para marcar o pagamento ou regularizar."
+          : `O DAS de ${toMonthName(today)} ainda está pendente. Quando pagar, marque no checklist.`,
       href: "/app/obrigacoes",
       icon: dasDone ? CheckCircle2 : Receipt,
-      kicker: dasDone ? "TUDO CERTO" : dasLate ? "URGENTE" : "ATENÇÃO",
-      title: dasDone ? "DAS do mês sinalizado" : `DAS de ${toMonthName(today)} em aberto`,
+      kicker: dasDone ? "EM DIA" : dasLate ? "ATRASADO" : "PENDENTE",
+      title: dasDone ? "DAS em dia" : dasLate ? "DAS atrasado" : `DAS de ${toMonthName(today)} pendente`,
       tone: dasDone ? "success" : dasLate ? "danger" : "warning",
     },
     {
-      cta: "Ver projeção",
+      cta: limitUsage >= 1 ? "Revisar limite" : "Ver fechamento",
       description:
         limitUsage >= 1
-          ? `Seu faturamento anual passou do teto do MEI em ${toCurrency(exceededLimit)}. Revise o fechamento para decidir os próximos passos.`
-          : `${limitUsageDisplayPercent.toFixed(1).replace(".", ",")}% do limite anual usado. Ainda restam ${toCurrency(remainingLimit)} no teto.`,
+          ? `Seu faturamento anual passou do limite MEI em ${toCurrency(exceededLimit)}. Revise o fechamento para entender os próximos passos.`
+          : `Você usou ${limitUsageDisplayPercent.toFixed(1).replace(".", ",")}% do limite MEI. Ainda há ${toCurrency(remainingLimit)} disponível.`,
       href: "/app/fechamento-mensal",
       icon: TrendingUp,
-      kicker: limitUsage >= 1 ? "URGENTE" : limitUsage >= 0.75 ? "ATENÇÃO" : "TUDO CERTO",
+      kicker: limitUsage >= 1 ? "ACIMA DO LIMITE" : limitUsage >= 0.75 ? "FIQUE DE OLHO" : "EM DIA",
       title:
         limitUsage >= 1
           ? "Limite do MEI ultrapassado"
           : limitUsage >= 0.75
-            ? "Limite do MEI no radar"
-            : "Limite do MEI sob controle",
+            ? "Limite MEI chegando perto"
+            : "Limite MEI em dia",
       tone: limitUsage >= 1 ? "danger" : limitUsage >= 0.75 ? "warning" : "success",
     },
     {
-      cta: monthBalance >= 0 ? "Ver movimentações" : "Revisar mês",
+      cta: monthBalance >= 0 ? "Ver movimentações" : "Revisar saldo",
       description:
         monthBalance >= 0
-          ? `Você fecha o mês com ${toCurrency(monthBalance)} acima das despesas registradas.`
-          : `As despesas passaram as entradas em ${toCurrency(Math.abs(monthBalance))}. Vale revisar os lançamentos antes do fechamento.`,
+          ? `${toCurrency(monthBalance)} sobrando no mês, considerando entradas e despesas registradas.`
+          : `As despesas passaram as entradas em ${toCurrency(Math.abs(monthBalance))}. Confira os registros do mês.`,
       href: monthBalance >= 0 ? "/app/movimentacoes" : "/app/fechamento-mensal",
       icon: monthBalance >= 0 ? CheckCircle2 : AlertTriangle,
-      kicker: monthBalance >= 0 ? "TUDO CERTO" : "ATENÇÃO",
-      title: monthBalance >= 0 ? "Saldo saudável neste mês" : "Saldo do mês pede revisão",
+      kicker: monthBalance >= 0 ? "SALDO OK" : "REVISAR",
+      title: monthBalance >= 0 ? "Saldo do mês positivo" : "Saldo do mês negativo",
       tone: monthBalance >= 0 ? "success" : "warning",
     },
   ] as const;
@@ -264,7 +253,7 @@ export function DashboardOverview({
             <div className="space-y-2">
               <DashboardGreeting />
               <p className="max-w-[18rem] text-sm leading-6 text-muted-foreground">
-                Aqui está o resumo do seu MEI hoje.
+                Veja como está o dinheiro e a rotina do seu MEI hoje.
               </p>
             </div>
           </div>
@@ -287,7 +276,7 @@ export function DashboardOverview({
 
       <section className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2">
         <SummaryCard
-          detail={currentMonthLabel}
+          detail="Recebido no mês"
           icon={ArrowDownLeft}
           label="Entradas"
           tone="success"
@@ -295,7 +284,7 @@ export function DashboardOverview({
           value={toCurrency(monthlyIncome)}
         />
         <SummaryCard
-          detail={currentMonthLabel}
+          detail="Gasto no mês"
           icon={ArrowUpRight}
           label="Despesas"
           tone="danger"
@@ -303,7 +292,7 @@ export function DashboardOverview({
           value={toCurrency(monthlyExpense)}
         />
         <SummaryCard
-          detail={monthBalance >= 0 ? "entradas - despesas" : "requer revisão do mês"}
+          detail="Entradas - despesas"
           icon={Wallet}
           label="Saldo do mês"
           tone="neutral"
@@ -312,16 +301,16 @@ export function DashboardOverview({
           valueTone={monthBalance >= 0 ? "neutral" : "danger"}
         />
         <SummaryCard
-          detail={`acumulado ${currentYear}`}
+          detail="Acumulado no ano"
           icon={Landmark}
           label="Faturamento"
           tone="warning"
           trendLabel={
             exceededLimit > 0
-              ? `${toCurrency(exceededLimit)} acima do teto`
+              ? `${toCurrency(exceededLimit)} acima do limite`
               : remainingLimit > 0
-                ? `${toCurrency(remainingLimit)} livres no teto`
-                : "Teto anual atingido"
+                ? `${toCurrency(remainingLimit)} disponível`
+                : "Limite anual atingido"
           }
           value={toCurrency(annualIncome)}
           valueTone="warning"
@@ -340,7 +329,7 @@ export function DashboardOverview({
                 className="w-fit border-white/12 bg-white/8 px-2.5 py-1 text-[10px] tracking-[0.12em] text-primary-foreground"
                 variant="outline"
               >
-                Limite anual MEI . {currentYear}
+                Limite MEI em {currentYear}
               </Badge>
               <Badge
                 className={cn(
@@ -355,12 +344,12 @@ export function DashboardOverview({
 
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <p className="text-[13px] font-semibold text-primary-foreground/82 sm:text-sm">Faturamento acumulado</p>
+                <p className="text-[13px] font-semibold text-primary-foreground/82 sm:text-sm">Acumulado no ano</p>
                 <p className="font-mono text-[1.95rem] font-extrabold leading-none tabular min-[380px]:text-[2.15rem] sm:text-[2.25rem]">
                   {toCurrency(annualIncome)}
                 </p>
                 <p className="text-xs text-primary-foreground/72 sm:text-sm">
-                  de {toCurrency(MEI_ANNUAL_LIMIT)} no teto anual
+                  de {toCurrency(MEI_ANNUAL_LIMIT)} do limite MEI
                 </p>
               </div>
 
@@ -374,10 +363,10 @@ export function DashboardOverview({
                 <div className="grid grid-cols-2 gap-2 text-primary-foreground/82 sm:flex sm:items-center sm:justify-between sm:gap-3">
                   <div className="rounded-[18px] bg-white/8 px-3 py-2 sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0">
                     <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-primary-foreground/58 sm:hidden">
-                      Uso
+                      Usado
                     </p>
                     <p className="mt-1 text-sm font-semibold text-primary-foreground sm:mt-0 sm:text-sm">
-                      {limitUsageDisplayPercent.toFixed(1).replace(".", ",")}% do teto
+                      {limitUsageDisplayPercent.toFixed(1).replace(".", ",")}% usado
                     </p>
                   </div>
                   <div className="rounded-[18px] bg-white/8 px-3 py-2 text-right sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
@@ -385,7 +374,7 @@ export function DashboardOverview({
                       {exceededLimit > 0 ? "Excedido" : "Disponível"}
                     </p>
                     <p className="mt-1 text-sm font-semibold text-primary-foreground sm:mt-0 sm:text-sm">
-                      {exceededLimit > 0 ? `${toCurrency(exceededLimit)} acima` : `${toCurrency(remainingLimit)} disponíveis`}
+                      {exceededLimit > 0 ? `${toCurrency(exceededLimit)} acima` : `${toCurrency(remainingLimit)} disponível`}
                     </p>
                   </div>
                 </div>
@@ -394,7 +383,7 @@ export function DashboardOverview({
 
             <div className="grid grid-cols-3 gap-2 border-t border-white/12 pt-3.5 sm:gap-3 sm:pt-4">
               <LimitMetric label="Já usado" value={toCompactCurrency(annualIncome)} />
-              <LimitMetric label="Restante" value={toCompactCurrency(remainingLimit)} />
+              <LimitMetric label="Disponível" value={toCompactCurrency(remainingLimit)} />
               <LimitMetric
                 label="Checklist"
                 value={`${Math.min(checklistDoneCount, DASHBOARD_CHECKLIST_ITEMS)}/${DASHBOARD_CHECKLIST_ITEMS}`}
@@ -413,7 +402,7 @@ export function DashboardOverview({
                   Ações rápidas
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Atalhos para o que você resolve primeiro no celular.
+                  Resolva o principal em poucos toques.
                 </p>
               </div>
               <div className="icon-tile flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-primary">
@@ -440,7 +429,7 @@ export function DashboardOverview({
                 </h2>
                 <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                   <span className="h-2 w-2 rounded-full bg-primary" />
-                  Sincronizado agora
+                  Últimos registros do seu MEI
                 </p>
               </div>
               <Button
@@ -450,7 +439,7 @@ export function DashboardOverview({
                 variant="ghost"
               >
                 <Link href="/app/movimentacoes">
-                  Ver tudo
+                  Ver histórico
                   <ChevronRight className="h-4 w-4" />
                 </Link>
               </Button>
@@ -459,7 +448,7 @@ export function DashboardOverview({
             {recentMovements.length === 0 ? (
               <div className="border-t border-border/70 px-4 py-5 text-sm leading-6 text-muted-foreground min-[380px]:px-5">
                 <p className="font-bold text-foreground">Nenhuma movimentação registrada ainda.</p>
-                <p className="mt-1">Adicione sua primeira entrada ou despesa para alimentar o painel.</p>
+                <p className="mt-1">Adicione uma entrada ou despesa para começar a acompanhar seu mês.</p>
                 <Button asChild className="mt-4" size="sm">
                   <Link href="/app/movimentacoes">Adicionar movimentação</Link>
                 </Button>
@@ -479,10 +468,10 @@ export function DashboardOverview({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-[1.1rem] font-extrabold tracking-tight text-foreground">
-                  Alertas e status
+                  O que precisa de atenção
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Acompanhe o que precisa da sua atenção.
+                  Veja se existe algo importante para resolver.
                 </p>
               </div>
               <div className="flex h-9 min-w-9 items-center justify-center rounded-full bg-primary-soft px-3 text-sm font-extrabold text-primary">
@@ -590,10 +579,10 @@ function SummaryCard({
                 <TrendingUp className="h-3 w-3" />
                 {trend.label}
               </span>
-              <span className="text-muted-foreground">vs. mês anterior</span>
+              <span className="text-muted-foreground">em relação ao mês anterior</span>
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">{trendLabel ?? "Sem base anterior"}</p>
+            <p className="text-xs text-muted-foreground">{trendLabel ?? "Sem comparação ainda"}</p>
           )}
         </div>
       </div>

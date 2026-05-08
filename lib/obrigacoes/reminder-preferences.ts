@@ -54,7 +54,7 @@ export const getOrCreateReminderPreferences = cache(async function getOrCreateRe
     }
   }
 
-  throw new Error(`Erro ao inicializar lembretes de obrigações: ${error?.message ?? "registro não retornado"}`);
+  throw new Error(`Não foi possível preparar seus lembretes agora. Tente novamente em instantes. ${error?.message ?? ""}`);
 });
 
 async function fetchReminderPreferences(
@@ -68,7 +68,7 @@ async function fetchReminderPreferences(
     .maybeSingle();
 
   if (error) {
-    throw new Error(`Erro ao carregar lembretes de obrigações: ${error.message}`);
+    throw new Error(`Não foi possível carregar seus lembretes agora. Tente novamente em instantes. ${error.message}`);
   }
 
   return data;

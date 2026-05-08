@@ -4,7 +4,7 @@ import { ImportUpload } from "@/components/importar/import-upload";
 
 export default function ImportarPage() {
   return (
-    <Suspense fallback={<RouteTransitionPending label="Carregando importação" />}>
+    <Suspense fallback={<RouteTransitionPending label="Carregando dados da importação" />}>
       <ImportUpload />
     </Suspense>
   );

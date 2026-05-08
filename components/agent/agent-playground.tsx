@@ -10,16 +10,18 @@ import { cn } from "@/lib/utils";
 import type { AgentConversationSnapshot, AgentConversationState, AgentMessage } from "@/lib/agent/types";
 
 const examples = [
-  "Resumo do mês",
-  "Quanto falta pro limite MEI",
-  "DAS de Abril",
-  "Maior despesa da semana",
+  "Recebi 500 de um cliente",
+  "Paguei 120 de internet",
+  "Como foi meu mês?",
+  "Quanto falta para o limite MEI?",
+  "Marcar DAS como pago",
+  "Importar minha planilha",
 ];
 
 const welcomeMessage: AgentMessage = {
   id: "welcome",
   role: "agent",
-  content: "Oi, eu sou a Helena. Posso te ajudar com resumo do mês, limite do MEI, DAS e registros rápidos.",
+  content: "Oi, eu sou a Helena. Use este chat para testar mensagens antes de usar no WhatsApp.",
 };
 
 export function AgentPlayground({
@@ -140,11 +142,11 @@ export function AgentPlayground({
             <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-success ring-2 ring-card" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-base font-extrabold tracking-tight text-foreground">Helena</p>
-            <p className="text-sm text-muted-foreground">Chat de apoio - respostas rápidas</p>
+            <p className="text-base font-extrabold tracking-tight text-foreground">Teste a Helena por aqui</p>
+            <p className="text-sm text-muted-foreground">Use este chat para testar mensagens antes de usar no WhatsApp.</p>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="secondary">Aqui no app</Badge>
+            <Badge variant="secondary">Teste no app</Badge>
             {!empty ? (
               <Button onClick={handleClearConversation} size="sm" type="button" variant="outline">
                 <Trash2 className="h-4 w-4" />
@@ -156,7 +158,7 @@ export function AgentPlayground({
 
         {!isPersistent ? (
           <div className="border-b border-border/70 bg-secondary-soft px-5 py-3 text-sm text-secondary-foreground">
-            Modo temporario: aplique a migration da Helena no Supabase para salvar a conversa.
+            Este chat está em modo temporário. A conversa pode não ficar salva.
           </div>
         ) : null}
 
@@ -169,9 +171,9 @@ export function AgentPlayground({
               <div className="icon-tile flex h-14 w-14 items-center justify-center rounded-[22px] bg-primary-soft text-primary">
                 <Sparkles className="h-6 w-6" />
               </div>
-              <h2 className="mt-4 text-xl font-extrabold tracking-tight text-foreground">Como posso ajudar?</h2>
+              <h2 className="mt-4 text-xl font-extrabold tracking-tight text-foreground">Teste uma mensagem</h2>
               <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
-                Pergunte sobre seu mês, limite do MEI, DAS ou qualquer movimentação.
+                Teste mensagens sobre entradas, despesas, DAS, limite MEI ou resumo do mês.
               </p>
               <div className="mt-5 flex flex-wrap justify-center gap-2">
                 {examples.map((example) => (
@@ -254,7 +256,7 @@ export function AgentPlayground({
                 submitMessage(input);
               }
             }}
-            placeholder="Pergunte algo pra Helena..."
+            placeholder="Teste uma mensagem para a Helena..."
             rows={1}
             value={input}
           />

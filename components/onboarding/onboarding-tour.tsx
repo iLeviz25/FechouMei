@@ -43,7 +43,7 @@ type TourStep = {
     | "relatorios"
     | "obrigacoes"
     | "helena"
-    | "final";
+    | "configuracoes";
   targetSelectors: string[];
   text: string;
   title: string;
@@ -88,57 +88,57 @@ const tourSteps: TourStep[] = [
     icon: LayoutDashboard,
     id: "dashboard",
     targetSelectors: ['[data-tour-target="dashboard-summary"]', '[data-tour-target="dashboard-nav"]'],
-    title: "Seu resumo do mês",
-    text: "Aqui você acompanha entradas, despesas, saldo do mês, faturamento anual e pontos de atenção do seu MEI.",
+    title: "Seu resumo do dia",
+    text: "Veja entradas, despesas, saldo, limite MEI e alertas importantes em um só lugar.",
   },
   {
     icon: Receipt,
     id: "movimentacoes",
     targetSelectors: ['[data-tour-target="movimentacoes-nav"]'],
-    title: "Registre entradas e despesas",
-    text: "Use esta área para adicionar, editar, filtrar e exportar movimentações do seu negócio.",
+    title: "Registre o que entrou e saiu",
+    text: "Lance entradas e despesas, edite quando precisar, filtre a lista e acompanhe seu histórico.",
   },
   {
     icon: Upload,
     id: "importacao",
     targetSelectors: ['[data-tour-id="quick-import"]', '[data-tour-target="importacao-nav"]'],
-    title: "Importe seus registros antigos",
-    text: "Com o FechouMEI Completo, você pode importar entradas e despesas por CSV ou XLSX, revisar os dados e salvar tudo com mais segurança.",
+    title: "Traga sua planilha para cá",
+    text: "Importe CSV ou XLSX, revise tudo antes de salvar e evite digitar de novo.",
   },
   {
     icon: ClipboardCheck,
     id: "fechamento",
     targetSelectors: ['[data-tour-target="fechamento-nav"]'],
-    title: "Confira seu fechamento",
-    text: "Aqui você vê o resumo do mês, compara com períodos anteriores e confere os registros antes de enviar ao contador.",
+    title: "Feche o mês com clareza",
+    text: "Veja o resultado do mês e compare com períodos anteriores antes de seguir.",
   },
   {
     icon: FileText,
     id: "relatorios",
     targetSelectors: ['[data-tour-id="quick-reports"]', '[data-tour-target="relatorios-nav"]'],
-    title: "Gere seu relatório mensal",
-    text: "Aqui você confere um resumo organizado do mês, com entradas, despesas, obrigações e dados para salvar em PDF ou enviar ao contador.",
+    title: "Gere um relatório do mês",
+    text: "Confira seus dados, salve em PDF ou envie ao contador quando precisar.",
   },
   {
     icon: BellRing,
     id: "obrigacoes",
     targetSelectors: ['[data-tour-target="obrigacoes-nav"]'],
-    title: "Acompanhe suas obrigações",
-    text: "Veja pendências do mês, lembretes e tarefas importantes para manter sua rotina organizada.",
+    title: "Não esqueça o que precisa ser feito",
+    text: "Use o checklist para acompanhar DAS, revisão mensal, comprovantes e outras tarefas do MEI.",
   },
   {
     icon: MessageCircle,
     id: "helena",
     targetSelectors: ['[data-tour-id="quick-helena"]', '[data-tour-target="helena-nav"]'],
     title: "Use a Helena pelo WhatsApp",
-    text: "A Helena ajuda você a registrar movimentações e consultar informações. Arquivos pelo WhatsApp fazem parte do acesso completo.",
+    text: 'Mande mensagens como "recebi 500" ou "paguei 120 de internet" para registrar sem abrir o app.',
   },
   {
     icon: Sparkles,
-    id: "final",
-    targetSelectors: [],
-    title: "Pronto para começar",
-    text: "Agora você já sabe o básico. Comece registrando uma entrada ou despesa, exporte seus dados pelo app ou chame a Helena no WhatsApp.",
+    id: "configuracoes",
+    targetSelectors: ['a[href="/app/configuracoes"]'],
+    title: "Ajuste sua conta",
+    text: "Ajuste perfil, acesso, senha e preferências quando precisar.",
   },
 ];
 
@@ -385,15 +385,15 @@ function OnboardingTourDialog({
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="border-primary/15 bg-primary/10 text-primary" variant="outline">
-                  Guia do app
+                  Guia rápido
                 </Badge>
                 <span className="text-xs font-bold text-muted-foreground">
-                  {activeIndex + 1}/{tourSteps.length}
+                  Etapa {activeIndex + 1} de {tourSteps.length}
                 </span>
               </div>
             </div>
             <button
-              aria-label="Pular guia"
+              aria-label="Pular guia rápido"
               className="mt-0.5 rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
               disabled={isSaving}
               onClick={onSkip}
@@ -442,7 +442,7 @@ function OnboardingTourDialog({
               Voltar
             </Button>
             <Button disabled={isSaving} onClick={onSkip} size="sm" type="button" variant="ghost">
-              Pular
+              Pular guia
             </Button>
             <Button className="col-span-2 sm:ml-auto" disabled={isSaving} onClick={onNext} size="sm" type="button">
               {isSaving ? (
@@ -452,7 +452,7 @@ function OnboardingTourDialog({
               ) : (
                 <ChevronRight className="h-4 w-4" />
               )}
-              {isLastStep ? "Concluir" : "Próximo"}
+              {isLastStep ? "Concluir guia" : "Próximo"}
             </Button>
           </div>
         </section>

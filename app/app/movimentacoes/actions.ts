@@ -53,7 +53,7 @@ function readMovementInput(formData: FormData): MovementInput {
   }
 
   if (!category) {
-    throw new Error("Informe uma categoria.");
+    throw new Error("Escolha uma categoria.");
   }
 
   return {
@@ -97,11 +97,11 @@ export async function createMovimentacao(formData: FormData): Promise<MovementAc
     revalidatePath("/app/movimentacoes");
     revalidatePath("/app/dashboard");
     revalidatePath("/app/fechamento-mensal");
-    return { ok: true, message: "Movimentação criada." };
+    return { ok: true, message: "Movimentação adicionada." };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Não foi possível criar a movimentação.",
+      message: error instanceof Error ? error.message : "Não foi possível adicionar a movimentação.",
     };
   }
 }
@@ -131,7 +131,7 @@ export async function updateMovimentacao(
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Não foi possível editar a movimentação.",
+      message: error instanceof Error ? error.message : "Não foi possível salvar as alterações.",
     };
   }
 }

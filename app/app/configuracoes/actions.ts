@@ -19,7 +19,7 @@ export async function deleteAccount({
     if (confirmation.trim().toUpperCase() !== DELETE_CONFIRMATION) {
       return {
         ok: false,
-        message: "Digite EXCLUIR para confirmar a exclusão definitiva da conta.",
+        message: "Digite EXCLUIR para confirmar que entende o risco.",
       };
     }
 
@@ -47,12 +47,12 @@ export async function deleteAccount({
 
     return {
       ok: true,
-      message: "Conta excluída com sucesso.",
+      message: "Conta excluída.",
     };
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Não foi possível excluir a conta agora.",
+      message: error instanceof Error ? error.message : "Não foi possível excluir a conta agora. Tente novamente em instantes.",
     };
   }
 }

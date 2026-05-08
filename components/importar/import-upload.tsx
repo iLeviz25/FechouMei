@@ -78,7 +78,7 @@ export function ImportUpload() {
       if (!hasRequiredColumns(columnMap)) {
         setFeedback({
           ok: false,
-          message: "Não identificamos todas as colunas automaticamente. Você pode mapear manualmente abaixo.",
+          message: "Não encontramos todas as colunas necessárias. Ajuste abaixo para ver a prévia.",
         });
         setManualMappingOpen(true);
         return;
@@ -88,7 +88,7 @@ export function ImportUpload() {
     } catch (error) {
       setFeedback({
         ok: false,
-        message: error instanceof Error ? error.message : "Não foi possível ler o arquivo.",
+        message: error instanceof Error ? error.message : "Não foi possível abrir o arquivo.",
       });
     }
   }
@@ -132,7 +132,7 @@ export function ImportUpload() {
       const missing = getMissingRequiredColumns(mapping).join(", ");
       setFeedback({
         ok: false,
-        message: `Ainda falta mapear: ${missing}.`,
+        message: `Ainda falta escolher: ${missing}.`,
       });
       return;
     }
@@ -152,7 +152,7 @@ export function ImportUpload() {
 
   function confirmImport() {
     if (importableRows.length === 0) {
-      setFeedback({ ok: false, message: "Não há linhas válidas para importar." });
+      setFeedback({ ok: false, message: "Não há linhas válidas para salvar." });
       return;
     }
 
@@ -179,12 +179,12 @@ export function ImportUpload() {
       <header className="space-y-3">
         <Badge className="w-fit" variant="success">
           <Upload className="mr-1 h-3 w-3" />
-          Central de importação
+          Planilha
         </Badge>
         <div className="max-w-2xl space-y-1.5">
           <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Importar dados</h1>
           <p className="text-sm leading-6 text-muted-foreground">
-            Traga movimentações de uma planilha ou extrato CSV para continuar de onde parou.
+            Traga movimentações de uma planilha para continuar de onde parou.
           </p>
         </div>
       </header>
@@ -197,7 +197,7 @@ export function ImportUpload() {
                 <FileSpreadsheet className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-lg font-extrabold tracking-tight text-foreground">Envie seu arquivo</h2>
+                <h2 className="text-lg font-extrabold tracking-tight text-foreground">Envie sua planilha</h2>
                 <p className="mt-1 text-sm leading-6 text-muted-foreground">
                   Envie um arquivo CSV ou XLSX com suas entradas e despesas. Você poderá revisar tudo antes de salvar.
                 </p>
@@ -224,7 +224,7 @@ export function ImportUpload() {
           </div>
 
           <div className="rounded-[24px] border border-secondary/20 bg-secondary-soft/70 p-4 text-sm leading-6 text-secondary-foreground">
-            Importação OFX/extrato bancário automático entrará em uma próxima versão.
+            Importação OFX e extrato bancário automático entrarão em uma próxima versão.
           </div>
         </CardContent>
       </Card>
@@ -238,7 +238,11 @@ export function ImportUpload() {
           role="status"
         >
           {feedback.message}
-          {feedback.ok && feedback.skippedDuplicateCount ? ` ${feedback.skippedDuplicateCount} duplicada(s) ignorada(s).` : ""}
+          {feedback.ok && feedback.skippedDuplicateCount
+            ? ` ${feedback.skippedDuplicateCount} ${
+                feedback.skippedDuplicateCount === 1 ? "duplicada ignorada" : "duplicadas ignoradas"
+              }.`
+            : ""}
         </p>
       ) : null}
 
@@ -266,9 +270,9 @@ export function ImportUpload() {
         <Card className="overflow-hidden rounded-[30px]">
           <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-base font-extrabold text-foreground">Importação concluída</p>
+              <p className="text-base font-extrabold text-foreground">Movimentações importadas</p>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                Confira os registros importados em Movimentações ou envie outro arquivo.
+                Confira as movimentações salvas ou envie outra planilha.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -276,7 +280,7 @@ export function ImportUpload() {
                 <Link href="/app/movimentacoes">Ver movimentações</Link>
               </Button>
               <Button onClick={resetImport} type="button">
-                Importar outro
+                Importar outra planilha
               </Button>
             </div>
           </CardContent>
@@ -320,7 +324,7 @@ function ImportPreview({
                 </Button>
               ) : null}
               <Badge variant={summary.importableCount > 0 ? "success" : "secondary"}>
-                {summary.importableCount} para importar
+                {summary.importableCount} {summary.importableCount === 1 ? "válida" : "válidas"} para salvar
               </Badge>
             </div>
           </div>
@@ -355,9 +359,9 @@ function ImportPreview({
               <ColumnBadge label="Valor" value={result.columnMap.amount ?? "Crédito/Débito"} />
               <ColumnBadge label="Crédito" value={result.columnMap.credit} />
               <ColumnBadge label="Débito" value={result.columnMap.debit} />
-              <ColumnBadge label="Tipo" value={result.columnMap.type ?? "Inferido"} />
-              <ColumnBadge label="Categoria" value={result.columnMap.category ?? "Sugerida"} />
-              <ColumnBadge label="Observação" value={result.columnMap.notes ?? "Ignorada"} />
+              <ColumnBadge label="Tipo" value={result.columnMap.type ?? "Detectado pelo valor"} />
+              <ColumnBadge label="Categoria" value={result.columnMap.category ?? "Sugerida pelo app"} />
+              <ColumnBadge label="Observação" value={result.columnMap.notes ?? "Não será usada"} />
             </div>
           </div>
         </CardContent>
@@ -428,11 +432,11 @@ function ManualMappingCard({
       <CardContent className="space-y-5 p-5 sm:p-6">
         <div className="space-y-1">
           <Badge className="w-fit" variant="secondary">
-            Mapeamento manual
+            Ajustar colunas
           </Badge>
-          <h2 className="text-xl font-extrabold tracking-tight text-foreground">Diga o que cada coluna representa</h2>
+          <h2 className="text-xl font-extrabold tracking-tight text-foreground">Confira as colunas da planilha</h2>
           <p className="text-sm leading-6 text-muted-foreground">
-            Preenchi o que consegui detectar. Ajuste os campos abaixo e continue para ver a prévia.
+            Já preenchi o que consegui encontrar. Ajuste o que faltar para ver a prévia.
           </p>
         </div>
 
@@ -454,12 +458,12 @@ function ManualMappingCard({
         </div>
 
         <div className="rounded-[24px] border border-border/70 bg-muted/30 p-4 text-sm leading-6 text-muted-foreground">
-          Para continuar, informe Data, Descrição e Valor total ou use as colunas Crédito/Débito.
+          Para continuar, escolha Data, Descrição e Valor, ou use Crédito e Débito.
         </div>
 
         <Button disabled={isPending} onClick={onContinue} type="button">
           {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-          Continuar prévia
+          Ver prévia
         </Button>
       </CardContent>
     </Card>
@@ -547,11 +551,9 @@ function RowStatus({ row }: { row: ImportPreviewRow }) {
   const label =
     row.status === "valid"
       ? "Válida"
-      : row.status === "duplicate_file"
-        ? "Duplicada no arquivo"
-        : row.status === "duplicate_existing"
-          ? "Duplicada no app"
-          : "Com erro";
+      : row.status === "duplicate_file" || row.status === "duplicate_existing"
+        ? "Duplicada"
+        : "Com erro";
 
   return (
     <span
@@ -642,7 +644,7 @@ async function readImportFile(file: File): Promise<RawImportRow[]> {
     return parseXlsx(await file.arrayBuffer());
   }
 
-  throw new Error("Formato não suportado. Envie um arquivo CSV ou XLSX.");
+  throw new Error("Formato não aceito. Envie um arquivo CSV ou XLSX.");
 }
 
 function getHeaders(rows: RawImportRow[]) {

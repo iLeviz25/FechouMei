@@ -87,15 +87,15 @@ export function validateMovementForm(form: MovementFormState) {
   const amount = form.amount.trim();
 
   if (!form.occurred_on) {
-    return "Informe a data da movimentação.";
+    return "Informe a data.";
   }
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(form.occurred_on)) {
-    return "Use uma data válida para a movimentação.";
+    return "Use uma data válida.";
   }
 
   if (!amount) {
-    return "Informe o valor da movimentação.";
+    return "Informe o valor.";
   }
 
   if (!/^\d+([,.]\d{1,2})?$/.test(amount)) {
@@ -107,11 +107,11 @@ export function validateMovementForm(form: MovementFormState) {
   }
 
   if (!description) {
-    return "Informe uma descrição curta para identificar o registro.";
+    return "Informe uma descrição.";
   }
 
   if (!form.category) {
-    return "Escolha uma categoria para continuar.";
+    return "Escolha uma categoria.";
   }
 
   return null;
@@ -132,7 +132,7 @@ export function MovementFields({
     <div className={cn("grid gap-4", compact ? "md:grid-cols-2" : "md:grid-cols-2")}>
       <div className="space-y-2 md:col-span-2">
         <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground" htmlFor={`${idPrefix}-type`}>
-          Entrada ou despesa
+          Tipo
         </Label>
         <input name="type" type="hidden" value={form.type} />
         <MovementTypeGroup
@@ -144,11 +144,14 @@ export function MovementFields({
           ]}
           value={form.type}
         />
+        <p className="text-xs leading-5 text-muted-foreground">
+          Entrada = dinheiro que entrou. Despesa = dinheiro que saiu.
+        </p>
       </div>
 
       <div className="space-y-2">
         <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground" htmlFor={`${idPrefix}-occurred-on`}>
-          Data do registro
+          Data
         </Label>
         <Input
           id={`${idPrefix}-occurred-on`}
@@ -162,7 +165,7 @@ export function MovementFields({
 
       <div className="space-y-2">
         <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground" htmlFor={`${idPrefix}-amount`}>
-          Valor em reais
+          Valor
         </Label>
         <Input
           className={cn(form.type === "entrada" ? "text-primary" : "text-destructive")}
@@ -182,13 +185,13 @@ export function MovementFields({
 
       <div className="space-y-2 md:col-span-2">
         <Label className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground" htmlFor={`${idPrefix}-description`}>
-          Descrição curta
+          Descrição
         </Label>
         <Input
           id={`${idPrefix}-description`}
           name="description"
           onChange={(event) => onChange("description", event.target.value)}
-          placeholder="Ex.: serviço para cliente"
+          placeholder="Ex: venda para cliente, internet, mercado"
           required
           value={form.description}
         />

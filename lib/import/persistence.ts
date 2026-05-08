@@ -68,7 +68,7 @@ export async function insertImportMovements({
   const validRows = rows.filter(isImportableMovement);
 
   if (validRows.length === 0) {
-    throw new Error("Nenhuma movimentação válida para importar.");
+    throw new Error("Nenhuma movimentação válida para salvar.");
   }
 
   const now = new Date();

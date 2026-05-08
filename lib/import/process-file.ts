@@ -13,7 +13,7 @@ const supportedXlsxMimeTypes = new Set([
 ]);
 
 export class UnsupportedImportFileError extends Error {
-  constructor(message = "Formato não suportado. Envie um arquivo CSV ou XLSX.") {
+  constructor(message = "Formato não aceito. Envie um arquivo CSV ou XLSX.") {
     super(message);
     this.name = "UnsupportedImportFileError";
   }
@@ -100,7 +100,7 @@ function getHeaders(rows: RawImportRow[]) {
 
 function buildMissingMappingRows(rawRows: RawImportRow[], columnMap: ImportColumnMap): ImportPreviewRow[] {
   const missingColumns = getMissingRequiredColumns(columnMap).join(", ");
-  const error = `Mapeamento incompleto: falta ${missingColumns}.`;
+  const error = `Faltam colunas: ${missingColumns}.`;
 
   return rawRows.map((raw, index) => ({
     amount: null,

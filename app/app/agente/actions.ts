@@ -36,7 +36,7 @@ async function getAgentContext() {
   } = await supabase.auth.getUser();
 
   if (error || !user) {
-    throw new Error("Faça login novamente para usar o assistente.");
+    throw new Error("Faça login novamente para usar a Helena.");
   }
 
   return { supabase, userId: user.id };
@@ -50,7 +50,7 @@ async function getWhatsAppActivationContext() {
   } = await supabase.auth.getUser();
 
   if (error || !user) {
-    throw new Error("Faça login novamente para usar o assistente.");
+    throw new Error("Faça login novamente para usar a Helena.");
   }
 
   return { supabase: createServiceRoleClient(), userId: user.id };

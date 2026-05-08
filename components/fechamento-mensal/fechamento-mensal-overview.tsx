@@ -113,7 +113,7 @@ function formatSignedCurrency(value: number) {
 
 function getDeltaInfo(current: number, previous: number): DeltaInfo {
   if (current === 0 && previous === 0) {
-    return { hasBase: true, label: "0%", positive: true };
+    return { hasBase: false, label: "Sem base anterior", positive: true };
   }
 
   if (previous === 0) {
@@ -122,6 +122,10 @@ function getDeltaInfo(current: number, previous: number): DeltaInfo {
 
   if (previous < 0 && current >= 0) {
     return { hasBase: true, label: "Virou positivo", positive: true };
+  }
+
+  if (previous >= 0 && current < 0) {
+    return { hasBase: true, label: "Virou negativo", positive: false };
   }
 
   const delta = ((current - previous) / Math.abs(previous)) * 100;
@@ -133,6 +137,18 @@ function getDeltaInfo(current: number, previous: number): DeltaInfo {
     label: `${delta >= 0 ? "+" : ""}${rounded.replace(".", ",")}%`,
     positive,
   };
+}
+
+function getHeroTrendText(deltaInfo: DeltaInfo, comparisonTarget: string) {
+  if (!deltaInfo.hasBase) {
+    return "Não há dados suficientes para comparar com o mês anterior.";
+  }
+
+  if (deltaInfo.label === "Virou positivo" || deltaInfo.label === "Virou negativo") {
+    return deltaInfo.label;
+  }
+
+  return deltaInfo.positive ? `Melhor que o ${comparisonTarget}` : `Abaixo do ${comparisonTarget}`;
 }
 
 function toCategoryDisplay(value: string) {
@@ -220,7 +236,7 @@ export function FechamentoMensalOverview({
   const effectiveStart = rangeStart || monthStartValue;
   const effectiveEnd = rangeEnd || monthEndValue;
   const effectivePeriodLabel = hasCustomRange ? `${toDate(effectiveStart)} a ${toDate(effectiveEnd)}` : monthLabel;
-  const comparisonLabel = hasCustomRange ? "Mesmo trecho no mês anterior" : "Vs. mês anterior";
+  const comparisonTarget = hasCustomRange ? "mesmo período do mês anterior" : "mês anterior";
 
   const filteredMovements = useMemo(
     () =>
@@ -343,35 +359,33 @@ export function FechamentoMensalOverview({
   const incomeDeltaInfo = getDeltaInfo(monthlyTotals.monthlyIncome, previousTotals.monthlyIncome);
   const expenseDeltaInfo = getDeltaInfo(monthlyTotals.monthlyExpense, previousTotals.monthlyExpense);
   const heroTrendPositive = balanceDeltaInfo.positive;
-  const heroTrendText = balanceDeltaInfo.hasBase
-    ? `${balanceDeltaInfo.label} ${comparisonLabel.toLowerCase()}`
-    : balanceDeltaInfo.label;
+  const heroTrendText = getHeroTrendText(balanceDeltaInfo, comparisonTarget);
   const highlightItems = [
     {
       icon: Trophy,
-      label: "Maior entrada",
+      label: "Maior entrada do mês",
       meta: biggestIncome
         ? `${toCategoryDisplay(biggestIncome.category)} · ${toShortDate(biggestIncome.occurred_on)}`
-        : "Nenhuma entrada registrada",
-      title: biggestIncome ? biggestIncome.description : "Sem entradas no período",
+        : "Nenhuma entrada no mês",
+      title: biggestIncome ? biggestIncome.description : "Sem entradas no mês",
       tone: "success" as const,
       value: biggestIncome ? toCurrency(biggestIncome.amount) : "R$ 0,00",
     },
     {
       icon: Flame,
-      label: "Maior despesa",
+      label: "Maior despesa do mês",
       meta: biggestExpense
         ? `${toCategoryDisplay(biggestExpense.category)} · ${toShortDate(biggestExpense.occurred_on)}`
-        : "Nenhuma despesa registrada",
-      title: biggestExpense ? biggestExpense.description : "Sem despesas no período",
+        : "Nenhuma despesa no mês",
+      title: biggestExpense ? biggestExpense.description : "Sem despesas no mês",
       tone: "danger" as const,
       value: biggestExpense ? toCurrency(biggestExpense.amount) : "R$ 0,00",
     },
     {
       icon: Tag,
-      label: "Categoria top em gastos",
-      meta: topExpenseCategory.top ? `${topCategoryShare.toFixed(0)}% das despesas` : "Nenhuma despesa registrada",
-      title: topExpenseCategory.top ? toCategoryDisplay(topExpenseCategory.top.category) : "Sem despesas no período",
+      label: "Categoria com mais despesas",
+      meta: topExpenseCategory.top ? `${topCategoryShare.toFixed(0)}% das despesas` : "Nenhuma despesa no mês",
+      title: topExpenseCategory.top ? toCategoryDisplay(topExpenseCategory.top.category) : "Sem despesas no mês",
       tone: "warning" as const,
       value: topExpenseCategory.top ? toCurrency(topExpenseCategory.top.amount) : "R$ 0,00",
     },
@@ -413,12 +427,12 @@ export function FechamentoMensalOverview({
       <header className="space-y-3">
         <Badge className="w-fit" variant="success">
           <Sparkles className="mr-1 h-3 w-3" />
-          Visão consolidada
+          Resumo do mês
         </Badge>
         <div className="max-w-2xl space-y-1.5">
           <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Fechamento mensal</h1>
           <p className="text-sm leading-6 text-muted-foreground">
-            Veja como foi o seu mês, compare com o anterior e acompanhe o saldo do seu MEI.
+            Confira o resultado do mês antes de seguir para o próximo.
           </p>
         </div>
       </header>
@@ -443,8 +457,8 @@ export function FechamentoMensalOverview({
               </Badge>
               <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/78">
                 {hasCustomRange
-                  ? `${formatCount(filteredMovements.length, "lançamento", "lançamentos")} no trecho`
-                  : `${formatCount(filteredMovements.length, "lançamento", "lançamentos")} em ${monthLabel}`}
+                  ? `${formatCount(filteredMovements.length, "movimentação", "movimentações")} no período`
+                  : `${formatCount(filteredMovements.length, "movimentação", "movimentações")} em ${monthLabel}`}
               </span>
             </div>
 
@@ -466,7 +480,7 @@ export function FechamentoMensalOverview({
                 </Badge>
               ) : null}
               <p className="text-sm leading-6 text-white/76">
-                {hasCustomRange ? effectivePeriodLabel : `${currentMonthHeaderLabel} • fechamento consolidado do período`}
+                {hasCustomRange ? effectivePeriodLabel : "Esse resumo usa as movimentações registradas no período selecionado."}
               </p>
             </div>
 
@@ -516,18 +530,18 @@ export function FechamentoMensalOverview({
 
         <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2 lg:grid-cols-3">
           <SummaryStatCard
-            detail={formatCount(monthlyTotals.incomeCount, "lançamento", "lançamentos")}
+            detail={formatCount(monthlyTotals.incomeCount, "entrada registrada", "entradas registradas")}
             icon={ArrowDownLeft}
-            label="Entradas"
+            label="Entradas do mês"
             tone="success"
             trendGood={incomeDelta >= 0}
             trendText={incomeDeltaInfo.label}
             value={toCurrency(monthlyTotals.monthlyIncome)}
           />
           <SummaryStatCard
-            detail={formatCount(monthlyTotals.expenseCount, "lançamento", "lançamentos")}
+            detail={formatCount(monthlyTotals.expenseCount, "despesa registrada", "despesas registradas")}
             icon={ArrowUpRight}
-            label="Despesas"
+            label="Despesas do mês"
             tone="danger"
             trendGood={expenseDelta <= 0}
             trendText={expenseDeltaInfo.label}
@@ -537,7 +551,7 @@ export function FechamentoMensalOverview({
             className="min-[430px]:col-span-2 lg:col-span-1"
             detail={hasCustomRange ? `até ${toDate(effectiveEnd)}` : `até ${monthLabel}`}
             icon={Wallet}
-            label="Saldo acumulado"
+            label="Saldo final"
             tone="neutral"
             value={toCurrency(balanceUntilPeriod)}
           />
@@ -547,8 +561,11 @@ export function FechamentoMensalOverview({
       <section className="space-y-3">
         <div className="flex items-end justify-between gap-3 px-1">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Destaques do mês</p>
-            <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">O que mais puxou o fechamento</h2>
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Pontos de atenção</p>
+            <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground">Categorias que mais impactaram</h2>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              Veja onde o dinheiro entrou ou saiu com mais força neste mês.
+            </p>
           </div>
           <p className="text-xs font-semibold text-muted-foreground">{currentMonthHeaderLabel}</p>
         </div>
@@ -574,15 +591,15 @@ export function FechamentoMensalOverview({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="space-y-1">
                 <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-                  Registros do fechamento
+                  Movimentações do fechamento
                 </p>
                 <h2 className="text-lg font-extrabold tracking-tight text-foreground">
-                  {formatCount(filteredMovements.length, "registro", "registros")} no período
+                  {formatCount(filteredMovements.length, "movimentação", "movimentações")} no período
                 </h2>
                 <p className="text-sm leading-6 text-muted-foreground">
                   {mobileListShouldScroll
-                    ? "A lista fica contida aqui e mostra as mais recentes primeiro. Role dentro da caixa para ver o restante."
-                    : "Todos os registros usados neste fechamento aparecem aqui."}
+                    ? "As mais recentes aparecem primeiro. Role para ver o restante."
+                    : "Baixe os dados do mês para guardar ou conferir depois."}
                 </p>
               </div>
 
@@ -590,7 +607,7 @@ export function FechamentoMensalOverview({
                 buttonClassName="h-9 w-full rounded-full px-4 text-xs sm:w-auto"
                 className="w-full sm:w-auto"
                 filename={buildCsvFilename(currentMonthValue, effectiveStart, effectiveEnd, hasCustomRange)}
-                label="CSV"
+                label="Exportar CSV"
                 movements={filteredMovements}
               />
             </div>
@@ -599,20 +616,20 @@ export function FechamentoMensalOverview({
           {movements.length === 0 ? (
             <div className="px-4 py-5 sm:px-6">
               <div className="rounded-[24px] border border-dashed border-border bg-muted/40 p-5 text-sm leading-6 text-muted-foreground">
-                <p className="font-bold text-foreground">Nenhum registro encontrado neste mês.</p>
-                <p className="mt-1">Se o período estiver certo, adicione entradas e despesas com datas deste mês.</p>
+                <p className="font-bold text-foreground">Nenhuma movimentação neste mês.</p>
+                <p className="mt-1">Adicione entradas e despesas para ver o fechamento do período.</p>
                 <Button asChild className="mt-4" size="sm">
-                  <Link href="/app/movimentacoes">Lançar movimentação</Link>
+                  <Link href="/app/movimentacoes">Adicionar movimentação</Link>
                 </Button>
               </div>
             </div>
           ) : filteredMovements.length === 0 ? (
             <div className="px-4 py-5 sm:px-6">
               <div className="rounded-[24px] border border-dashed border-border bg-muted/40 p-5 text-sm leading-6 text-muted-foreground">
-                <p className="font-bold text-foreground">Nenhum registro encontrado neste intervalo.</p>
-                <p className="mt-1">Ajuste as datas ou limpe o intervalo para voltar ao fechamento completo do mês.</p>
+                <p className="font-bold text-foreground">Nada encontrado neste período.</p>
+                <p className="mt-1">Ajuste as datas ou limpe o período para voltar ao fechamento completo do mês.</p>
                 <Button className="mt-4" onClick={clearRange} size="sm" type="button" variant="outline">
-                  Limpar intervalo
+                  Limpar período
                 </Button>
               </div>
             </div>

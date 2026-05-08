@@ -35,11 +35,11 @@ export async function getMonthlyReportData(monthParam?: string): Promise<Monthly
   const { profile, profileError, supabase, user } = await getCurrentUserProfile();
 
   if (!user) {
-    throw new Error("Usuário não autenticado.");
+    throw new Error("Faça login para ver seus relatórios.");
   }
 
   if (profileError) {
-    throw new Error(`Erro ao carregar perfil: ${profileError.message}`);
+    throw new Error(`Não foi possível carregar seus dados agora. Tente novamente em instantes. ${profileError.message}`);
   }
 
   const selectedMonth = resolveReportMonth(monthParam);
@@ -69,15 +69,15 @@ export async function getMonthlyReportData(monthParam?: string): Promise<Monthly
   ]);
 
   if (monthMovementsResult.error) {
-    throw new Error(`Erro ao carregar movimentações do relatório: ${monthMovementsResult.error.message}`);
+    throw new Error(`Não foi possível carregar o relatório agora. Tente novamente em instantes. ${monthMovementsResult.error.message}`);
   }
 
   if (yearMovementsResult.error) {
-    throw new Error(`Erro ao carregar faturamento anual: ${yearMovementsResult.error.message}`);
+    throw new Error(`Não foi possível carregar o limite MEI agora. Tente novamente em instantes. ${yearMovementsResult.error.message}`);
   }
 
   if (checklistResult.error) {
-    throw new Error(`Erro ao carregar obrigações do relatório: ${checklistResult.error.message}`);
+    throw new Error(`Não foi possível carregar as obrigações do relatório agora. Tente novamente em instantes. ${checklistResult.error.message}`);
   }
 
   const movements = (monthMovementsResult.data ?? []) as ReportMovement[];
@@ -228,10 +228,10 @@ function buildObligationSummary(rows: ChecklistRow[]): MonthlyReportData["obliga
     Boolean(doneMap.get("revisar-fechamento"));
 
   const items: ReportObligationSummary[] = [
-    toObligationItem("das", "DAS mensal", Boolean(doneMap.get("pagar-das"))),
-    toObligationItem("dasn", "DASN-SIMEI", Boolean(doneMap.get("entregar-dasn"))),
-    toObligationItem("revisao", "Revisão mensal", revisionDone),
-    toObligationItem("comprovantes", "Comprovantes", Boolean(doneMap.get("guardar-comprovantes"))),
+    toObligationItem("das", "Pagar DAS", Boolean(doneMap.get("pagar-das"))),
+    toObligationItem("dasn", "Enviar DASN-SIMEI", Boolean(doneMap.get("entregar-dasn"))),
+    toObligationItem("revisao", "Revisar o mês", revisionDone),
+    toObligationItem("comprovantes", "Guardar comprovantes", Boolean(doneMap.get("guardar-comprovantes"))),
   ];
   const totalDone = CHECKLIST_TEMPLATE.reduce((total, key) => total + (doneMap.get(key) ? 1 : 0), 0);
 

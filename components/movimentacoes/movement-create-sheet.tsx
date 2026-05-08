@@ -96,7 +96,7 @@ export function MovementCreateSheet({
               Nova movimentação
             </p>
             <h2 className="mt-1 text-lg font-extrabold tracking-tight text-foreground" id="global-create-movement-title">
-              Lançar entrada ou despesa
+              Adicionar movimentação
             </h2>
           </div>
           <Button disabled={isPending} onClick={closeSheet} size="icon" type="button" variant="ghost">
@@ -131,7 +131,7 @@ export function MovementCreateSheet({
             </Button>
             <Button disabled={isPending} type="submit">
               {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              Salvar
+              Salvar movimentação
             </Button>
           </div>
         </form>

@@ -6,6 +6,7 @@ import {
   ArrowUpRight,
   Check,
   Copy,
+  FileSpreadsheet,
   Link2Off,
   MessageCircle,
   ShieldCheck,
@@ -33,24 +34,34 @@ type WhatsAppActivationPanelProps = {
 
 const exampleMessages = [
   {
+    icon: ArrowDownLeft,
+    text: '"Recebi 500 de um cliente"',
+    tone: "success" as const,
+  },
+  {
     icon: ArrowUpRight,
     text: '"Paguei 120 de internet"',
     tone: "danger" as const,
   },
   {
-    icon: ArrowDownLeft,
-    text: '"Recebi 800 de cliente"',
-    tone: "success" as const,
-  },
-  {
     icon: Wallet,
-    text: '"Como esta meu mês?"',
+    text: '"Como foi meu mês?"',
     tone: "warning" as const,
   },
   {
-    icon: ShieldCheck,
-    text: '"Qual meu limite do MEI?"',
+    icon: Wallet,
+    text: '"Quanto falta para o limite MEI?"',
     tone: "neutral" as const,
+  },
+  {
+    icon: ShieldCheck,
+    text: '"Marcar DAS como pago"',
+    tone: "neutral" as const,
+  },
+  {
+    icon: FileSpreadsheet,
+    text: '"Importar minha planilha"',
+    tone: "warning" as const,
   },
 ];
 
@@ -71,8 +82,8 @@ export function WhatsAppActivationPanel({
   const pendingActivation = activation.status === "pending" && Boolean(activation.activationCode);
   const heroContent = getHeroContent(activation);
   const noteText = linked
-    ? "Tudo acontece pelo WhatsApp: mande a mensagem e a Helena responde por lá."
-    : "Conecte o WhatsApp para começar a usar.";
+    ? "Mande mensagens para a Helena quando quiser. Ela responde pelo WhatsApp."
+    : "Conecte seu número para usar a Helena direto pelo WhatsApp.";
 
   function handleStartActivation() {
     setErrorMessage(null);
@@ -81,7 +92,7 @@ export function WhatsAppActivationPanel({
         const nextActivation = await startWhatsAppActivation();
         setActivation(nextActivation);
       } catch {
-        setErrorMessage("Não consegui iniciar a ativação agora. Tente novamente em instantes.");
+        setErrorMessage("Não foi possível começar a ativação agora. Tente novamente em instantes.");
       }
     });
   }
@@ -93,7 +104,7 @@ export function WhatsAppActivationPanel({
         const nextActivation = await disconnectWhatsAppAssistant();
         setActivation(nextActivation);
       } catch {
-        setErrorMessage("Não consegui desvincular o WhatsApp agora. Tente novamente.");
+        setErrorMessage("Não foi possível desconectar o WhatsApp agora. Tente novamente.");
       }
     });
   }
@@ -116,7 +127,7 @@ export function WhatsAppActivationPanel({
           <div className="max-w-2xl space-y-1.5">
             <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Helena</h1>
             <p className="text-sm leading-6 text-muted-foreground">
-              Sua assistente do MEI. Conecte seu WhatsApp para registrar movimentações e consultar a Helena por lá.
+              Sua assistente para organizar o MEI pelo WhatsApp. Ela entende mensagens simples para registrar entradas, despesas e consultar seu mês.
             </p>
           </div>
 
@@ -153,7 +164,7 @@ export function WhatsAppActivationPanel({
 
               <div className="space-y-2">
                 <h2 className="text-[clamp(1.6rem,7vw,2.25rem)] font-extrabold tracking-tight text-white">
-                  Helena no WhatsApp
+                  {linked ? "WhatsApp conectado" : "Ative a Helena no WhatsApp"}
                 </h2>
                 <p className="max-w-2xl text-[15px] leading-7 text-white/88">{heroContent.description}</p>
               </div>
@@ -169,7 +180,7 @@ export function WhatsAppActivationPanel({
                     </Button>
                     <Button disabled={isPending} onClick={handleDisconnect} type="button" variant="outline">
                       <Link2Off className="h-4 w-4" />
-                      Desvincular
+                      Desconectar WhatsApp
                     </Button>
                   </>
                 ) : pendingActivation ? (
@@ -177,7 +188,7 @@ export function WhatsAppActivationPanel({
                     <Button asChild className="bg-secondary text-secondary-foreground shadow-amber hover:bg-secondary/90">
                       <a href={activationUrl} rel="noreferrer" target="_blank">
                         <MessageCircle className="h-4 w-4" />
-                        Continuar no WhatsApp
+                        Abrir WhatsApp
                       </a>
                     </Button>
                     <Button
@@ -197,14 +208,14 @@ export function WhatsAppActivationPanel({
                     type="button"
                   >
                     <MessageCircle className="h-4 w-4" />
-                    Conectar WhatsApp
+                    Começar ativação
                   </Button>
                 )}
               </div>
 
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <span className="rounded-full bg-white/10 px-3 py-1.5 font-semibold text-white/82">
-                  Seguro - usa só seu número
+                  Vínculo seguro pelo seu número
                 </span>
                 {displayUserNumber ? (
                   <span className="rounded-full bg-white/8 px-3 py-1.5 font-semibold text-white/82">
@@ -219,20 +230,20 @@ export function WhatsAppActivationPanel({
             <div className="rounded-[24px] border border-white/10 bg-white/8 p-4">
               <div className="flex flex-col gap-3 min-[430px]:flex-row min-[430px]:items-center min-[430px]:justify-between">
                 <div className="space-y-1">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-white/68">Código de ativação</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-white/68">Seu código de ativação</p>
                   <p className="font-mono text-2xl font-extrabold tracking-[0.18em] text-white">
                     {activation.activationCode}
                   </p>
                 </div>
                 <p className="max-w-xs text-sm leading-6 text-white/78">
-                  O botão acima já abre o WhatsApp com a mensagem pronta para envio.
+                  Envie este código para a Helena no WhatsApp para vincular seu número à sua conta.
                 </p>
               </div>
             </div>
           ) : null}
 
           {copyState === "error" ? (
-            <p className="text-sm font-semibold text-secondary">Não consegui copiar automaticamente. Copie o código manualmente.</p>
+            <p className="text-sm font-semibold text-secondary">Não foi possível copiar automaticamente. Copie o código manualmente.</p>
           ) : null}
           {errorMessage ? <p className="text-sm font-semibold text-secondary">{errorMessage}</p> : null}
         </div>
@@ -243,7 +254,7 @@ export function WhatsAppActivationPanel({
           <div className="space-y-1">
             <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Exemplos</p>
             <h2 className="text-lg font-extrabold tracking-tight text-foreground">
-              Coisas que você pode mandar pra Helena
+              Mensagens que você pode mandar
             </h2>
           </div>
 
@@ -282,31 +293,31 @@ function getHeroContent(activation: WhatsAppAssistantActivationSnapshot) {
     case "linked":
       return {
         description:
-          "Mande mensagens para a Helena no WhatsApp para registrar entradas e despesas em segundos. Sem planilha, sem app aberto.",
-        statusLabel: "WhatsApp pronto",
+          "Este número já está vinculado à sua conta. Você pode mandar mensagens para a Helena quando quiser.",
+        statusLabel: "WhatsApp conectado",
       };
     case "pending":
       return {
         description:
-          "Seu vínculo já foi iniciado. Abra o WhatsApp, envie a mensagem pronta e termine a conexão em poucos segundos.",
+          "Envie o código de ativação para a Helena no WhatsApp e termine o vínculo do seu número.",
         statusLabel: "Falta um passo",
       };
     case "expired":
       return {
         description:
-          "O código anterior expirou. Gere uma nova conexão para voltar a usar a Helena pelo WhatsApp com segurança.",
+          "O código anterior expirou. Gere um novo código para conectar a Helena pelo WhatsApp.",
         statusLabel: "Código expirado",
       };
     case "revoked":
       return {
         description:
-          "O WhatsApp foi desvinculado. Você pode conectar novamente quando quiser para voltar a registrar e consultar por lá.",
-        statusLabel: "Desvinculado",
+          "O WhatsApp foi desconectado. Você pode conectar novamente quando quiser.",
+        statusLabel: "WhatsApp desconectado",
       };
     default:
       return {
         description:
-          "Mande mensagens para a Helena no WhatsApp para registrar entradas e despesas em segundos. Sem planilha, sem app aberto.",
+          "Conecte seu número para usar a Helena direto pelo WhatsApp.",
         statusLabel: "Canal principal",
       };
   }

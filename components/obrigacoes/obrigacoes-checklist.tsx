@@ -48,7 +48,7 @@ type MonthInfo = {
 const filterOptions: Array<{ label: string; value: ChecklistFilter }> = [
   { label: "Todas", value: "all" },
   { label: "Pendentes", value: "pending" },
-  { label: "Concluídas", value: "done" },
+  { label: "Concluídos", value: "done" },
 ];
 
 export function ObrigacoesChecklist({ items, monthKey, onItemsChange }: ObrigacoesChecklistProps) {
@@ -120,7 +120,7 @@ export function ObrigacoesChecklist({ items, monthKey, onItemsChange }: Obrigaco
     onItemsChange((current) => updateItemState(current, item.key, nextDone));
     pendingKeysRef.current = [...pendingKeysRef.current, item.key];
     setPendingKeys(pendingKeysRef.current);
-    setStatus({ kind: "saving", message: "Salvando atualização..." });
+    setStatus({ kind: "saving", message: "Salvando..." });
 
     void persistChecklistItem(item.key, nextDone);
   }
@@ -174,7 +174,7 @@ export function ObrigacoesChecklist({ items, monthKey, onItemsChange }: Obrigaco
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 min-[430px]:flex-row min-[430px]:items-center min-[430px]:justify-between">
-        <p className="text-sm leading-6 text-muted-foreground">Filtre o checklist sem perder a marcação real dos itens.</p>
+        <p className="text-sm leading-6 text-muted-foreground">Marque cada item conforme for resolvendo.</p>
 
         <div className="inline-flex w-full flex-wrap rounded-full border border-border/70 bg-muted/30 p-1 min-[430px]:w-auto">
           {filterOptions.map((option) => {
@@ -248,7 +248,7 @@ export function ObrigacoesChecklist({ items, monthKey, onItemsChange }: Obrigaco
                     )}
                     variant="outline"
                   >
-                    {item.done ? "Concluída" : "Pendente"}
+                    {item.done ? "Concluído" : "Pendente"}
                   </Badge>
 
                   <span className="rounded-full bg-muted/70 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
@@ -277,7 +277,12 @@ export function ObrigacoesChecklist({ items, monthKey, onItemsChange }: Obrigaco
       </div>
 
       {filteredItems.length === 0 ? (
-        <p className="text-sm font-semibold text-muted-foreground">Nenhum item neste filtro agora.</p>
+        <div className="rounded-[24px] border border-dashed border-border/70 p-4">
+          <p className="text-sm font-bold text-foreground">Nada encontrado com esse filtro.</p>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+            Tente ver todas, pendentes ou concluídas.
+          </p>
+        </div>
       ) : null}
 
       {status ? (
@@ -306,7 +311,6 @@ function createMonthInfo(monthKey: string): MonthInfo {
 }
 
 function enrichChecklistItem(item: ChecklistItem, monthInfo: MonthInfo): EnrichedChecklistItem {
-  const monthTitle = capitalizeMonthLabel(monthInfo.monthLabel);
   const base = {
     category: "Rotina",
     dateLabel: formatShortDate(monthInfo.monthEndDate),
@@ -323,9 +327,9 @@ function enrichChecklistItem(item: ChecklistItem, monthInfo: MonthInfo): Enriche
       category: "Imposto",
       dateLabel: formatShortDate(dueDate),
       dateTone: getDateTone(item.done, dueDate),
-      description: "Documento de Arrecadação do Simples Nacional",
+      description: "Marque quando o boleto mensal do MEI estiver pago.",
       priorityLabel: "Importante",
-      title: `Pagar DAS - ${monthTitle.replace(" de ", "/")}`,
+      title: "Pagar DAS",
     };
   }
 
@@ -337,9 +341,9 @@ function enrichChecklistItem(item: ChecklistItem, monthInfo: MonthInfo): Enriche
       category: "Declaração",
       dateLabel: formatShortDate(dueDate),
       dateTone: getDateTone(item.done, dueDate),
-      description: `Declaração anual do MEI - referente a ${monthInfo.declarationYear}`,
+      description: "Declaração anual do MEI. Normalmente é feita uma vez por ano.",
       priorityLabel: "Importante",
-      title: `DASN-SIMEI ${monthInfo.declarationYear}`,
+      title: "Enviar DASN-SIMEI",
     };
   }
 
@@ -348,8 +352,8 @@ function enrichChecklistItem(item: ChecklistItem, monthInfo: MonthInfo): Enriche
       ...item,
       ...base,
       category: "Organização",
-      description: "Organize notas, recibos e comprovantes do período",
-      title: "Separar comprovantes",
+      description: "Separe recibos, notas e comprovantes importantes do mês.",
+      title: "Guardar comprovantes",
     };
   }
 
@@ -359,8 +363,8 @@ function enrichChecklistItem(item: ChecklistItem, monthInfo: MonthInfo): Enriche
       category: "Rotina",
       dateLabel: formatShortDate(monthInfo.nextReviewDate),
       dateTone: getDateTone(item.done, monthInfo.nextReviewDate),
-      description: "Valide o resultado consolidado antes da virada do mês",
-      title: "Conferir fechamento do mês",
+      description: "Confira entradas, despesas e pendências antes de fechar o mês.",
+      title: "Revisar o mês",
     };
   }
 
@@ -368,9 +372,9 @@ function enrichChecklistItem(item: ChecklistItem, monthInfo: MonthInfo): Enriche
     return {
       ...item,
       ...base,
-      category: "Financeiro",
-      description: "Confirme entradas e recebimentos registrados",
-      title: "Revisar entradas do mês",
+      category: "Dinheiro",
+      description: "Confira se o que entrou no mês está registrado.",
+      title: "Conferir entradas",
     };
   }
 
@@ -378,9 +382,9 @@ function enrichChecklistItem(item: ChecklistItem, monthInfo: MonthInfo): Enriche
     return {
       ...item,
       ...base,
-      category: "Financeiro",
-      description: "Confirme despesas e saídas registradas",
-      title: "Revisar despesas do mês",
+      category: "Dinheiro",
+      description: "Confira se o que saiu no mês está registrado.",
+      title: "Conferir despesas",
     };
   }
 
@@ -412,13 +416,6 @@ function getDateTone(done: boolean, dueDate: Date): EnrichedChecklistItem["dateT
 
 function formatShortDate(date: Date) {
   return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" }).format(date).replace(".", "");
-}
-
-function capitalizeMonthLabel(value: string) {
-  return value
-    .split(" ")
-    .map((part, index) => (index === 0 ? part.charAt(0).toUpperCase() + part.slice(1) : part))
-    .join(" ");
 }
 
 function startOfDay(date: Date) {
