@@ -706,9 +706,10 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
             <div className="max-w-full overflow-hidden rounded-[28px] border border-border/70 bg-white/70 p-2.5 sm:p-3">
               <div
                 className={cn(
-                  "max-w-full space-y-4",
+                  "scroll-chain-y max-w-full space-y-4 md:max-h-[min(68vh,44rem)] md:overflow-y-auto md:pr-2",
+                  !mobileListShouldScroll && "max-h-none overflow-visible pr-0",
                   mobileListShouldScroll &&
-                    "scroll-chain-y max-h-[31rem] overflow-y-auto pr-1 md:max-h-none md:overflow-visible md:pr-0",
+                    "max-h-[31rem] overflow-y-auto pr-1",
                 )}
               >
                 {groupedMovements.map(([date, items]) => {

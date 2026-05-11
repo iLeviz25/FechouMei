@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { MovementsCsvExportButton } from "@/components/app/movements-csv-export-button";
 import { MonthSelector } from "@/components/fechamento-mensal/month-selector";
 import { Badge } from "@/components/ui/badge";
@@ -165,6 +166,12 @@ function formatMonthHeaderLabel(yearValue: string, monthValue: string) {
     .replace(" de ", "/");
 }
 
+function formatTrendMonthActionLabel(monthKey: string) {
+  const [year, month] = monthKey.split("-").map(Number);
+  const label = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date(year, month - 1, 1));
+  return `Ver fechamento de ${label}`;
+}
+
 function buildTrendItems(rows: BalanceMovement[], currentMonthValue: string) {
   const [year, month] = currentMonthValue.split("-").map(Number);
   const monthKeys = Array.from({ length: 6 }, (_, index) => {
@@ -224,8 +231,10 @@ export function FechamentoMensalOverview({
   trendRows,
   yearValue,
 }: FechamentoMensalOverviewProps) {
+  const router = useRouter();
   const [rangeStart, setRangeStart] = useState("");
   const [rangeEnd, setRangeEnd] = useState("");
+  const [isMonthNavigationPending, startMonthNavigation] = useTransition();
 
   useEffect(() => {
     setRangeStart("");
@@ -422,6 +431,18 @@ export function FechamentoMensalOverview({
     setRangeEnd("");
   }
 
+  function handleTrendMonthSelect(targetMonthValue: string) {
+    clearRange();
+
+    if (targetMonthValue === currentMonthValue) {
+      return;
+    }
+
+    startMonthNavigation(() => {
+      router.push(`/app/fechamento-mensal?month=${targetMonthValue}`);
+    });
+  }
+
   return (
     <div className="mobile-section-gap">
       <header className="space-y-3">
@@ -497,7 +518,18 @@ export function FechamentoMensalOverview({
 
               <div className="grid grid-cols-6 items-end gap-1.5 rounded-[24px] bg-white/6 p-2.5">
                 {trendItems.map((item) => (
-                  <div className="flex flex-col items-center gap-2" key={item.key}>
+                  <button
+                    aria-current={item.current ? "date" : undefined}
+                    aria-label={formatTrendMonthActionLabel(item.key)}
+                    className={cn(
+                      "flex w-full min-w-0 cursor-pointer flex-col items-center gap-2 rounded-[18px] p-1 text-center transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
+                      isMonthNavigationPending && "cursor-wait",
+                    )}
+                    key={item.key}
+                    onClick={() => handleTrendMonthSelect(item.key)}
+                    title={formatTrendMonthActionLabel(item.key)}
+                    type="button"
+                  >
                     <div className="flex h-12 w-full items-end rounded-[16px] bg-white/8 p-1 sm:h-14">
                       <div
                         className={cn(
@@ -521,7 +553,7 @@ export function FechamentoMensalOverview({
                     >
                       {item.label}
                     </span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -638,8 +670,8 @@ export function FechamentoMensalOverview({
               <div className="px-4 py-4 sm:px-6">
                 <div
                   className={cn(
-                    "overflow-hidden rounded-[24px] border border-border/70 bg-card",
-                    mobileListShouldScroll && "scroll-chain-y max-h-[27rem] overflow-y-auto md:max-h-none md:overflow-visible",
+                    "scroll-chain-y overflow-hidden rounded-[24px] border border-border/70 bg-card md:max-h-[min(62vh,38rem)] md:overflow-y-auto",
+                    mobileListShouldScroll && "max-h-[27rem] overflow-y-auto",
                   )}
                 >
                   <div className="divide-y divide-border/60">
