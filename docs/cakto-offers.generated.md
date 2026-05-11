@@ -1,6 +1,6 @@
 # Ofertas Cakto - FechouMEI Completo
 
-Gerado em: 2026-05-03
+Gerado em: 2026-05-11
 Ambiente Cakto: production
 Nenhum token, client_secret ou credencial foi salvo neste arquivo.
 
@@ -9,8 +9,8 @@ Este documento substitui a primeira tentativa de ofertas da Cakto. A estrategia 
 | Ciclo | Oferta | Preco | Link |
 | --- | --- | --- | --- |
 | monthly | yp9ig32 | R$ 47,90/mes | https://pay.cakto.com.br/yp9ig32_871207 |
-| quarterly | qm96ddu | R$ 119,70/trimestre | https://pay.cakto.com.br/qm96ddu |
-| annual | hdmowau | R$ 297,00/ano | https://pay.cakto.com.br/hdmowau |
+| quarterly | 87bxdzb | R$ 119,70/trimestre | https://pay.cakto.com.br/87bxdzb |
+| annual | 34ebr2s | R$ 297,00/ano | https://pay.cakto.com.br/34ebr2s |
 
 ## Links de retorno
 

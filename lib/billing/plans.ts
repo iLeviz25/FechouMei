@@ -46,8 +46,8 @@ const billingCycles = [
     displayInstallment: "R$ 119,70/trimestre",
     displayTotal: "R$ 119,70",
     equivalentMonthly: "R$ 39,90/mês",
-    offerId: "qm96ddu",
-    checkoutUrl: "https://pay.cakto.com.br/qm96ddu",
+    offerId: "87bxdzb",
+    checkoutUrl: "https://pay.cakto.com.br/87bxdzb",
     internalAccessPlan: internalAccessPlanForPaidCustomer,
   },
   {
@@ -59,8 +59,8 @@ const billingCycles = [
     displayInstallment: "R$ 297,00/ano",
     displayTotal: "R$ 297,00",
     equivalentMonthly: "R$ 24,75/mês",
-    offerId: "hdmowau",
-    checkoutUrl: "https://pay.cakto.com.br/hdmowau",
+    offerId: "34ebr2s",
+    checkoutUrl: "https://pay.cakto.com.br/34ebr2s",
     internalAccessPlan: internalAccessPlanForPaidCustomer,
   },
 ] as const satisfies readonly BillingCycle[];
