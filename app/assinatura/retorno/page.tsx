@@ -36,7 +36,7 @@ const supportBody = [
   "Plano comprado:",
   "Mensagem:",
 ].join("\n");
-const supportHref = `mailto:${supportEmail}?subject=${encodeURIComponent(supportSubject)}&body=${encodeURIComponent(supportBody)}`;
+const supportHref = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(supportEmail)}&su=${encodeURIComponent(supportSubject)}&body=${encodeURIComponent(supportBody)}`;
 
 export default async function AssinaturaRetornoPage({
   searchParams,
@@ -113,7 +113,7 @@ export default async function AssinaturaRetornoPage({
                   </Button>
 
                   <Button asChild size="lg" variant="outline">
-                    <a href={supportHref}>
+                    <a href={supportHref} rel="noopener noreferrer" target="_blank">
                       <Mail className="h-4 w-4" aria-hidden="true" />
                       Falar com suporte
                     </a>

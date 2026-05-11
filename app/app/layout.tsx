@@ -74,7 +74,8 @@ function SubscriptionBlockedScreen({ access }: { access: SubscriptionAccess }) {
     "Plano comprado:",
     "Mensagem:",
   ].join("\n");
-  const supportHref = `mailto:fechoumei@gmail.com?subject=${encodeURIComponent(supportSubject)}&body=${encodeURIComponent(supportBody)}`;
+  const supportEmail = "fechoumei@gmail.com";
+  const supportHref = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(supportEmail)}&su=${encodeURIComponent(supportSubject)}&body=${encodeURIComponent(supportBody)}`;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/35 px-4 py-10">
@@ -103,7 +104,7 @@ function SubscriptionBlockedScreen({ access }: { access: SubscriptionAccess }) {
               </Button>
             ) : null}
             <Button asChild variant="outline">
-              <a href={supportHref}>Falar com suporte</a>
+              <a href={supportHref} rel="noopener noreferrer" target="_blank">Falar com suporte</a>
             </Button>
           </div>
         </CardContent>
