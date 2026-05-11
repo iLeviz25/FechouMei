@@ -59,7 +59,7 @@ export function isKnownIgnoredCaktoEvent(event: string): event is IgnoredCaktoPa
 }
 
 export function isApprovedCaktoOrderStatus(status: string | null): boolean {
-  return ["paid", "approved", "completed", "complete"].includes(normalizeStatus(status));
+  return ["paid", "approved", "authorized", "completed", "complete"].includes(normalizeStatus(status));
 }
 
 export function getCaktoBillingCycleByOfferId(offerId: string | null): CaktoBillingCycle | null {

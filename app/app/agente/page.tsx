@@ -1,4 +1,5 @@
 import { getAgentConversation, getWhatsAppActivation } from "@/app/app/agente/actions";
+import { AgentPlayground } from "@/components/agent/agent-playground";
 import { WhatsAppActivationPanel } from "@/components/agent/whatsapp-activation-panel";
 
 export default async function AgentePage() {
@@ -8,8 +9,9 @@ export default async function AgentePage() {
   ]);
 
   return (
-    <div className="pb-8">
+    <div className="space-y-4 pb-8">
       <WhatsAppActivationPanel initialActivation={initialActivation} initialConversation={initialConversation} />
+      <AgentPlayground initialConversation={initialConversation} />
     </div>
   );
 }

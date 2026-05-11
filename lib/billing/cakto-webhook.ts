@@ -50,6 +50,7 @@ export type SaveCaktoWebhookEventResult = {
   webhookEventId: string;
 } | {
   status: "duplicate";
+  existingStatus: CaktoWebhookEventStatus | null;
   webhookEventId: string | null;
 };
 
@@ -151,12 +152,13 @@ export async function saveCaktoWebhookEvent(
   if (event.caktoEventKey && error.code === "23505") {
     const { data: existingEvent } = await supabase
       .from(caktoBillingTables.webhookEvents)
-      .select("id")
+      .select("id, status")
       .eq("cakto_event_key", event.caktoEventKey)
       .maybeSingle();
 
     return {
       status: "duplicate",
+      existingStatus: existingEvent?.status ?? null,
       webhookEventId: existingEvent?.id ?? null,
     };
   }

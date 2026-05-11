@@ -1,4 +1,5 @@
 import type { User } from "@supabase/supabase-js";
+import { buildAppUrl } from "@/lib/app-url";
 import { getAsaasCustomerById } from "@/lib/billing/asaas-client";
 import {
   extractAsaasCheckout,
@@ -665,12 +666,13 @@ function findEmailDeep(value: unknown, depth = 0): string | null {
 }
 
 function getInviteRedirectUrl() {
-  const appUrl = process.env.APP_URL?.trim()
-    || process.env.NEXT_PUBLIC_APP_URL?.trim()
-    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
-  const redirectUrl = new URL("/auth/callback", appUrl);
-  redirectUrl.searchParams.set("next", "/onboarding");
-  return redirectUrl.toString();
+  const redirectUrl = buildAppUrl("/auth/callback?next=/onboarding");
+
+  if (!redirectUrl) {
+    throw new Error("app_url_not_configured_for_invite_redirect");
+  }
+
+  return redirectUrl;
 }
 
 function isValidEmail(email: string) {

@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import {
+  type ParsedCaktoWebhookEvent,
   parseCaktoWebhookEvent,
   processCaktoWebhookEvent,
   saveCaktoWebhookEvent,
@@ -50,22 +51,30 @@ export async function POST(request: Request) {
     const result = await saveCaktoWebhookEvent(parsed.event);
 
     if (result.status === "duplicate") {
+      if (result.webhookEventId && shouldReprocessDuplicateWebhook(result.existingStatus)) {
+        scheduleCaktoWebhookProcessing(result.webhookEventId, parsed.event);
+
+        return NextResponse.json({
+          ok: true,
+          status: "received",
+          operations: ["cakto_webhook_events"],
+          reason: "duplicate_reprocessing_scheduled",
+        });
+      }
+
       return NextResponse.json({
         ok: true,
         status: result.status,
       });
     }
 
-    const processingResult = await processCaktoWebhookEvent(
-      result.webhookEventId,
-      parsed.event,
-    );
+    scheduleCaktoWebhookProcessing(result.webhookEventId, parsed.event);
 
     return NextResponse.json({
       ok: true,
-      status: processingResult.status,
-      operations: processingResult.operations,
-      reason: processingResult.reason,
+      status: "received",
+      operations: ["cakto_webhook_events"],
+      reason: "processing_scheduled",
     });
   } catch (error) {
     console.error("[cakto-webhook] Failed to persist or process webhook event.", sanitizeWebhookError(error));
@@ -75,6 +84,32 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+}
+
+function shouldReprocessDuplicateWebhook(status: string | null) {
+  return status === "failed" || status === "received";
+}
+
+function scheduleCaktoWebhookProcessing(
+  webhookEventId: string,
+  event: ParsedCaktoWebhookEvent,
+) {
+  after(async () => {
+    try {
+      const processingResult = await processCaktoWebhookEvent(
+        webhookEventId,
+        event,
+      );
+
+      console.info("[cakto-webhook] Background processing completed.", {
+        webhookEventId,
+        status: processingResult.status,
+        reason: processingResult.reason,
+      });
+    } catch (error) {
+      console.error("[cakto-webhook] Background processing failed.", sanitizeWebhookError(error));
+    }
+  });
 }
 
 function sanitizeWebhookError(error: unknown) {

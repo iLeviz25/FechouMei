@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app/app-shell";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { getBillingCycles } from "@/lib/billing/plans";
 import { getObligationNotificationsForUser } from "@/lib/obrigacoes/notifications";
 import { getCurrentUserProfile } from "@/lib/profile";
 import {
@@ -62,6 +64,17 @@ function SubscriptionBlockedScreen({ access }: { access: SubscriptionAccess }) {
   const title = getSubscriptionBlockedTitle(access.status);
   const reply = getSubscriptionBlockedReply(access.status);
   const statusLabel = getSubscriptionStatusLabel(access.status);
+  const monthlyCheckoutUrl = getBillingCycles()[0]?.checkoutUrl;
+  const supportSubject = "Suporte FechouMEI - Acesso após compra";
+  const supportBody = [
+    "Olá, acabei de comprar o FechouMEI e preciso de ajuda com meu acesso.",
+    "",
+    "E-mail usado na compra:",
+    "Nome:",
+    "Plano comprado:",
+    "Mensagem:",
+  ].join("\n");
+  const supportHref = `mailto:fechoumei@gmail.com?subject=${encodeURIComponent(supportSubject)}&body=${encodeURIComponent(supportBody)}`;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/35 px-4 py-10">
@@ -75,8 +88,23 @@ function SubscriptionBlockedScreen({ access }: { access: SubscriptionAccess }) {
             <Badge variant="secondary">{statusLabel}</Badge>
           </div>
           <p className="text-sm leading-6 text-muted-foreground">{reply}</p>
+          {access.status === "pending_payment" ? (
+            <p className="rounded-2xl border border-border/70 bg-background p-4 text-sm leading-6 text-muted-foreground">
+              Se você já pagou, entre usando exatamente o e-mail informado na compra. A liberação pode levar alguns minutos; se não liberar, fale com o suporte antes de comprar novamente.
+            </p>
+          ) : null}
           <div className="rounded-2xl border border-border/70 bg-background p-4 text-sm font-semibold leading-6 text-muted-foreground">
             Acesso: <span className="font-extrabold text-foreground">{access.status === "active" ? "Ativo" : statusLabel}</span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {access.status === "pending_payment" && monthlyCheckoutUrl ? (
+              <Button asChild>
+                <a href={monthlyCheckoutUrl}>Comprar acesso</a>
+              </Button>
+            ) : null}
+            <Button asChild variant="outline">
+              <a href={supportHref}>Falar com suporte</a>
+            </Button>
           </div>
         </CardContent>
       </Card>

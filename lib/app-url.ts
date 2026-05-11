@@ -1,7 +1,8 @@
 export function getAppBaseUrl() {
-  const explicitUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || process.env.APP_URL?.trim();
+  const explicitUrl = process.env.APP_URL?.trim() || process.env.NEXT_PUBLIC_APP_URL?.trim();
+  const explicitUrlIsUnsafe = explicitUrl ? isUnsafeProductionLocalUrl(explicitUrl) : false;
 
-  if (explicitUrl) {
+  if (explicitUrl && !explicitUrlIsUnsafe) {
     return normalizeBaseUrl(explicitUrl);
   }
 
@@ -24,5 +25,19 @@ export function buildAppUrl(path: string) {
 }
 
 function normalizeBaseUrl(value: string) {
-  return value.replace(/\/+$/, "");
+  const trimmed = value.replace(/\/+$/, "");
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+function isUnsafeProductionLocalUrl(value: string) {
+  if (process.env.NODE_ENV !== "production") {
+    return false;
+  }
+
+  try {
+    const url = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`);
+    return url.hostname === "localhost" || url.hostname === "127.0.0.1";
+  } catch {
+    return false;
+  }
 }

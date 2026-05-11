@@ -26,6 +26,18 @@ const nextSteps = [
   "Comece a usar o FechouMEI.",
 ];
 
+const supportEmail = "fechoumei@gmail.com";
+const supportSubject = "Suporte FechouMEI - Acesso após compra";
+const supportBody = [
+  "Olá, acabei de comprar o FechouMEI e preciso de ajuda com meu acesso.",
+  "",
+  "E-mail usado na compra:",
+  "Nome:",
+  "Plano comprado:",
+  "Mensagem:",
+].join("\n");
+const supportHref = `mailto:${supportEmail}?subject=${encodeURIComponent(supportSubject)}&body=${encodeURIComponent(supportBody)}`;
+
 export default async function AssinaturaRetornoPage({
   searchParams,
 }: AssinaturaRetornoPageProps) {
@@ -101,7 +113,7 @@ export default async function AssinaturaRetornoPage({
                   </Button>
 
                   <Button asChild size="lg" variant="outline">
-                    <a href="mailto:fechoumei@gmail.com">
+                    <a href={supportHref}>
                       <Mail className="h-4 w-4" aria-hidden="true" />
                       Falar com suporte
                     </a>
