@@ -63,13 +63,6 @@ const mobileShortcutItems = [
   { ...navItems[4], quickTourId: "quick-reports" },
   { ...navItems[6], quickTourId: "quick-helena" },
 ];
-const routesToWarmAfterIdle = [
-  "/app/dashboard",
-  "/app/movimentacoes",
-  "/app/fechamento-mensal",
-  "/app/relatorios",
-  "/app/obrigacoes",
-];
 
 const MovementCreateSheet = dynamic(
   () =>
@@ -151,19 +144,6 @@ export function AppSidebar({ profile, isAdmin = false, notifications = emptyNoti
       ignore = true;
     };
   }, [profile?.id]);
-
-  useEffect(() => {
-    const warmRoutes = () => {
-      routesToWarmAfterIdle.forEach((href) => {
-        if (href !== pathname) {
-          router.prefetch(href);
-        }
-      });
-    };
-    const timeout = window.setTimeout(warmRoutes, 1200);
-
-    return () => window.clearTimeout(timeout);
-  }, [router]);
 
   useEffect(() => {
     if (!pendingHref) {

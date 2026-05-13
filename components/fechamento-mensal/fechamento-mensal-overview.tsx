@@ -414,14 +414,6 @@ export function FechamentoMensalOverview({
     setPendingMonthValue(null);
   }, [currentMonthValue]);
 
-  useEffect(() => {
-    trendItems.forEach((item) => {
-      if (item.key !== currentMonthValue) {
-        router.prefetch(`/app/fechamento-mensal?month=${item.key}`);
-      }
-    });
-  }, [currentMonthValue, router, trendItems]);
-
   function handleRangeStartChange(value: string) {
     if (!value) {
       setRangeStart("");

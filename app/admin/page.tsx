@@ -289,9 +289,24 @@ function HealthSection({ metrics }: { metrics: AdminOverviewMetrics }) {
 
 export default function AdminPage() {
   return (
-    <Suspense fallback={<RouteTransitionPending label="Carregando painel admin" />}>
-      <AdminPageData />
-    </Suspense>
+    <div className="space-y-6">
+      <AdminPageHeader />
+      <Suspense fallback={<RouteTransitionPending label="Carregando painel admin" />}>
+        <AdminPageData />
+      </Suspense>
+    </div>
+  );
+}
+
+function AdminPageHeader() {
+  return (
+    <div className="space-y-2">
+      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Admin FechouMEI</p>
+      <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Visao geral</h1>
+      <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+        Acompanhe a saúde geral do FechouMEI.
+      </p>
+    </div>
   );
 }
 
@@ -352,15 +367,7 @@ async function AdminPageData() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Admin FechouMEI</p>
-        <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Visao geral</h1>
-        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-          Acompanhe a saúde geral do FechouMEI.
-        </p>
-      </div>
-
+    <>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {overviewCards.map((card) => (
           <OverviewCard {...card} key={card.label} />
@@ -439,6 +446,6 @@ async function AdminPageData() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </>
   );
 }
