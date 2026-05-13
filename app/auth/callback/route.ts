@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
   if (!code) {
     const loginUrl = new URL("/login", requestUrl.origin);
-    loginUrl.searchParams.set("authError", "Link inválido ou expirado. Solicite um novo acesso.");
+    loginUrl.searchParams.set("authError", "Link inválido ou expirado. Solicite um novo link de acesso.");
     return NextResponse.redirect(loginUrl);
   }
 
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     const loginUrl = new URL("/login", requestUrl.origin);
-    loginUrl.searchParams.set("authError", "Não foi possível validar o link. Solicite um novo acesso.");
+    loginUrl.searchParams.set("authError", "Não foi possível validar o link. Solicite um novo link de acesso.");
     return NextResponse.redirect(loginUrl);
   }
 

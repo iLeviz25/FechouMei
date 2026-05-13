@@ -43,7 +43,7 @@ const categoryOptions = [
 
 const goalOptions = [
   "organizar receitas e despesas",
-  "fechar o mês sem planilha",
+  "fechar o mês com mais clareza",
   "acompanhar limite do MEI",
 ];
 
@@ -56,7 +56,7 @@ const onboardingSteps: Array<{
   { id: "businessMode", label: "Atua com" },
   { id: "workType", label: "Tipo de trabalho" },
   { id: "mainCategory", label: "Categoria principal" },
-  { id: "mainGoal", label: "Objetivo principal no app" },
+  { id: "mainGoal", label: "Principal objetivo" },
 ];
 
 export function OnboardingForm({ profile }: OnboardingFormProps) {
@@ -150,7 +150,7 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
       router.replace("/app/dashboard");
       router.refresh();
     } catch (error) {
-      setMessage(getAuthErrorMessage(error, "Não foi possível finalizar o onboarding agora."));
+      setMessage(getAuthErrorMessage(error, "Não foi possível finalizar o primeiro acesso agora."));
       setIsSubmitting(false);
     }
   }
@@ -343,7 +343,7 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
                   ) : null}
 
                   <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm leading-6 text-neutral-600">
-                    Essas respostas ajustam o painel inicial. Você poderá revisar depois.
+                    Essas respostas ajustam seu painel inicial. Você poderá editar tudo depois.
                   </div>
 
                   <div className="grid grid-cols-[minmax(0,0.55fr)_minmax(0,1fr)] gap-3 sm:flex sm:justify-between">
@@ -361,7 +361,7 @@ export function OnboardingForm({ profile }: OnboardingFormProps) {
                     {isLastStep ? (
                       <Button className="min-h-11 sm:min-w-48" disabled={isSubmitting || !mainGoal} type="submit">
                         {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                        Finalizar onboarding
+                        Finalizar primeiro acesso
                       </Button>
                     ) : (
                       <Button className="min-h-11 sm:min-w-40" disabled={isSubmitting} onClick={handleNext} type="button">
@@ -494,9 +494,9 @@ function InitialBalanceInput({
 }) {
   return (
     <label className="block space-y-2 rounded-md border border-neutral-200 bg-neutral-50/80 p-3">
-      <span className="text-sm font-semibold text-neutral-950">Com quanto você quer começar no app?</span>
+      <span className="text-sm font-semibold text-neutral-950">Qual saldo inicial você quer usar?</span>
       <span className="block text-sm leading-6 text-neutral-600">
-        Opcional. Informe o valor que você já tem em caixa hoje; isso não entra como receita.
+        Opcional. Informe o valor que você já tem em caixa hoje. Isso não entra como receita.
       </span>
       <Input
         className="h-11 border-neutral-200 bg-white text-base font-semibold focus-visible:ring-emerald-200"

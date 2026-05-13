@@ -80,7 +80,7 @@ export function SignupForm() {
       }
 
       setIsSuccess(true);
-      setMessage("Conta criada. Confirme seu e-mail para liberar o primeiro acesso.");
+      setMessage("Conta criada. Abra o e-mail de confirmação para liberar seu primeiro acesso.");
       setIsSubmitting(false);
     } catch (error) {
       setMessage(getAuthErrorMessage(error));
@@ -98,7 +98,7 @@ export function SignupForm() {
               id="fullName"
               autoComplete="name"
               onChange={(event) => setFullName(event.target.value)}
-              placeholder="Seu nome"
+              placeholder="Seu nome completo"
               required
               value={fullName}
             />

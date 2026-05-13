@@ -31,7 +31,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <AuthShell
-      description="Entre para continuar seu fechamento mensal."
+      description="Entre para acompanhar seu mês, suas obrigações e seu fechamento."
       switchHref="/cadastro"
       switchLabel="crie sua conta"
       switchText="Ainda não tem conta?"

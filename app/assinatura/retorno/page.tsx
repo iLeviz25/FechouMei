@@ -9,7 +9,7 @@ import { getCheckoutReturnCycleLabel } from "@/lib/billing/return-copy";
 
 export const metadata: Metadata = {
   title: "Compra recebida | FechouMEI",
-  description: "Acompanhe os próximos passos para acessar o FechouMEI após a compra.",
+  description: "Veja os próximos passos para acessar o FechouMEI após a compra.",
 };
 
 type AssinaturaRetornoPageProps = {
@@ -20,9 +20,9 @@ type AssinaturaRetornoPageProps = {
 
 const nextSteps = [
   "Abra o e-mail usado na compra.",
-  "Clique no link de acesso enviado.",
+  "Clique no link de acesso que enviarmos.",
   "Crie sua senha.",
-  "Faça o onboarding inicial.",
+  "Complete o primeiro acesso.",
   "Comece a usar o FechouMEI.",
 ];
 
@@ -75,13 +75,13 @@ export default async function AssinaturaRetornoPage({
                   </h1>
 
                   <p className="mt-3 text-[15px] leading-7 text-muted-foreground sm:text-base">
-                    Seu pagamento está sendo processado. Assim que a confirmação chegar, vamos
-                    enviar o acesso para o e-mail usado na compra.
+                    Recebemos seu retorno da compra. Assim que a confirmação do pagamento chegar,
+                    enviaremos o acesso para o e-mail usado na compra.
                   </p>
 
                   <p className="mt-3 text-sm leading-6 text-muted-foreground sm:text-[15px]">
                     Se o pagamento já foi aprovado, verifique sua caixa de entrada e também a pasta
-                    de spam/lixo eletrônico. Você receberá um link para criar sua senha e acessar o
+                    de spam ou lixo eletrônico. Você receberá um link para criar sua senha e acessar o
                     FechouMEI.
                   </p>
                 </div>
@@ -108,7 +108,7 @@ export default async function AssinaturaRetornoPage({
                   <Button asChild size="lg">
                     <Link href="/login">
                       <LogIn className="h-4 w-4" aria-hidden="true" />
-                      Ir para login
+                      Ir para o login
                     </Link>
                   </Button>
 
@@ -123,8 +123,8 @@ export default async function AssinaturaRetornoPage({
                 <div className="flex items-start gap-2 rounded-[18px] border border-primary/10 bg-primary-soft/60 p-3 text-xs leading-5 text-muted-foreground">
                   <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
                   <p>
-                    A liberação acontece automaticamente pelo webhook de pagamento. Esta página não
-                    confirma pagamento nem ativa assinatura.
+                    A liberação acontece automaticamente assim que o pagamento é confirmado. Esta
+                    página é apenas informativa e não ativa o acesso sozinha.
                   </p>
                 </div>
               </div>

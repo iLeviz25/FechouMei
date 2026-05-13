@@ -72,7 +72,7 @@ function SubscriptionBlockedScreen({ access }: { access: SubscriptionAccess }) {
           <p className="text-sm leading-6 text-muted-foreground">{reply}</p>
           {access.status === "pending_payment" ? (
             <p className="rounded-2xl border border-border/70 bg-background p-4 text-sm leading-6 text-muted-foreground">
-              Se você já pagou, entre usando exatamente o e-mail informado na compra. A liberação pode levar alguns minutos; se não liberar, fale com o suporte antes de comprar novamente.
+              Se você já pagou, entre usando exatamente o e-mail informado na compra. A liberação pode levar alguns minutos. Se não liberar, fale com o suporte antes de comprar novamente.
             </p>
           ) : null}
           <div className="rounded-2xl border border-border/70 bg-background p-4 text-sm font-semibold leading-6 text-muted-foreground">

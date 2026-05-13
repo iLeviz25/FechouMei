@@ -4,7 +4,7 @@ import { PasswordRecoveryForm } from "@/components/auth/password-recovery-form";
 export default function RecuperarSenhaPage() {
   return (
     <AuthShell
-      description="Informe seu e-mail para receber o link seguro de redefinição."
+      description="Informe o e-mail da sua conta para receber um link seguro de redefinição."
       switchHref="/login"
       switchLabel="voltar ao login"
       switchText="Lembrou sua senha?"

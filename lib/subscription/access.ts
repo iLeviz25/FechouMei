@@ -44,9 +44,9 @@ export const helenaFileAccessBlockedReply =
 
 const subscriptionBlockedReplies: Record<SubscriptionStatus, string> = {
   active: "",
-  canceled: "Seu acesso ao FechouMEI está inativo. Regularize sua assinatura para continuar.",
-  past_due: "Seu acesso ao FechouMEI está pendente. Regularize sua assinatura para continuar.",
-  pending_payment: "Seu acesso ao FechouMEI está pendente. Ative sua assinatura para continuar.",
+  canceled: "Seu acesso ao FechouMEI está inativo. Regularize sua assinatura para continuar usando o app.",
+  past_due: "Não encontramos um pagamento ativo para esta conta. Regularize sua assinatura para continuar.",
+  pending_payment: "Ainda não encontramos uma assinatura ativa para esta conta. Se você já pagou, aguarde alguns minutos e use o mesmo e-mail da compra.",
 };
 
 export function normalizeSubscriptionPlan(value: unknown): SubscriptionPlan {

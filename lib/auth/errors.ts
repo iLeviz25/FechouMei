@@ -27,7 +27,7 @@ export function getAuthErrorMessage(error: unknown, fallback = "Não foi possív
     message.includes("user already") ||
     message.includes("email already")
   ) {
-    return "Este e-mail já tem uma conta. Entre com sua senha ou recupere o acesso.";
+    return "Este e-mail já está cadastrado. Entre com sua senha ou recupere o acesso.";
   }
 
   if (
@@ -58,7 +58,7 @@ export function getAuthErrorMessage(error: unknown, fallback = "Não foi possív
     message.includes("expired") ||
     message.includes("invalid token")
   ) {
-    return "Esse link expirou ou não é mais válido. Solicite um novo acesso.";
+    return "Este link expirou ou não é mais válido. Solicite um novo acesso.";
   }
 
   if (status === 429 || message.includes("rate limit") || message.includes("too many")) {

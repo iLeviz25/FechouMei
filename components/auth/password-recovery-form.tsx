@@ -52,7 +52,7 @@ export function PasswordRecoveryForm() {
       }
 
       setMessageTone("success");
-      setMessage("Enviamos um link de redefinição. Verifique sua caixa de entrada e o spam.");
+      setMessage("Enviamos um link de redefinição. Verifique sua caixa de entrada e a pasta de spam.");
     } catch (error) {
       setIsSubmitting(false);
       setMessageTone("danger");
@@ -65,7 +65,7 @@ export function PasswordRecoveryForm() {
       <CardContent className="p-4 sm:p-6">
         <form className="space-y-5" onSubmit={handleSubmit}>
           <div className="space-y-2">
-            <Label htmlFor="recoveryEmail">E-mail da conta</Label>
+            <Label htmlFor="recoveryEmail">E-mail usado na conta</Label>
             <Input
               id="recoveryEmail"
               autoComplete="email"

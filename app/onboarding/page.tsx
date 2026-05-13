@@ -40,7 +40,7 @@ export default async function OnboardingPage() {
                 Vamos deixar seu painel com a sua cara.
               </h1>
               <p className="max-w-2xl text-base leading-7 text-neutral-600">
-                Preencha o básico para o FechouMEI organizar a experiência inicial do seu
+                Responda algumas perguntas rápidas para o FechouMEI preparar seu primeiro
                 fechamento mensal.
               </p>
             </div>

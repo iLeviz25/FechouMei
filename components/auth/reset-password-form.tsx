@@ -39,7 +39,7 @@ export function ResetPasswordForm() {
         if (error || !user) {
           setCanReset(false);
           setMessageTone("danger");
-          setMessage("Abra o link de recuperação enviado por e-mail para criar uma nova senha.");
+          setMessage("Use o link de recuperação enviado por e-mail para criar uma nova senha.");
         } else {
           setCanReset(true);
         }
@@ -71,7 +71,7 @@ export function ResetPasswordForm() {
 
     if (!canReset) {
       setMessageTone("danger");
-      setMessage("Solicite um novo link de recuperação antes de redefinir a senha.");
+      setMessage("Solicite um novo link de recuperação antes de criar uma nova senha.");
       return;
     }
 

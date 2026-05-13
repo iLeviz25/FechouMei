@@ -26,7 +26,7 @@ export function AuthShell({
           <Link aria-label="FechouMEI" href="/login">
             <Logo size="md" />
           </Link>
-          <p className="text-xs font-semibold text-muted-foreground sm:text-sm">Feito para MEI</p>
+          <p className="text-xs font-semibold text-muted-foreground sm:text-sm">Feito para quem é MEI</p>
         </div>
 
         <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-8 sm:py-12">
@@ -51,7 +51,7 @@ export function AuthShell({
           </p>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground">(c) {new Date().getFullYear()} FechouMEI</p>
+        <p className="text-center text-xs text-muted-foreground">© {new Date().getFullYear()} FechouMEI</p>
       </section>
 
       <section className="relative hidden overflow-hidden bg-gradient-hero lg:block">
