@@ -32,8 +32,7 @@ type MonthlyMovement = Pick<
 type BalanceMovement = Pick<Movimentacao, "amount" | "occurred_on" | "type">;
 
 type FechamentoMensalOverviewProps = {
-  balanceRows: BalanceMovement[];
-  initialBalance: number;
+  balanceBeforeMonth: number;
   monthEndValue: string;
   monthLabel: string;
   monthStartValue: string;
@@ -218,8 +217,7 @@ function buildTrendItems(rows: BalanceMovement[], currentMonthValue: string) {
 }
 
 export function FechamentoMensalOverview({
-  balanceRows,
-  initialBalance,
+  balanceBeforeMonth,
   monthEndValue,
   monthLabel,
   monthStartValue,
@@ -312,9 +310,9 @@ export function FechamentoMensalOverview({
   const incomeDelta = monthlyTotals.monthlyIncome - previousTotals.monthlyIncome;
   const expenseDelta = monthlyTotals.monthlyExpense - previousTotals.monthlyExpense;
   const balanceUntilPeriod = useMemo(() => {
-    const safeInitialBalance = Number.isFinite(initialBalance) ? initialBalance : 0;
+    const safeBalanceBeforeMonth = Number.isFinite(balanceBeforeMonth) ? balanceBeforeMonth : 0;
 
-    return balanceRows.reduce((balance, movement) => {
+    return movements.reduce((balance, movement) => {
       if (movement.occurred_on > effectiveEnd) {
         return balance;
       }
@@ -328,8 +326,8 @@ export function FechamentoMensalOverview({
       }
 
       return balance;
-    }, safeInitialBalance);
-  }, [balanceRows, effectiveEnd, initialBalance]);
+    }, safeBalanceBeforeMonth);
+  }, [balanceBeforeMonth, effectiveEnd, movements]);
 
   const biggestIncome = filteredMovements
     .filter((item) => item.type === "entrada")

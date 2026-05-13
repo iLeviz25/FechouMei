@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -11,6 +12,7 @@ import {
   WalletCards,
   type LucideIcon,
 } from "lucide-react";
+import { RouteTransitionPending } from "@/components/app/route-transition-pending";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -285,7 +287,15 @@ function HealthSection({ metrics }: { metrics: AdminOverviewMetrics }) {
   );
 }
 
-export default async function AdminPage() {
+export default function AdminPage() {
+  return (
+    <Suspense fallback={<RouteTransitionPending label="Carregando painel admin" />}>
+      <AdminPageData />
+    </Suspense>
+  );
+}
+
+async function AdminPageData() {
   const metrics = await getAdminOverviewMetrics();
 
   const overviewCards = [

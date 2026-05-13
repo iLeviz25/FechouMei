@@ -1,37 +1,7 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserProfile } from "@/lib/profile";
 
-export async function getCurrentUserProfile() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    return {
-      profile: null,
-      profileError: null,
-      supabase,
-      user: null,
-      userError,
-    };
-  }
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  return {
-    profile: profile ?? null,
-    profileError,
-    supabase,
-    user,
-    userError: null,
-  };
-}
+export { getCurrentUserProfile };
 
 export async function isCurrentUserAdmin() {
   const { profile, profileError, user } = await getCurrentUserProfile();

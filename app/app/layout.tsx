@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getBillingCycles } from "@/lib/billing/plans";
-import { getObligationNotificationsForUser } from "@/lib/obrigacoes/notifications";
 import { getCurrentUserProfile } from "@/lib/profile";
 import {
   getSubscriptionAccessFromProfile,
@@ -14,24 +13,12 @@ import {
   type SubscriptionAccess,
 } from "@/lib/subscription/access";
 
-function getCurrentMonthKey() {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    month: "2-digit",
-    timeZone: "America/Sao_Paulo",
-    year: "numeric",
-  }).formatToParts(new Date());
-  const year = parts.find((part) => part.type === "year")?.value ?? String(new Date().getFullYear());
-  const month = parts.find((part) => part.type === "month")?.value ?? String(new Date().getMonth() + 1).padStart(2, "0");
-
-  return `${year}-${month}`;
-}
-
 export default async function AuthenticatedLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { profile, profileError, supabase, user } = await getCurrentUserProfile();
+  const { profile, profileError, user } = await getCurrentUserProfile();
 
   if (!user) {
     redirect("/login");
@@ -51,13 +38,7 @@ export default async function AuthenticatedLayout({
     return <SubscriptionBlockedScreen access={subscriptionAccess} />;
   }
 
-  const notifications = await getObligationNotificationsForUser({
-    monthKey: getCurrentMonthKey(),
-    supabase,
-    userId: user.id,
-  });
-
-  return <AppShell isAdmin={profile.role === "admin"} notifications={notifications} profile={profile}>{children}</AppShell>;
+  return <AppShell isAdmin={profile.role === "admin"} profile={profile}>{children}</AppShell>;
 }
 
 function SubscriptionBlockedScreen({ access }: { access: SubscriptionAccess }) {

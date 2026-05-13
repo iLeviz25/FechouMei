@@ -49,6 +49,7 @@ const adminNavItem = {
   shortLabel: "Admin",
 };
 
+const emptyNotifications: ObligationNotification[] = [];
 const createMovementHref = "/app/movimentacoes?nova=1";
 const mobileNavItems = [
   navItems[0],
@@ -82,12 +83,22 @@ function canWarmRouteOnThisDevice() {
   );
 }
 
-export function AppSidebar({ profile, isAdmin = false, notifications = [] }: AppSidebarProps) {
+function readNotificationsPayload(payload: unknown): ObligationNotification[] {
+  if (!payload || typeof payload !== "object" || !("notifications" in payload)) {
+    return [];
+  }
+
+  const notificationsPayload = (payload as { notifications?: unknown }).notifications;
+  return Array.isArray(notificationsPayload) ? (notificationsPayload as ObligationNotification[]) : [];
+}
+
+export function AppSidebar({ profile, isAdmin = false, notifications = emptyNotifications }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [globalCreateOpen, setGlobalCreateOpen] = useState(false);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [resolvedNotifications, setResolvedNotifications] = useState(notifications);
   const visiblePathname = getPathOnly(pendingHref ?? pathname);
   const settingsIsActive = visiblePathname === "/app/configuracoes";
   const initials = (profile?.full_name ?? "MEI")
@@ -100,6 +111,38 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
   useEffect(() => {
     setPendingHref(null);
     setNotificationsOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    setResolvedNotifications(notifications);
+  }, [notifications]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadNotifications() {
+      try {
+        const response = await fetch("/api/obrigacoes/notifications", { cache: "no-store" });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = await response.json();
+
+        if (!ignore) {
+          setResolvedNotifications(readNotificationsPayload(payload));
+        }
+      } catch (error) {
+        console.warn("[app-sidebar] Failed to load notifications", error);
+      }
+    }
+
+    loadNotifications();
+
+    return () => {
+      ignore = true;
+    };
   }, [pathname]);
 
   useEffect(() => {
@@ -163,7 +206,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
             <NotificationBell
               className="mt-4 w-full justify-start px-3"
               dropdownAlign="left"
-              notifications={notifications}
+              notifications={resolvedNotifications}
               onNavigate={markRoutePending}
               onOpenChange={setNotificationsOpen}
               open={notificationsOpen}
@@ -265,7 +308,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = [] }: App
           <div className="flex items-center gap-1.5">
             <NotificationBell
               mobile
-              notifications={notifications}
+              notifications={resolvedNotifications}
               onNavigate={markRoutePending}
               onOpenChange={setNotificationsOpen}
               open={notificationsOpen}

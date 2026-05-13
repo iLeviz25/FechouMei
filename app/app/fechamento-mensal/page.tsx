@@ -42,7 +42,7 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
   const previousMonthEndValue = toDateInputValue(previousMonthEnd);
   const trendStartValue = toDateInputValue(trendStartDate);
 
-  const [movementsResult, balanceUntilMonthResult] = await Promise.all([
+  const [movementsResult, historicalBalanceResult, trendWindowResult] = await Promise.all([
     supabase
       .from("movimentacoes")
       .select("id, type, description, amount, occurred_on, occurred_at, category")
@@ -53,8 +53,14 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
       .order("created_at", { ascending: false }),
     supabase
       .from("movimentacoes")
+      .select("type, amount")
+      .eq("user_id", user.id)
+      .lt("occurred_on", monthStartValue),
+    supabase
+      .from("movimentacoes")
       .select("type, amount, occurred_on")
       .eq("user_id", user.id)
+      .gte("occurred_on", trendStartValue)
       .lte("occurred_on", monthEndValue),
   ]);
 
@@ -62,8 +68,12 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
     throw new Error(`Não foi possível carregar o fechamento agora. Tente novamente em instantes. ${movementsResult.error.message}`);
   }
 
-  if (balanceUntilMonthResult.error) {
-    throw new Error(`Não foi possível carregar o saldo do fechamento agora. ${balanceUntilMonthResult.error.message}`);
+  if (historicalBalanceResult.error) {
+    throw new Error(`Não foi possível carregar o saldo do fechamento agora. ${historicalBalanceResult.error.message}`);
+  }
+
+  if (trendWindowResult.error) {
+    throw new Error(`Não foi possível carregar a tendência do fechamento agora. ${trendWindowResult.error.message}`);
   }
 
   if (profileError) {
@@ -71,18 +81,29 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
   }
 
   const monthLabel = formatMonthLabel(selectedMonth);
-  const balanceRows = balanceUntilMonthResult.data ?? [];
-  const previousMonthMovements = balanceRows.filter(
-    (movement) => movement.occurred_on >= previousMonthStartValue && movement.occurred_on <= previousMonthEndValue,
+  const initialBalance = Number(profile?.initial_balance ?? 0);
+  const balanceBeforeMonth = (historicalBalanceResult.data ?? []).reduce(
+    (balance, movement) => {
+      if (movement.type === "entrada") {
+        return balance + movement.amount;
+      }
+
+      if (movement.type === "despesa") {
+        return balance - movement.amount;
+      }
+
+      return balance;
+    },
+    Number.isFinite(initialBalance) ? initialBalance : 0,
   );
-  const trendRows = balanceRows.filter(
-    (movement) => movement.occurred_on >= trendStartValue && movement.occurred_on <= monthEndValue,
+  const trendRows = trendWindowResult.data ?? [];
+  const previousMonthMovements = trendRows.filter(
+    (movement) => movement.occurred_on >= previousMonthStartValue && movement.occurred_on <= previousMonthEndValue,
   );
 
   return (
     <FechamentoMensalOverview
-      balanceRows={balanceRows}
-      initialBalance={Number(profile?.initial_balance ?? 0)}
+      balanceBeforeMonth={balanceBeforeMonth}
       monthEndValue={monthEndValue}
       monthLabel={monthLabel}
       monthStartValue={monthStartValue}

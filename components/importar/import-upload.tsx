@@ -28,7 +28,6 @@ import {
   summarizeImportRows,
 } from "@/lib/import/normalize-import-row";
 import { parseCsv } from "@/lib/import/parse-csv";
-import { parseXlsx } from "@/lib/import/parse-xlsx";
 import { cn } from "@/lib/utils";
 import type { ImportColumnMap, ImportParseResult, ImportPreviewRow, RawImportRow } from "@/lib/import/types";
 
@@ -641,6 +640,7 @@ async function readImportFile(file: File): Promise<RawImportRow[]> {
   }
 
   if (extension === "xlsx") {
+    const { parseXlsx } = await import("@/lib/import/parse-xlsx");
     return parseXlsx(await file.arrayBuffer());
   }
 
