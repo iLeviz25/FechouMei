@@ -15,6 +15,7 @@ type MonthSelectorProps = {
   rangeEnd: string;
   rangeStart: string;
   onClearRange: () => void;
+  onMonthChange?: (value: string) => boolean;
   onRangeEndChange: (value: string) => void;
   onRangeStartChange: (value: string) => void;
 };
@@ -24,6 +25,7 @@ export function MonthSelector({
   monthEndValue,
   monthStartValue,
   onClearRange,
+  onMonthChange,
   onRangeEndChange,
   onRangeStartChange,
   rangeEnd,
@@ -49,6 +51,10 @@ export function MonthSelector({
     setSelectedMonth(value);
 
     if (!/^\d{4}-\d{2}$/.test(value)) {
+      return;
+    }
+
+    if (onMonthChange?.(value)) {
       return;
     }
 

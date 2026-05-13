@@ -32,22 +32,25 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
   const monthEnd = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0);
   const previousMonth = addMonths(selectedMonth, -1);
   const trendStart = addMonths(selectedMonth, -5);
+  const interactiveWindowStart = addMonths(selectedMonth, -10);
   const previousMonthStart = new Date(previousMonth.getFullYear(), previousMonth.getMonth(), 1);
   const previousMonthEnd = new Date(previousMonth.getFullYear(), previousMonth.getMonth() + 1, 0);
   const trendStartDate = new Date(trendStart.getFullYear(), trendStart.getMonth(), 1);
+  const interactiveWindowStartDate = new Date(interactiveWindowStart.getFullYear(), interactiveWindowStart.getMonth(), 1);
 
   const monthStartValue = toDateInputValue(monthStart);
   const monthEndValue = toDateInputValue(monthEnd);
   const previousMonthStartValue = toDateInputValue(previousMonthStart);
   const previousMonthEndValue = toDateInputValue(previousMonthEnd);
   const trendStartValue = toDateInputValue(trendStartDate);
+  const interactiveWindowStartValue = toDateInputValue(interactiveWindowStartDate);
 
-  const [movementsResult, balanceWindowResult] = await Promise.all([
+  const [windowMovementsResult, balanceWindowResult] = await Promise.all([
     supabase
       .from("movimentacoes")
       .select("id, type, description, amount, occurred_on, occurred_at, category")
       .eq("user_id", user.id)
-      .gte("occurred_on", monthStartValue)
+      .gte("occurred_on", interactiveWindowStartValue)
       .lte("occurred_on", monthEndValue)
       .order("occurred_at", { ascending: false })
       .order("created_at", { ascending: false }),
@@ -58,8 +61,8 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
       .lte("occurred_on", monthEndValue),
   ]);
 
-  if (movementsResult.error) {
-    throw new Error(`Não foi possível carregar o fechamento agora. Tente novamente em instantes. ${movementsResult.error.message}`);
+  if (windowMovementsResult.error) {
+    throw new Error(`Não foi possível carregar o fechamento agora. Tente novamente em instantes. ${windowMovementsResult.error.message}`);
   }
 
   if (balanceWindowResult.error) {
@@ -73,9 +76,31 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
   const monthLabel = formatMonthLabel(selectedMonth);
   const initialBalance = Number(profile?.initial_balance ?? 0);
   const balanceRows = balanceWindowResult.data ?? [];
+  const windowMovements = windowMovementsResult.data ?? [];
+  const monthMovements = windowMovements.filter(
+    (movement) => movement.occurred_on >= monthStartValue && movement.occurred_on <= monthEndValue,
+  );
   const balanceBeforeMonth = balanceRows.reduce(
     (balance, movement) => {
       if (movement.occurred_on >= monthStartValue) {
+        return balance;
+      }
+
+      if (movement.type === "entrada") {
+        return balance + movement.amount;
+      }
+
+      if (movement.type === "despesa") {
+        return balance - movement.amount;
+      }
+
+      return balance;
+    },
+    Number.isFinite(initialBalance) ? initialBalance : 0,
+  );
+  const windowBalanceBeforeStart = balanceRows.reduce(
+    (balance, movement) => {
+      if (movement.occurred_on >= interactiveWindowStartValue) {
         return balance;
       }
 
@@ -105,11 +130,15 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
       monthLabel={monthLabel}
       monthStartValue={monthStartValue}
       monthValue={String(selectedMonth.getMonth() + 1).padStart(2, "0")}
-      movements={movementsResult.data ?? []}
+      movements={monthMovements}
       previousMonthEndValue={previousMonthEndValue}
       previousMonthMovements={previousMonthMovements}
       previousMonthStartValue={previousMonthStartValue}
       trendRows={trendRows}
+      windowBalanceBeforeStart={windowBalanceBeforeStart}
+      windowEndValue={monthEndValue}
+      windowMovements={windowMovements}
+      windowStartValue={interactiveWindowStartValue}
       yearValue={String(selectedMonth.getFullYear())}
     />
   );

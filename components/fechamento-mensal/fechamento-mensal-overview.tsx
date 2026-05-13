@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -14,7 +14,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { MovementsCsvExportButton } from "@/components/app/movements-csv-export-button";
 import { MonthSelector } from "@/components/fechamento-mensal/month-selector";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +41,10 @@ type FechamentoMensalOverviewProps = {
   previousMonthMovements: BalanceMovement[];
   previousMonthStartValue: string;
   trendRows: BalanceMovement[];
+  windowBalanceBeforeStart: number;
+  windowEndValue: string;
+  windowMovements: MonthlyMovement[];
+  windowStartValue: string;
   yearValue: string;
 };
 
@@ -176,6 +179,55 @@ function formatTrendMonthStatusLabel(monthKey: string) {
   return new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date(year, month - 1, 1));
 }
 
+function addMonthsToMonthValue(monthKey: string, delta: number) {
+  const [year, month] = monthKey.split("-").map(Number);
+  const date = new Date(year, month - 1 + delta, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function toDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getMonthRange(monthKey: string) {
+  const [year, month] = monthKey.split("-").map(Number);
+  const start = new Date(year, month - 1, 1);
+  const end = new Date(year, month, 0);
+
+  return {
+    end: toDateInputValue(end),
+    start: toDateInputValue(start),
+  };
+}
+
+function getBalanceDelta(rows: BalanceMovement[]) {
+  return rows.reduce((balance, movement) => {
+    if (movement.type === "entrada") {
+      return balance + movement.amount;
+    }
+
+    if (movement.type === "despesa") {
+      return balance - movement.amount;
+    }
+
+    return balance;
+  }, 0);
+}
+
+function updateMonthUrl(monthKey: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const url = new URL(window.location.href);
+  url.pathname = "/app/fechamento-mensal";
+  url.searchParams.set("month", monthKey);
+  window.history.pushState(null, "", url);
+}
+
 function buildTrendItems(rows: BalanceMovement[], currentMonthValue: string) {
   const [year, month] = currentMonthValue.split("-").map(Number);
   const monthKeys = Array.from({ length: 6 }, (_, index) => {
@@ -222,23 +274,55 @@ function buildTrendItems(rows: BalanceMovement[], currentMonthValue: string) {
 }
 
 export function FechamentoMensalOverview({
-  balanceBeforeMonth,
-  monthEndValue,
-  monthLabel,
-  monthStartValue,
-  monthValue,
-  movements,
-  previousMonthEndValue,
-  previousMonthMovements,
-  previousMonthStartValue,
-  trendRows,
-  yearValue,
+  balanceBeforeMonth: initialBalanceBeforeMonth,
+  monthEndValue: routeMonthEndValue,
+  monthLabel: routeMonthLabel,
+  monthStartValue: routeMonthStartValue,
+  monthValue: routeMonthValue,
+  movements: initialMovements,
+  previousMonthEndValue: initialPreviousMonthEndValue,
+  previousMonthMovements: initialPreviousMonthMovements,
+  previousMonthStartValue: initialPreviousMonthStartValue,
+  trendRows: initialTrendRows,
+  windowBalanceBeforeStart,
+  windowEndValue,
+  windowMovements,
+  windowStartValue,
+  yearValue: routeYearValue,
 }: FechamentoMensalOverviewProps) {
-  const router = useRouter();
+  const routeSelectedMonthValue = `${routeYearValue}-${routeMonthValue}`;
+  const [selectedMonthValue, setSelectedMonthValue] = useState(routeSelectedMonthValue);
   const [rangeStart, setRangeStart] = useState("");
   const [rangeEnd, setRangeEnd] = useState("");
-  const [pendingMonthValue, setPendingMonthValue] = useState<string | null>(null);
-  const [isMonthNavigationPending, startMonthNavigation] = useTransition();
+  const selectedMonthRange = getMonthRange(selectedMonthValue);
+  const previousSelectedMonthValue = addMonthsToMonthValue(selectedMonthValue, -1);
+  const previousSelectedMonthRange = getMonthRange(previousSelectedMonthValue);
+  const selectedTrendStartValue = getMonthRange(addMonthsToMonthValue(selectedMonthValue, -5)).start;
+  const canUseCachedWindow = selectedTrendStartValue >= windowStartValue && selectedMonthRange.end <= windowEndValue;
+  const monthStartValue = canUseCachedWindow ? selectedMonthRange.start : routeMonthStartValue;
+  const monthEndValue = canUseCachedWindow ? selectedMonthRange.end : routeMonthEndValue;
+  const monthLabel = canUseCachedWindow ? formatTrendMonthStatusLabel(selectedMonthValue) : routeMonthLabel;
+  const monthValue = canUseCachedWindow ? selectedMonthValue.slice(5, 7) : routeMonthValue;
+  const yearValue = canUseCachedWindow ? selectedMonthValue.slice(0, 4) : routeYearValue;
+  const movements = canUseCachedWindow
+    ? windowMovements.filter((movement) => movement.occurred_on >= monthStartValue && movement.occurred_on <= monthEndValue)
+    : initialMovements;
+  const trendRows = canUseCachedWindow
+    ? windowMovements.filter((movement) => movement.occurred_on >= selectedTrendStartValue && movement.occurred_on <= monthEndValue)
+    : initialTrendRows;
+  const previousMonthStartValue = canUseCachedWindow ? previousSelectedMonthRange.start : initialPreviousMonthStartValue;
+  const previousMonthEndValue = canUseCachedWindow ? previousSelectedMonthRange.end : initialPreviousMonthEndValue;
+  const previousMonthMovements = canUseCachedWindow
+    ? trendRows.filter((movement) => movement.occurred_on >= previousMonthStartValue && movement.occurred_on <= previousMonthEndValue)
+    : initialPreviousMonthMovements;
+  const balanceBeforeMonth = canUseCachedWindow
+    ? windowBalanceBeforeStart +
+      getBalanceDelta(windowMovements.filter((movement) => movement.occurred_on >= windowStartValue && movement.occurred_on < monthStartValue))
+    : initialBalanceBeforeMonth;
+
+  useEffect(() => {
+    setSelectedMonthValue(routeSelectedMonthValue);
+  }, [routeSelectedMonthValue]);
 
   useEffect(() => {
     setRangeStart("");
@@ -407,12 +491,6 @@ export function FechamentoMensalOverview({
   const mobileListShouldScroll = filteredMovements.length > 4;
   const currentMonthValue = `${yearValue}-${monthValue}`;
   const currentMonthHeaderLabel = formatMonthHeaderLabel(yearValue, monthValue);
-  const selectedMonthValue = pendingMonthValue ?? currentMonthValue;
-  const pendingMonthLabel = pendingMonthValue ? formatTrendMonthStatusLabel(pendingMonthValue) : null;
-
-  useEffect(() => {
-    setPendingMonthValue(null);
-  }, [currentMonthValue]);
 
   function handleRangeStartChange(value: string) {
     if (!value) {
@@ -441,19 +519,27 @@ export function FechamentoMensalOverview({
     setRangeEnd("");
   }
 
-  function handleTrendMonthSelect(targetMonthValue: string) {
-    clearRange();
+  function selectCachedMonth(targetMonthValue: string) {
+    const targetRange = getMonthRange(targetMonthValue);
+    const targetTrendStartValue = getMonthRange(addMonthsToMonthValue(targetMonthValue, -5)).start;
 
+    if (targetTrendStartValue < windowStartValue || targetRange.end > windowEndValue) {
+      return false;
+    }
+
+    clearRange();
+    setSelectedMonthValue(targetMonthValue);
+    updateMonthUrl(targetMonthValue);
+    return true;
+  }
+
+  function handleTrendMonthSelect(targetMonthValue: string) {
     if (targetMonthValue === currentMonthValue) {
-      setPendingMonthValue(null);
+      clearRange();
       return;
     }
 
-    setPendingMonthValue(targetMonthValue);
-    const href = `/app/fechamento-mensal?month=${targetMonthValue}`;
-    startMonthNavigation(() => {
-      router.push(href, { scroll: false });
-    });
+    selectCachedMonth(targetMonthValue);
   }
 
   return (
@@ -476,6 +562,7 @@ export function FechamentoMensalOverview({
         monthEndValue={monthEndValue}
         monthStartValue={monthStartValue}
         onClearRange={clearRange}
+        onMonthChange={selectCachedMonth}
         onRangeEndChange={handleRangeEndChange}
         onRangeStartChange={handleRangeStartChange}
         rangeEnd={rangeEnd}
@@ -489,11 +576,6 @@ export function FechamentoMensalOverview({
               <Badge className="border-white/10 bg-white/14 text-white shadow-none" variant="outline">
                 {hasCustomRange ? "Resultado do trecho" : "Resultado do mês"}
               </Badge>
-              {pendingMonthLabel ? (
-                <span className="rounded-full bg-white/14 px-3 py-1 text-xs font-bold text-white">
-                  Atualizando {pendingMonthLabel}
-                </span>
-              ) : null}
               <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/78">
                 {hasCustomRange
                   ? `${formatCount(filteredMovements.length, "movimentação", "movimentações")} no período`
@@ -540,13 +622,11 @@ export function FechamentoMensalOverview({
 
                   return (
                     <button
-                      aria-busy={pendingMonthValue === item.key ? true : undefined}
                       aria-current={isSelected ? "date" : undefined}
                       aria-label={formatTrendMonthActionLabel(item.key)}
                       className={cn(
                         "flex w-full min-w-0 cursor-pointer flex-col items-center gap-2 rounded-[18px] p-1 text-center transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
                         isSelected && "bg-white/10",
-                        isMonthNavigationPending && "cursor-wait",
                       )}
                       key={item.key}
                       onClick={() => handleTrendMonthSelect(item.key)}
