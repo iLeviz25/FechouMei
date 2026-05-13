@@ -46,20 +46,13 @@ async function DashboardData() {
   const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
   const [
-    movementWindowResult,
-    allMovementsResult,
+    movementsResult,
     recentResult,
     checklistResult,
   ] = await Promise.all([
     supabase
       .from("movimentacoes")
       .select("type, amount, occurred_on")
-      .eq("user_id", user.id)
-      .gte("occurred_on", movementWindowStartValue)
-      .lte("occurred_on", yearEndValue),
-    supabase
-      .from("movimentacoes")
-      .select("type, amount")
       .eq("user_id", user.id),
     supabase
       .from("movimentacoes")
@@ -75,12 +68,8 @@ async function DashboardData() {
       .eq("month", monthKey),
   ]);
 
-  if (movementWindowResult.error) {
-    throw new Error(`Não foi possível carregar o resumo anual agora. Tente novamente em instantes. ${movementWindowResult.error.message}`);
-  }
-
-  if (allMovementsResult.error) {
-    throw new Error(`Não foi possível carregar o saldo atual agora. Tente novamente em instantes. ${allMovementsResult.error.message}`);
+  if (movementsResult.error) {
+    throw new Error(`Não foi possível carregar o resumo financeiro agora. Tente novamente em instantes. ${movementsResult.error.message}`);
   }
 
   if (recentResult.error) {
@@ -91,12 +80,18 @@ async function DashboardData() {
     throw new Error(`Não foi possível carregar suas obrigações agora. Tente novamente em instantes. ${checklistResult.error.message}`);
   }
 
-  const totals = (movementWindowResult.data ?? []).reduce(
+  const allMovements = movementsResult.data ?? [];
+  const totals = allMovements.reduce(
     (acc, movement) => {
+      const isInsideWindow = movement.occurred_on >= movementWindowStartValue && movement.occurred_on <= yearEndValue;
       const isCurrentYear = movement.occurred_on >= yearStartValue && movement.occurred_on <= yearEndValue;
       const isCurrentMonth = movement.occurred_on >= monthStartValue && movement.occurred_on <= monthEndValue;
       const isPreviousMonth =
         movement.occurred_on >= previousMonthStartValue && movement.occurred_on <= previousMonthEndValue;
+
+      if (!isInsideWindow) {
+        return acc;
+      }
 
       if (movement.type === "entrada") {
         if (isCurrentYear) {
@@ -132,7 +127,7 @@ async function DashboardData() {
   );
 
   const initialBalance = Number(profile?.initial_balance ?? 0);
-  const currentBalance = (allMovementsResult.data ?? []).reduce((balance, movement) => {
+  const currentBalance = allMovements.reduce((balance, movement) => {
     if (movement.type === "entrada") {
       return balance + movement.amount;
     }
