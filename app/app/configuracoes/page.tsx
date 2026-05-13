@@ -1,7 +1,17 @@
+import { Suspense } from "react";
+import { RouteTransitionPending } from "@/components/app/route-transition-pending";
 import { ConfiguracoesForm } from "@/components/configuracoes/configuracoes-form";
 import { getCurrentUserProfile } from "@/lib/profile";
 
-export default async function ConfiguracoesPage() {
+export default function ConfiguracoesPage() {
+  return (
+    <Suspense fallback={<RouteTransitionPending label="Carregando configurações" />}>
+      <ConfiguracoesData />
+    </Suspense>
+  );
+}
+
+async function ConfiguracoesData() {
   const { profile, profileError, user } = await getCurrentUserProfile();
 
   if (profileError) {

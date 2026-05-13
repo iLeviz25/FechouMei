@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
+import { FastNavigationLink as Link } from "@/components/navigation/fast-navigation-link";
 import { cn } from "@/lib/utils";
 
 type AdminNavItemProps = {

@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { FastNavigationLink as Link } from "@/components/navigation/fast-navigation-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   BellRing,
@@ -19,6 +18,7 @@ import {
   Upload,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
+import { FastNavigationLink as Link } from "@/components/navigation/fast-navigation-link";
 import { Button } from "@/components/ui/button";
 import type { ObligationNotification } from "@/lib/obrigacoes/notifications";
 import { cn } from "@/lib/utils";

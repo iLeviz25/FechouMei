@@ -1,9 +1,9 @@
 "use client";
 
 import { ArrowLeft, ShieldCheck } from "lucide-react";
-import Link from "next/link";
 import { AdminNavItem } from "@/components/admin/admin-nav-item";
 import { adminNavItems } from "@/components/admin/admin-nav";
+import { FastNavigationLink as Link } from "@/components/navigation/fast-navigation-link";
 import { Badge } from "@/components/ui/badge";
 
 export function AdminSidebar() {
