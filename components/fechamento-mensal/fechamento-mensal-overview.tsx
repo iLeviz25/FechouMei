@@ -441,12 +441,6 @@ export function FechamentoMensalOverview({
     setRangeEnd("");
   }
 
-  function warmTrendMonth(targetMonthValue: string) {
-    if (targetMonthValue !== currentMonthValue) {
-      router.prefetch(`/app/fechamento-mensal?month=${targetMonthValue}`);
-    }
-  }
-
   function handleTrendMonthSelect(targetMonthValue: string) {
     clearRange();
 
@@ -457,7 +451,6 @@ export function FechamentoMensalOverview({
 
     setPendingMonthValue(targetMonthValue);
     const href = `/app/fechamento-mensal?month=${targetMonthValue}`;
-    router.prefetch(href);
     startMonthNavigation(() => {
       router.push(href, { scroll: false });
     });
@@ -557,8 +550,6 @@ export function FechamentoMensalOverview({
                       )}
                       key={item.key}
                       onClick={() => handleTrendMonthSelect(item.key)}
-                      onFocus={() => warmTrendMonth(item.key)}
-                      onPointerEnter={() => warmTrendMonth(item.key)}
                       title={formatTrendMonthActionLabel(item.key)}
                       type="button"
                     >

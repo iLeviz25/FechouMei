@@ -76,13 +76,6 @@ function getPathOnly(href: string) {
   return href.split("?")[0] ?? href;
 }
 
-function canWarmRouteOnThisDevice() {
-  return (
-    typeof window !== "undefined" &&
-    window.matchMedia("(hover: hover) and (pointer: fine)").matches
-  );
-}
-
 function readNotificationsPayload(payload: unknown): ObligationNotification[] {
   if (!payload || typeof payload !== "object" || !("notifications" in payload)) {
     return [];
@@ -157,14 +150,6 @@ export function AppSidebar({ profile, isAdmin = false, notifications = emptyNoti
     return () => window.clearTimeout(timeout);
   }, [pendingHref]);
 
-  function warmRoute(href: string) {
-    if (!canWarmRouteOnThisDevice()) {
-      return;
-    }
-
-    router.prefetch(href);
-  }
-
   function markRoutePending(href: string) {
     if (getPathOnly(href) !== pathname) {
       setPendingHref(href);
@@ -197,8 +182,6 @@ export function AppSidebar({ profile, isAdmin = false, notifications = emptyNoti
             <Link
               href="/app/dashboard"
               onClick={() => markRoutePending("/app/dashboard")}
-              onFocus={() => warmRoute("/app/dashboard")}
-              onPointerEnter={() => warmRoute("/app/dashboard")}
               prefetch={false}
             >
               <Logo size="md" />
@@ -235,8 +218,6 @@ export function AppSidebar({ profile, isAdmin = false, notifications = emptyNoti
                     href={item.href}
                     key={item.href}
                     onClick={() => markRoutePending(item.href)}
-                    onFocus={() => warmRoute(item.href)}
-                    onPointerEnter={() => warmRoute(item.href)}
                     prefetch={false}
                   >
                     {isActive ? (
@@ -264,8 +245,6 @@ export function AppSidebar({ profile, isAdmin = false, notifications = emptyNoti
                   )}
                   href={adminNavItem.href}
                   onClick={() => markRoutePending(adminNavItem.href)}
-                  onFocus={() => warmRoute(adminNavItem.href)}
-                  onPointerEnter={() => warmRoute(adminNavItem.href)}
                   prefetch={false}
                 >
                   <ShieldCheck className="h-4 w-4" />
@@ -299,8 +278,6 @@ export function AppSidebar({ profile, isAdmin = false, notifications = emptyNoti
             className="flex items-center gap-2"
             href="/app/dashboard"
             onClick={() => markRoutePending("/app/dashboard")}
-            onFocus={() => warmRoute("/app/dashboard")}
-            onPointerEnter={() => warmRoute("/app/dashboard")}
             prefetch={false}
           >
             <Logo size="sm" />
@@ -319,8 +296,6 @@ export function AppSidebar({ profile, isAdmin = false, notifications = emptyNoti
                 className="surface-panel-ghost flex h-11 w-11 items-center justify-center rounded-[18px] text-primary"
                 href="/admin"
                 onClick={() => markRoutePending("/admin")}
-                onFocus={() => warmRoute("/admin")}
-                onPointerEnter={() => warmRoute("/admin")}
                 prefetch={false}
               >
                 <ShieldCheck className="h-5 w-5" />
@@ -335,8 +310,6 @@ export function AppSidebar({ profile, isAdmin = false, notifications = emptyNoti
               )}
               href="/app/configuracoes"
               onClick={() => markRoutePending("/app/configuracoes")}
-              onFocus={() => warmRoute("/app/configuracoes")}
-              onPointerEnter={() => warmRoute("/app/configuracoes")}
               prefetch={false}
             >
               <Settings className="h-5 w-5" />
@@ -368,8 +341,6 @@ export function AppSidebar({ profile, isAdmin = false, notifications = emptyNoti
                 href={item.href}
                 key={item.href}
                 onClick={() => markRoutePending(item.href)}
-                onFocus={() => warmRoute(item.href)}
-                onPointerEnter={() => warmRoute(item.href)}
                 prefetch={false}
               >
                 <Icon className="h-3.5 w-3.5 shrink-0 min-[360px]:h-4 min-[360px]:w-4" />
@@ -433,8 +404,6 @@ export function AppSidebar({ profile, isAdmin = false, notifications = emptyNoti
                 href={item.href}
                 key={item.href}
                 onClick={() => markRoutePending(item.href)}
-                onFocus={() => warmRoute(item.href)}
-                onPointerEnter={() => warmRoute(item.href)}
                 prefetch={false}
               >
                 <span className={iconClassName}>
