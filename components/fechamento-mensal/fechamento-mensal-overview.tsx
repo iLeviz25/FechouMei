@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { MovementsCsvExportButton } from "@/components/app/movements-csv-export-button";
 import { MonthSelector } from "@/components/fechamento-mensal/month-selector";
 import { Badge } from "@/components/ui/badge";
@@ -228,10 +229,18 @@ function updateMonthUrl(monthKey: string) {
   window.history.pushState(null, "", url);
 }
 
-function buildTrendItems(rows: BalanceMovement[], currentMonthValue: string) {
-  const [year, month] = currentMonthValue.split("-").map(Number);
-  const monthKeys = Array.from({ length: 6 }, (_, index) => {
-    const date = new Date(year, month - 1 - (5 - index), 1);
+function buildTrendItems(
+  rows: BalanceMovement[],
+  currentMonthValue: string,
+  windowStartMonthValue: string,
+  windowEndMonthValue: string,
+) {
+  const visualStartMonthValue = addMonthsToMonthValue(windowStartMonthValue, 5);
+  const [startYear, startMonth] = visualStartMonthValue.split("-").map(Number);
+  const [endYear, endMonth] = windowEndMonthValue.split("-").map(Number);
+  const monthCount = Math.max((endYear - startYear) * 12 + endMonth - startMonth + 1, 6);
+  const monthKeys = Array.from({ length: monthCount }, (_, index) => {
+    const date = new Date(startYear, startMonth - 1 + index, 1);
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
   });
 
@@ -290,10 +299,14 @@ export function FechamentoMensalOverview({
   windowStartValue,
   yearValue: routeYearValue,
 }: FechamentoMensalOverviewProps) {
+  const router = useRouter();
   const routeSelectedMonthValue = `${routeYearValue}-${routeMonthValue}`;
   const [selectedMonthValue, setSelectedMonthValue] = useState(routeSelectedMonthValue);
   const [rangeStart, setRangeStart] = useState("");
   const [rangeEnd, setRangeEnd] = useState("");
+  const [, startRouteMonthTransition] = useTransition();
+  const trendTrackRef = useRef<HTMLDivElement | null>(null);
+  const trendTrackAlignedRef = useRef(false);
   const selectedMonthRange = getMonthRange(selectedMonthValue);
   const previousSelectedMonthValue = addMonthsToMonthValue(selectedMonthValue, -1);
   const previousSelectedMonthRange = getMonthRange(previousSelectedMonthValue);
@@ -463,8 +476,8 @@ export function FechamentoMensalOverview({
       ? (topExpenseCategory.top.amount / monthlyTotals.monthlyExpense) * 100
       : 0;
   const trendItems = useMemo(
-    () => buildTrendItems(trendRows, `${yearValue}-${monthValue}`),
-    [monthValue, trendRows, yearValue],
+    () => buildTrendItems(windowMovements, `${yearValue}-${monthValue}`, windowStartValue.slice(0, 7), windowEndValue.slice(0, 7)),
+    [monthValue, windowEndValue, windowMovements, windowStartValue, yearValue],
   );
 
   const balanceDeltaInfo = getDeltaInfo(monthBalance, previousBalance);
@@ -506,6 +519,31 @@ export function FechamentoMensalOverview({
   const mobileListShouldScroll = filteredMovements.length > 4;
   const currentMonthValue = `${yearValue}-${monthValue}`;
   const currentMonthHeaderLabel = formatMonthHeaderLabel(yearValue, monthValue);
+
+  useLayoutEffect(() => {
+    const track = trendTrackRef.current;
+    const selectedIndex = trendItems.findIndex((item) => item.key === selectedMonthValue);
+
+    if (!track || selectedIndex < 0) {
+      return;
+    }
+
+    const selectedItem = track.children[selectedIndex] as HTMLElement | undefined;
+
+    if (!selectedItem) {
+      return;
+    }
+
+    const style = window.getComputedStyle(track);
+    const paddingRight = Number.parseFloat(style.paddingRight) || 0;
+    const targetScrollLeft = Math.max(0, selectedItem.offsetLeft + selectedItem.offsetWidth + paddingRight - track.clientWidth);
+
+    track.scrollTo({
+      behavior: trendTrackAlignedRef.current ? "smooth" : "auto",
+      left: targetScrollLeft,
+    });
+    trendTrackAlignedRef.current = true;
+  }, [selectedMonthValue, trendItems]);
 
   function handleRangeStartChange(value: string) {
     if (!value) {
@@ -554,7 +592,14 @@ export function FechamentoMensalOverview({
       return;
     }
 
-    selectCachedMonth(targetMonthValue);
+    if (selectCachedMonth(targetMonthValue)) {
+      return;
+    }
+
+    clearRange();
+    startRouteMonthTransition(() => {
+      router.push(`/app/fechamento-mensal?month=${targetMonthValue}`);
+    });
   }
 
   return (
@@ -631,7 +676,11 @@ export function FechamentoMensalOverview({
                 {heroTrendText}
               </div>
 
-              <div className="grid grid-cols-6 items-end gap-1.5 rounded-[24px] bg-white/6 p-2.5">
+              <div
+                aria-label="Linha de meses do fechamento"
+                className="flex snap-x snap-mandatory items-end gap-1.5 overflow-x-auto overscroll-x-contain rounded-[24px] bg-white/6 p-2.5 pb-3 touch-pan-x [scrollbar-color:rgba(255,255,255,0.32)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/24 [&::-webkit-scrollbar-track]:bg-transparent"
+                ref={trendTrackRef}
+              >
                 {trendItems.map((item) => {
                   const isSelected = item.key === selectedMonthValue;
 
@@ -640,11 +689,12 @@ export function FechamentoMensalOverview({
                       aria-current={isSelected ? "date" : undefined}
                       aria-label={formatTrendMonthActionLabel(item.key)}
                       className={cn(
-                        "flex w-full min-w-0 cursor-pointer flex-col items-center gap-2 rounded-[18px] p-1 text-center transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
+                        "flex min-w-0 shrink-0 snap-end cursor-pointer flex-col items-center gap-2 rounded-[18px] p-1 text-center transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
                         isSelected && "bg-white/10",
                       )}
                       key={item.key}
                       onClick={() => handleTrendMonthSelect(item.key)}
+                      style={{ flexBasis: "calc((100% - 1.875rem) / 6)" }}
                       title={formatTrendMonthActionLabel(item.key)}
                       type="button"
                     >

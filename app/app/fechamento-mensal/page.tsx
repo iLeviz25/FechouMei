@@ -32,7 +32,7 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
   const monthEnd = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0);
   const previousMonth = addMonths(selectedMonth, -1);
   const trendStart = addMonths(selectedMonth, -5);
-  const interactiveWindowStart = addMonths(selectedMonth, -10);
+  const interactiveWindowStart = addMonths(selectedMonth, -15);
   const interactiveWindowEnd = addMonths(selectedMonth, 6);
   const previousMonthStart = new Date(previousMonth.getFullYear(), previousMonth.getMonth(), 1);
   const previousMonthEnd = new Date(previousMonth.getFullYear(), previousMonth.getMonth() + 1, 0);
