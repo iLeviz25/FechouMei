@@ -295,7 +295,7 @@ export default async function AdminUsuarioDetalhePage({
     return (
       <div className="space-y-6">
         <Button asChild variant="outline">
-          <Link href="/admin/usuarios">
+          <Link href="/admin/usuarios" prefetch={false}>
             <ArrowLeft className="h-4 w-4" />
             Voltar para usuários
           </Link>
@@ -320,7 +320,7 @@ export default async function AdminUsuarioDetalhePage({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <Button asChild variant="outline">
-            <Link href="/admin/usuarios">
+            <Link href="/admin/usuarios" prefetch={false}>
               <ArrowLeft className="h-4 w-4" />
               Voltar para usuários
             </Link>

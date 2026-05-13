@@ -276,7 +276,7 @@ export function ImportUpload() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button asChild variant="outline">
-                <Link href="/app/movimentacoes">Ver movimentações</Link>
+                <Link href="/app/movimentacoes" prefetch={false}>Ver movimentações</Link>
               </Button>
               <Button onClick={resetImport} type="button">
                 Importar outra planilha

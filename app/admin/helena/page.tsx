@@ -229,7 +229,7 @@ function ConnectionMobileCard({ connection }: { connection: AdminHelenaConnectio
           </div>
         </div>
         <Button asChild className="w-full" variant="outline">
-          <Link href={`/admin/usuarios/${connection.userId}`}>Ver usuário</Link>
+          <Link href={`/admin/usuarios/${connection.userId}`} prefetch={false}>Ver usuário</Link>
         </Button>
       </CardContent>
     </Card>
@@ -362,7 +362,7 @@ export default async function AdminHelenaPage() {
                         </td>
                         <td className="px-4 py-4 text-right">
                           <Button asChild size="sm" variant="outline">
-                            <Link href={`/admin/usuarios/${connection.userId}`}>Ver usuário</Link>
+                            <Link href={`/admin/usuarios/${connection.userId}`} prefetch={false}>Ver usuário</Link>
                           </Button>
                         </td>
                       </tr>

@@ -438,7 +438,7 @@ export function DashboardOverview({
                 size="sm"
                 variant="ghost"
               >
-                <Link href="/app/movimentacoes">
+                <Link href="/app/movimentacoes" prefetch={false}>
                   Ver histórico
                   <ChevronRight className="h-4 w-4" />
                 </Link>
@@ -450,7 +450,7 @@ export function DashboardOverview({
                 <p className="font-bold text-foreground">Nenhuma movimentação registrada ainda.</p>
                 <p className="mt-1">Adicione uma entrada ou despesa para começar a acompanhar seu mês.</p>
                 <Button asChild className="mt-4" size="sm">
-                  <Link href="/app/movimentacoes">Adicionar movimentação</Link>
+                  <Link href="/app/movimentacoes" prefetch={false}>Adicionar movimentação</Link>
                 </Button>
               </div>
             ) : (
@@ -605,6 +605,7 @@ function QuickActionCard({
     <Link
       className="group flex min-w-0 flex-col items-center gap-2 rounded-[22px] px-2 py-2.5 text-center transition-colors hover:bg-primary-soft/25"
       href={href}
+      prefetch={false}
     >
       <div
         className={cn(
@@ -633,6 +634,7 @@ function RecentMovementRow({ movement }: { movement: RecentMovement }) {
         tone.hoverClass,
       )}
       href="/app/movimentacoes"
+      prefetch={false}
     >
       <div className="flex gap-3">
         <div
@@ -719,7 +721,7 @@ function AlertCard({
           </Badge>
           <p className="text-base font-bold text-foreground">{title}</p>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
-          <Link className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-primary" href={href}>
+          <Link className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-primary" href={href} prefetch={false}>
             {cta}
             <ChevronRight className="h-4 w-4" />
           </Link>

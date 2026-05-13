@@ -144,7 +144,7 @@ function UserMobileCard({ user }: { user: AdminUserListItem }) {
         </div>
 
         <Button asChild className="w-full" variant="outline">
-          <Link href={`/admin/usuarios/${user.id}`}>Ver detalhes</Link>
+          <Link href={`/admin/usuarios/${user.id}`} prefetch={false}>Ver detalhes</Link>
         </Button>
       </CardContent>
     </Card>
@@ -200,7 +200,7 @@ export default async function AdminUsuariosPage({
             <Button type="submit">Filtrar</Button>
             {hasFilters ? (
               <Button asChild variant="outline">
-                <Link href="/admin/usuarios">Limpar</Link>
+                <Link href="/admin/usuarios" prefetch={false}>Limpar</Link>
               </Button>
             ) : null}
           </form>
@@ -293,7 +293,7 @@ export default async function AdminUsuariosPage({
                         </td>
                         <td className="px-5 py-4 text-right">
                           <Button asChild size="sm" variant="outline">
-                            <Link href={`/admin/usuarios/${user.id}`}>Ver detalhes</Link>
+                            <Link href={`/admin/usuarios/${user.id}`} prefetch={false}>Ver detalhes</Link>
                           </Button>
                         </td>
                       </tr>
@@ -310,7 +310,7 @@ export default async function AdminUsuariosPage({
             </p>
             <div className="flex gap-2">
               <Button asChild className={cn(usersResult.page <= 1 && "pointer-events-none opacity-50")} variant="outline">
-                <Link href={previousHref}>
+                <Link href={previousHref} prefetch={false}>
                   <ArrowLeft className="h-4 w-4" />
                   Anterior
                 </Link>
@@ -320,7 +320,7 @@ export default async function AdminUsuariosPage({
                 className={cn(usersResult.page >= usersResult.totalPages && "pointer-events-none opacity-50")}
                 variant="outline"
               >
-                <Link href={nextHref}>
+                <Link href={nextHref} prefetch={false}>
                   Próxima
                   <ArrowRight className="h-4 w-4" />
                 </Link>

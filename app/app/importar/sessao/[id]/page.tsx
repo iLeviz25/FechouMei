@@ -207,7 +207,7 @@ export default async function ImportSessionPage({ params }: { params: Promise<Se
     <div className="mobile-section-gap">
       <header className="space-y-3">
         <Button asChild variant="outline">
-          <Link href="/app/importar">
+          <Link href="/app/importar" prefetch={false}>
             <ArrowLeft className="h-4 w-4" />
             Voltar para Importar dados
           </Link>
@@ -272,7 +272,7 @@ export default async function ImportSessionPage({ params }: { params: Promise<Se
                 Importação concluída. Confira as movimentações salvas no app.
               </p>
               <Button asChild size="sm">
-                <Link href="/app/movimentacoes">Ver movimentações</Link>
+                <Link href="/app/movimentacoes" prefetch={false}>Ver movimentações</Link>
               </Button>
             </div>
           ) : null}

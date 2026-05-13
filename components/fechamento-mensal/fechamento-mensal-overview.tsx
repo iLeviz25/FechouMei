@@ -755,7 +755,7 @@ export function FechamentoMensalOverview({
                 <p className="font-bold text-foreground">Nenhuma movimentação neste mês.</p>
                 <p className="mt-1">Adicione entradas e despesas para ver o fechamento do período.</p>
                 <Button asChild className="mt-4" size="sm">
-                  <Link href="/app/movimentacoes">Adicionar movimentação</Link>
+                  <Link href="/app/movimentacoes" prefetch={false}>Adicionar movimentação</Link>
                 </Button>
               </div>
             </div>

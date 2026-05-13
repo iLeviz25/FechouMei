@@ -180,7 +180,7 @@ export default async function AdminLogsPage({
             </Select>
             <Button type="submit">Filtrar</Button>
             {hasFilters ? (
-              <Button asChild variant="outline"><Link href="/admin/logs">Limpar</Link></Button>
+              <Button asChild variant="outline"><Link href="/admin/logs" prefetch={false}>Limpar</Link></Button>
             ) : null}
           </form>
         </CardContent>
@@ -217,10 +217,10 @@ export default async function AdminLogsPage({
         </p>
         <div className="flex gap-2">
           <Button asChild className={cn(logsResult.page <= 1 && "pointer-events-none opacity-50")} variant="outline">
-            <Link href={buildPageHref(filters, Math.max(logsResult.page - 1, 1))}>Anterior</Link>
+            <Link href={buildPageHref(filters, Math.max(logsResult.page - 1, 1))} prefetch={false}>Anterior</Link>
           </Button>
           <Button asChild className={cn(logsResult.page >= logsResult.totalPages && "pointer-events-none opacity-50")} variant="outline">
-            <Link href={buildPageHref(filters, Math.min(logsResult.page + 1, logsResult.totalPages))}>Próxima</Link>
+            <Link href={buildPageHref(filters, Math.min(logsResult.page + 1, logsResult.totalPages))} prefetch={false}>Próxima</Link>
           </Button>
         </div>
       </div>
