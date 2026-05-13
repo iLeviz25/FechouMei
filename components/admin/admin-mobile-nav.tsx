@@ -28,6 +28,7 @@ export function AdminMobileNav() {
               )}
               href={item.href}
               key={item.href}
+              prefetch={false}
             >
               <Icon className="h-3.5 w-3.5" />
               {item.label}

@@ -1,77 +1,27 @@
-import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
-import type { Database } from "@/types/database";
 
-export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request,
-  });
-
+export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  const isAdminRoute = pathname.startsWith("/admin");
-  const isProtectedRoute = pathname.startsWith("/app") || pathname.startsWith("/onboarding") || isAdminRoute;
+  const isProtectedRoute = pathname.startsWith("/app") || pathname.startsWith("/onboarding") || pathname.startsWith("/admin");
 
   if (!isProtectedRoute) {
-    return response;
+    return NextResponse.next();
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (
-    !supabaseUrl ||
-    !supabaseAnonKey ||
-    supabaseUrl === "https://your-project-ref.supabase.co" ||
-    supabaseAnonKey === "your-supabase-anon-key"
-  ) {
-    throw new Error("Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+  if (hasSupabaseAuthCookie(request)) {
+    return NextResponse.next();
   }
 
-  const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = NextResponse.next({
-          request,
-        });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, options),
-        );
-      },
-    },
-  });
+  const url = request.nextUrl.clone();
+  url.pathname = "/login";
+  url.searchParams.set("redirectedFrom", pathname);
+  return NextResponse.redirect(url);
+}
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("redirectedFrom", pathname);
-    return NextResponse.redirect(url);
-  }
-
-  if (isAdminRoute) {
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (profileError || profile?.role !== "admin") {
-      const url = request.nextUrl.clone();
-      url.pathname = "/app/dashboard";
-      url.search = "";
-      return NextResponse.redirect(url);
-    }
-  }
-
-  return response;
+function hasSupabaseAuthCookie(request: NextRequest) {
+  return request.cookies
+    .getAll()
+    .some((cookie) => cookie.name.startsWith("sb-") && cookie.name.includes("-auth-token"));
 }
 
 export const config = {

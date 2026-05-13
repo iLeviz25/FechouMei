@@ -48,7 +48,7 @@ export function AdminHeader() {
         </div>
 
         <Button asChild size="sm" variant="outline">
-          <Link href="/app/dashboard">
+          <Link href="/app/dashboard" prefetch={false}>
             <ArrowLeft className="h-4 w-4" />
             Voltar para o app
           </Link>

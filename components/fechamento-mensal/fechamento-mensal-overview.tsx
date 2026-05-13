@@ -171,6 +171,11 @@ function formatTrendMonthActionLabel(monthKey: string) {
   return `Ver fechamento de ${label}`;
 }
 
+function formatTrendMonthStatusLabel(monthKey: string) {
+  const [year, month] = monthKey.split("-").map(Number);
+  return new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date(year, month - 1, 1));
+}
+
 function buildTrendItems(rows: BalanceMovement[], currentMonthValue: string) {
   const [year, month] = currentMonthValue.split("-").map(Number);
   const monthKeys = Array.from({ length: 6 }, (_, index) => {
@@ -232,6 +237,7 @@ export function FechamentoMensalOverview({
   const router = useRouter();
   const [rangeStart, setRangeStart] = useState("");
   const [rangeEnd, setRangeEnd] = useState("");
+  const [pendingMonthValue, setPendingMonthValue] = useState<string | null>(null);
   const [isMonthNavigationPending, startMonthNavigation] = useTransition();
 
   useEffect(() => {
@@ -401,6 +407,20 @@ export function FechamentoMensalOverview({
   const mobileListShouldScroll = filteredMovements.length > 4;
   const currentMonthValue = `${yearValue}-${monthValue}`;
   const currentMonthHeaderLabel = formatMonthHeaderLabel(yearValue, monthValue);
+  const selectedMonthValue = pendingMonthValue ?? currentMonthValue;
+  const pendingMonthLabel = pendingMonthValue ? formatTrendMonthStatusLabel(pendingMonthValue) : null;
+
+  useEffect(() => {
+    setPendingMonthValue(null);
+  }, [currentMonthValue]);
+
+  useEffect(() => {
+    trendItems.forEach((item) => {
+      if (item.key !== currentMonthValue) {
+        router.prefetch(`/app/fechamento-mensal?month=${item.key}`);
+      }
+    });
+  }, [currentMonthValue, router, trendItems]);
 
   function handleRangeStartChange(value: string) {
     if (!value) {
@@ -429,15 +449,25 @@ export function FechamentoMensalOverview({
     setRangeEnd("");
   }
 
+  function warmTrendMonth(targetMonthValue: string) {
+    if (targetMonthValue !== currentMonthValue) {
+      router.prefetch(`/app/fechamento-mensal?month=${targetMonthValue}`);
+    }
+  }
+
   function handleTrendMonthSelect(targetMonthValue: string) {
     clearRange();
 
     if (targetMonthValue === currentMonthValue) {
+      setPendingMonthValue(null);
       return;
     }
 
+    setPendingMonthValue(targetMonthValue);
+    const href = `/app/fechamento-mensal?month=${targetMonthValue}`;
+    router.prefetch(href);
     startMonthNavigation(() => {
-      router.push(`/app/fechamento-mensal?month=${targetMonthValue}`);
+      router.push(href, { scroll: false });
     });
   }
 
@@ -474,6 +504,11 @@ export function FechamentoMensalOverview({
               <Badge className="border-white/10 bg-white/14 text-white shadow-none" variant="outline">
                 {hasCustomRange ? "Resultado do trecho" : "Resultado do mês"}
               </Badge>
+              {pendingMonthLabel ? (
+                <span className="rounded-full bg-white/14 px-3 py-1 text-xs font-bold text-white">
+                  Atualizando {pendingMonthLabel}
+                </span>
+              ) : null}
               <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/78">
                 {hasCustomRange
                   ? `${formatCount(filteredMovements.length, "movimentação", "movimentações")} no período`
@@ -515,44 +550,52 @@ export function FechamentoMensalOverview({
               </div>
 
               <div className="grid grid-cols-6 items-end gap-1.5 rounded-[24px] bg-white/6 p-2.5">
-                {trendItems.map((item) => (
-                  <button
-                    aria-current={item.current ? "date" : undefined}
-                    aria-label={formatTrendMonthActionLabel(item.key)}
-                    className={cn(
-                      "flex w-full min-w-0 cursor-pointer flex-col items-center gap-2 rounded-[18px] p-1 text-center transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
-                      isMonthNavigationPending && "cursor-wait",
-                    )}
-                    key={item.key}
-                    onClick={() => handleTrendMonthSelect(item.key)}
-                    title={formatTrendMonthActionLabel(item.key)}
-                    type="button"
-                  >
-                    <div className="flex h-12 w-full items-end rounded-[16px] bg-white/8 p-1 sm:h-14">
-                      <div
-                        className={cn(
-                          "w-full rounded-[14px]",
-                          item.current
-                            ? item.value >= 0
-                              ? "bg-[linear-gradient(180deg,hsl(40_100%_62%)_0%,hsl(36_100%_56%)_100%)]"
-                              : "bg-[linear-gradient(180deg,hsl(358_92%_74%)_0%,hsl(358_75%_58%)_100%)]"
-                            : item.value >= 0
-                              ? "bg-white/60"
-                              : "bg-destructive/70",
-                        )}
-                        style={{ height: `${item.height}%` }}
-                      />
-                    </div>
-                    <span
+                {trendItems.map((item) => {
+                  const isSelected = item.key === selectedMonthValue;
+
+                  return (
+                    <button
+                      aria-busy={pendingMonthValue === item.key ? true : undefined}
+                      aria-current={isSelected ? "date" : undefined}
+                      aria-label={formatTrendMonthActionLabel(item.key)}
                       className={cn(
-                        "text-[10px] font-bold uppercase tracking-[0.08em]",
-                        item.current ? "text-[hsl(40_100%_72%)]" : "text-white/70",
+                        "flex w-full min-w-0 cursor-pointer flex-col items-center gap-2 rounded-[18px] p-1 text-center transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
+                        isSelected && "bg-white/10",
+                        isMonthNavigationPending && "cursor-wait",
                       )}
+                      key={item.key}
+                      onClick={() => handleTrendMonthSelect(item.key)}
+                      onFocus={() => warmTrendMonth(item.key)}
+                      onPointerEnter={() => warmTrendMonth(item.key)}
+                      title={formatTrendMonthActionLabel(item.key)}
+                      type="button"
                     >
-                      {item.label}
-                    </span>
-                  </button>
-                ))}
+                      <div className="flex h-12 w-full items-end rounded-[16px] bg-white/8 p-1 sm:h-14">
+                        <div
+                          className={cn(
+                            "w-full rounded-[14px]",
+                            isSelected
+                              ? item.value >= 0
+                                ? "bg-[linear-gradient(180deg,hsl(40_100%_62%)_0%,hsl(36_100%_56%)_100%)]"
+                                : "bg-[linear-gradient(180deg,hsl(358_92%_74%)_0%,hsl(358_75%_58%)_100%)]"
+                              : item.value >= 0
+                                ? "bg-white/60"
+                                : "bg-destructive/70",
+                          )}
+                          style={{ height: `${item.height}%` }}
+                        />
+                      </div>
+                      <span
+                        className={cn(
+                          "text-[10px] font-bold uppercase tracking-[0.08em]",
+                          isSelected ? "text-[hsl(40_100%_72%)]" : "text-white/70",
+                        )}
+                      >
+                        {item.label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

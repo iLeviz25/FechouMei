@@ -41,6 +41,7 @@ export function AdminSidebar() {
           <Link
             className="flex items-center gap-3 rounded-2xl border border-border/70 bg-background px-3 py-3 text-sm font-bold text-foreground transition-[background-color,border-color,color] hover:border-primary/25 hover:bg-primary-soft/30"
             href="/app/dashboard"
+            prefetch={false}
           >
             <ArrowLeft className="h-4 w-4 shrink-0" />
             Voltar para o app

@@ -26,6 +26,7 @@ export function AdminNavItem({ exact = false, href, icon: Icon, label }: AdminNa
           : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
       )}
       href={href}
+      prefetch={false}
     >
       <Icon className="h-4 w-4 shrink-0" />
       <span className="truncate">{label}</span>
