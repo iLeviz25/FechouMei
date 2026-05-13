@@ -9,10 +9,10 @@ import type { Database } from "@/types/database";
 const checklistTemplate = [
   { key: "conferir-entradas", label: "Conferir entradas" },
   { key: "conferir-despesas", label: "Conferir despesas" },
-  { key: "revisar-fechamento", label: "Revisar o mês" },
-  { key: "pagar-das", label: "Pagar DAS" },
-  { key: "entregar-dasn", label: "Enviar DASN-SIMEI" },
-  { key: "guardar-comprovantes", label: "Guardar comprovantes" },
+  { key: "revisar-fechamento", label: "Fechamento mensal" },
+  { key: "pagar-das", label: "DAS do mês" },
+  { key: "entregar-dasn", label: "DASN-SIMEI anual" },
+  { key: "guardar-comprovantes", label: "Comprovantes do mês" },
 ];
 
 export default function ObrigacoesPage() {

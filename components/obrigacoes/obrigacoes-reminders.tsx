@@ -37,28 +37,28 @@ const reminderOptions: Array<{
   label: string;
 }> = [
   {
-    description: "Receba um aviso para lembrar do boleto mensal do MEI.",
+    description: "Receba um aviso para conferir se o DAS do mês já foi pago.",
     icon: FileText,
     key: "das_monthly_enabled",
-    label: "Pagar DAS",
+    label: "Lembrete do DAS",
   },
   {
     description: "Receba um aviso para lembrar da declaração anual do MEI.",
     icon: BellRing,
     key: "dasn_annual_enabled",
-    label: "Enviar DASN-SIMEI",
+    label: "Lembrete da DASN-SIMEI",
   },
   {
-    description: "Receba um aviso para conferir entradas, despesas e pendências.",
+    description: "Receba um aviso para revisar entradas, despesas e pendências.",
     icon: ClipboardList,
     key: "monthly_review_enabled",
-    label: "Revisar o mês",
+    label: "Revisar fechamento",
   },
   {
     description: "Receba um aviso para separar recibos, notas e comprovantes.",
     icon: ReceiptText,
     key: "receipts_enabled",
-    label: "Guardar comprovantes",
+    label: "Comprovantes do mês",
   },
 ];
 
@@ -163,8 +163,8 @@ export function ObrigacoesReminders({ preferences }: { preferences: ReminderPref
       <CardContent className="space-y-4 p-5 sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-foreground">Lembretes</p>
-            <h2 className="text-lg font-extrabold tracking-tight text-foreground">Use lembretes para não depender só da memória.</h2>
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-foreground">Lembretes opcionais</p>
+            <h2 className="text-lg font-extrabold tracking-tight text-foreground">Receba avisos para revisar o que ainda está pendente.</h2>
           </div>
           <Badge variant={activeCount > 0 ? "success" : "secondary"}>{activeCount} ativos</Badge>
         </div>

@@ -174,7 +174,9 @@ export function ObrigacoesChecklist({ items, monthKey, onItemsChange }: Obrigaco
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 min-[430px]:flex-row min-[430px]:items-center min-[430px]:justify-between">
-        <p className="text-sm leading-6 text-muted-foreground">Marque cada item conforme for resolvendo.</p>
+        <p className="text-sm leading-6 text-muted-foreground">
+          Use o checklist para acompanhar e marcar o que já foi resolvido.
+        </p>
 
         <div className="inline-flex w-full flex-wrap rounded-full border border-border/70 bg-muted/30 p-1 min-[430px]:w-auto">
           {filterOptions.map((option) => {
@@ -327,9 +329,9 @@ function enrichChecklistItem(item: ChecklistItem, monthInfo: MonthInfo): Enriche
       category: "Imposto",
       dateLabel: formatShortDate(dueDate),
       dateTone: getDateTone(item.done, dueDate),
-      description: "Marque quando o boleto mensal do MEI estiver pago.",
+      description: "Depois que pagar o DAS, marque como pago aqui.",
       priorityLabel: "Importante",
-      title: "Pagar DAS",
+      title: "DAS do mês",
     };
   }
 
@@ -341,9 +343,9 @@ function enrichChecklistItem(item: ChecklistItem, monthInfo: MonthInfo): Enriche
       category: "Declaração",
       dateLabel: formatShortDate(dueDate),
       dateTone: getDateTone(item.done, dueDate),
-      description: "Declaração anual do MEI. Normalmente é feita uma vez por ano.",
+      description: "Depois de enviar a declaração fora do app, marque como enviada aqui.",
       priorityLabel: "Importante",
-      title: "Enviar DASN-SIMEI",
+      title: "DASN-SIMEI anual",
     };
   }
 
@@ -352,8 +354,8 @@ function enrichChecklistItem(item: ChecklistItem, monthInfo: MonthInfo): Enriche
       ...item,
       ...base,
       category: "Organização",
-      description: "Separe recibos, notas e comprovantes importantes do mês.",
-      title: "Guardar comprovantes",
+      description: "Separe e guarde recibos, notas e comprovantes importantes do mês.",
+      title: "Comprovantes do mês",
     };
   }
 
@@ -363,8 +365,8 @@ function enrichChecklistItem(item: ChecklistItem, monthInfo: MonthInfo): Enriche
       category: "Rotina",
       dateLabel: formatShortDate(monthInfo.nextReviewDate),
       dateTone: getDateTone(item.done, monthInfo.nextReviewDate),
-      description: "Confira entradas, despesas e pendências antes de fechar o mês.",
-      title: "Revisar o mês",
+      description: "Confira se o fechamento mensal está coerente antes de encerrar o mês.",
+      title: "Fechamento mensal",
     };
   }
 
@@ -373,7 +375,7 @@ function enrichChecklistItem(item: ChecklistItem, monthInfo: MonthInfo): Enriche
       ...item,
       ...base,
       category: "Dinheiro",
-      description: "Confira se o que entrou no mês está registrado.",
+      description: "Confirme se as entradas do mês estão registradas.",
       title: "Conferir entradas",
     };
   }
@@ -383,7 +385,7 @@ function enrichChecklistItem(item: ChecklistItem, monthInfo: MonthInfo): Enriche
       ...item,
       ...base,
       category: "Dinheiro",
-      description: "Confira se o que saiu no mês está registrado.",
+      description: "Confirme se as despesas do mês estão registradas.",
       title: "Conferir despesas",
     };
   }

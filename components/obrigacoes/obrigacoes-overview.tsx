@@ -200,10 +200,10 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
   if (!dasDone && (dasInfo.status === "Atrasado" || dasInfo.status === "Hoje" || dasInfo.status === "Em breve")) {
     alertItems.push({
       dateLabel: formatShortDate(new Date(currentYear, monthIndex, DAS_DUE_DAY)),
-      detail: "Marque quando o boleto mensal do MEI estiver pago.",
+      detail: "Depois que pagar, marque como pago no checklist.",
       eyebrow: formatDeadlineLabel(dasInfo.status, dasInfo.daysUntil),
       icon: Receipt,
-      title: "Pagar DAS",
+      title: "DAS do mês",
       tone: getAlertTone(dasInfo.status, dasInfo.daysUntil),
     });
   }
@@ -211,10 +211,10 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
   if (!reviewEntriesDone || !reviewExpensesDone) {
     alertItems.push({
       dateLabel: formatShortDate(reviewWindowDate),
-      detail: "Confira entradas, despesas e pendências antes de fechar o mês.",
+      detail: "Confira entradas, despesas e pendências antes de encerrar o mês.",
       eyebrow: formatDeadlineLabel(reviewWindowInfo.status, reviewWindowInfo.daysUntil),
       icon: ClipboardCheck,
-      title: "Revisar o mês",
+      title: "Fechamento mensal",
       tone: getAlertTone(reviewWindowInfo.status, reviewWindowInfo.daysUntil),
     });
   }
@@ -222,10 +222,10 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
   if (!receiptsDone) {
     alertItems.push({
       dateLabel: formatShortDate(monthEndDate),
-      detail: "Separe recibos, notas e comprovantes importantes do mês.",
+      detail: "Separe e guarde recibos, notas e comprovantes importantes do mês.",
       eyebrow: formatDeadlineLabel(receiptsInfo.status, receiptsInfo.daysUntil),
       icon: FileText,
-      title: "Guardar comprovantes",
+      title: "Comprovantes do mês",
       tone: getAlertTone(receiptsInfo.status, receiptsInfo.daysUntil),
     });
   }
@@ -233,10 +233,10 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
   if (!closingDone && alertItems.length < 3) {
     alertItems.push({
       dateLabel: formatShortDate(closingReviewDate),
-      detail: "Confira entradas, despesas e pendências antes de fechar o mês.",
+      detail: "Confira se o fechamento mensal está coerente antes de encerrar o mês.",
       eyebrow: formatDeadlineLabel(closingInfo.status, closingInfo.daysUntil),
       icon: ClipboardCheck,
-      title: "Revisar o mês",
+      title: "Fechamento mensal",
       tone: getAlertTone(closingInfo.status, closingInfo.daysUntil),
     });
   }
@@ -244,10 +244,10 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
   if (!dasnDone && alertItems.length < 3 && dasnInfo.status !== "Em dia") {
     alertItems.push({
       dateLabel: formatShortDate(new Date(currentYear, DASN_DUE_MONTH, DASN_DUE_DAY)),
-      detail: "Declaração anual do MEI. Normalmente é feita uma vez por ano.",
+      detail: "Depois de enviar fora do app, marque como enviada no checklist.",
       eyebrow: formatDeadlineLabel(dasnInfo.status, dasnInfo.daysUntil),
       icon: FileText,
-      title: "Enviar DASN-SIMEI",
+      title: "DASN-SIMEI anual",
       tone: getAlertTone(dasnInfo.status, dasnInfo.daysUntil),
     });
   }
@@ -265,8 +265,8 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
     pendingCount === 0
       ? "Tudo em dia. Continue acompanhando para manter seu MEI organizado."
       : alertItems.length > 0
-        ? "Revise suas obrigações do mês. Marque cada item conforme for resolvendo."
-        : "Faltam alguns itens. Marque o que já foi feito e acompanhe o que ainda precisa de atenção.";
+        ? "Revise as prioridades do mês e marque no checklist o que já foi resolvido fora do app."
+        : "Faltam alguns itens. Use esta tela para acompanhar o mês e não deixar nada passar.";
 
   return (
     <div className="mobile-section-gap">
@@ -278,8 +278,8 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
         <div className="max-w-2xl space-y-1.5">
           <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">Obrigações</h1>
           <p className="text-sm leading-6 text-muted-foreground">
-            Acompanhe o que precisa ser feito em{" "}
-            <span className="font-semibold text-foreground">{monthLabel}</span> para manter seu MEI em dia.
+            Acompanhe o que precisa resolver em{" "}
+            <span className="font-semibold text-foreground">{monthLabel}</span> e marque o que já foi concluído fora do app.
           </p>
         </div>
       </header>
@@ -292,10 +292,10 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
                 {formatHeroMonth(monthKey)}
               </Badge>
               <p className="font-mono text-[clamp(2.6rem,14vw,4rem)] font-extrabold leading-none tracking-tight text-white">
-                {progressPercent}%
+                {doneCount}/{total}
               </p>
               <p className="text-sm font-semibold text-white/82">
-                {doneCount} de {total} concluídos - {pendingCount} pendentes
+                itens concluídos - {pendingCount} pendentes
               </p>
             </div>
 
@@ -324,7 +324,7 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
           </div>
 
           <div className="grid grid-cols-3 gap-2 rounded-[24px] bg-white/6 p-3">
-            <HeroSummaryCell label="Concluídos" value={`${doneCount}/${total}`} />
+            <HeroSummaryCell label="Progresso" value={`${progressPercent}%`} />
             <HeroSummaryCell label="Pendentes" value={String(pendingCount)} />
             <HeroSummaryCell label="Alertas" value={String(alertItems.length)} />
           </div>
@@ -334,7 +334,7 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
       <section className="space-y-3">
         <div className="flex items-center justify-between px-1">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-foreground">Atenção do mês</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-foreground">Prioridades do mês</p>
           </div>
           <p className="text-xs font-semibold text-muted-foreground">
             {alertItems.length} {alertItems.length === 1 ? "item" : "itens"}
@@ -364,7 +364,7 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-foreground">Tudo em dia por agora</p>
                     <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                      Quando houver algo para revisar, pagar ou guardar, o aviso aparecerá aqui.
+                      Quando houver algo importante para acompanhar, o aviso aparecerá aqui.
                     </p>
                   </div>
                 </div>
@@ -381,7 +381,7 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
               <div className="space-y-1">
                 <h2 className="text-lg font-extrabold tracking-tight text-foreground">Checklist do mês</h2>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  Marque cada item conforme for resolvendo. Assim você sabe o que já foi feito e o que ainda precisa de atenção.
+                  Marque cada item quando ele for resolvido fora do app. Assim você sabe o que já foi feito e o que ainda precisa de atenção.
                 </p>
               </div>
 
@@ -416,7 +416,7 @@ export function ObrigacoesOverview({ checklist, monthKey, monthLabel, reminderPr
             </div>
             <div className="min-w-0">
               <p className="text-lg font-extrabold tracking-tight text-foreground">
-                Mantenha sua rotina em dia
+                Uma rotina simples para não depender da memória
               </p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">{supportCopy}</p>
             </div>
