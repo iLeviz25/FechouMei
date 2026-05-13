@@ -33,10 +33,12 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
   const previousMonth = addMonths(selectedMonth, -1);
   const trendStart = addMonths(selectedMonth, -5);
   const interactiveWindowStart = addMonths(selectedMonth, -10);
+  const interactiveWindowEnd = addMonths(selectedMonth, 6);
   const previousMonthStart = new Date(previousMonth.getFullYear(), previousMonth.getMonth(), 1);
   const previousMonthEnd = new Date(previousMonth.getFullYear(), previousMonth.getMonth() + 1, 0);
   const trendStartDate = new Date(trendStart.getFullYear(), trendStart.getMonth(), 1);
   const interactiveWindowStartDate = new Date(interactiveWindowStart.getFullYear(), interactiveWindowStart.getMonth(), 1);
+  const interactiveWindowEndDate = new Date(interactiveWindowEnd.getFullYear(), interactiveWindowEnd.getMonth() + 1, 0);
 
   const monthStartValue = toDateInputValue(monthStart);
   const monthEndValue = toDateInputValue(monthEnd);
@@ -44,6 +46,7 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
   const previousMonthEndValue = toDateInputValue(previousMonthEnd);
   const trendStartValue = toDateInputValue(trendStartDate);
   const interactiveWindowStartValue = toDateInputValue(interactiveWindowStartDate);
+  const interactiveWindowEndValue = toDateInputValue(interactiveWindowEndDate);
 
   const [windowMovementsResult, balanceWindowResult] = await Promise.all([
     supabase
@@ -51,14 +54,14 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
       .select("id, type, description, amount, occurred_on, occurred_at, category")
       .eq("user_id", user.id)
       .gte("occurred_on", interactiveWindowStartValue)
-      .lte("occurred_on", monthEndValue)
+      .lte("occurred_on", interactiveWindowEndValue)
       .order("occurred_at", { ascending: false })
       .order("created_at", { ascending: false }),
     supabase
       .from("movimentacoes")
       .select("type, amount, occurred_on")
       .eq("user_id", user.id)
-      .lte("occurred_on", monthEndValue),
+      .lt("occurred_on", interactiveWindowStartValue),
   ]);
 
   if (windowMovementsResult.error) {
@@ -80,7 +83,21 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
   const monthMovements = windowMovements.filter(
     (movement) => movement.occurred_on >= monthStartValue && movement.occurred_on <= monthEndValue,
   );
-  const balanceBeforeMonth = balanceRows.reduce(
+  const windowBalanceBeforeStart = balanceRows.reduce(
+    (balance, movement) => {
+      if (movement.type === "entrada") {
+        return balance + movement.amount;
+      }
+
+      if (movement.type === "despesa") {
+        return balance - movement.amount;
+      }
+
+      return balance;
+    },
+    Number.isFinite(initialBalance) ? initialBalance : 0,
+  );
+  const balanceBeforeMonth = windowMovements.reduce(
     (balance, movement) => {
       if (movement.occurred_on >= monthStartValue) {
         return balance;
@@ -96,27 +113,9 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
 
       return balance;
     },
-    Number.isFinite(initialBalance) ? initialBalance : 0,
+    windowBalanceBeforeStart,
   );
-  const windowBalanceBeforeStart = balanceRows.reduce(
-    (balance, movement) => {
-      if (movement.occurred_on >= interactiveWindowStartValue) {
-        return balance;
-      }
-
-      if (movement.type === "entrada") {
-        return balance + movement.amount;
-      }
-
-      if (movement.type === "despesa") {
-        return balance - movement.amount;
-      }
-
-      return balance;
-    },
-    Number.isFinite(initialBalance) ? initialBalance : 0,
-  );
-  const trendRows = balanceRows.filter(
+  const trendRows = windowMovements.filter(
     (movement) => movement.occurred_on >= trendStartValue && movement.occurred_on <= monthEndValue,
   );
   const previousMonthMovements = trendRows.filter(
@@ -136,7 +135,7 @@ async function FechamentoMensalData({ searchParams }: FechamentoMensalPageProps)
       previousMonthStartValue={previousMonthStartValue}
       trendRows={trendRows}
       windowBalanceBeforeStart={windowBalanceBeforeStart}
-      windowEndValue={monthEndValue}
+      windowEndValue={interactiveWindowEndValue}
       windowMovements={windowMovements}
       windowStartValue={interactiveWindowStartValue}
       yearValue={String(selectedMonth.getFullYear())}

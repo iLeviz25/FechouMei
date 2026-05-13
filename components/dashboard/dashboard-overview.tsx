@@ -28,6 +28,7 @@ type RecentMovement = Pick<
 
 type DashboardOverviewProps = {
   annualIncome: number;
+  checklistAvailable?: boolean;
   checklistDoneCount: number;
   currentBalance: number;
   dasDone: boolean;
@@ -35,7 +36,18 @@ type DashboardOverviewProps = {
   monthlyExpense: number;
   previousMonthExpense: number;
   previousMonthIncome: number;
+  recentMovementsAvailable?: boolean;
   recentMovements: RecentMovement[];
+};
+
+type DashboardAlert = {
+  cta: string;
+  description: string;
+  href: string;
+  icon: LucideIcon;
+  kicker: string;
+  title: string;
+  tone: "success" | "warning" | "danger";
 };
 
 const DAS_DUE_DAY = 20;
@@ -170,6 +182,7 @@ function getDashboardStatus({
 
 export function DashboardOverview({
   annualIncome,
+  checklistAvailable = true,
   checklistDoneCount,
   currentBalance,
   dasDone,
@@ -177,6 +190,7 @@ export function DashboardOverview({
   monthlyIncome,
   previousMonthExpense,
   previousMonthIncome,
+  recentMovementsAvailable = true,
   recentMovements,
 }: DashboardOverviewProps) {
   const monthBalance = monthlyIncome - monthlyExpense;
@@ -187,30 +201,43 @@ export function DashboardOverview({
   const remainingLimit = limitInfo.remainingLimit;
   const exceededLimit = limitInfo.exceededLimit;
   const today = new Date();
-  const dasLate = !dasDone && today.getDate() > DAS_DUE_DAY;
+  const dasLate = checklistAvailable && !dasDone && today.getDate() > DAS_DUE_DAY;
   const currentYear = today.getFullYear();
   const previousMonthBalance = previousMonthIncome - previousMonthExpense;
-  const status = getDashboardStatus({
-    dasDone,
-    dasLate,
-    limitUsage,
-    monthBalance,
-  });
+  const status = checklistAvailable
+    ? getDashboardStatus({
+        dasDone,
+        dasLate,
+        limitUsage,
+        monthBalance,
+      })
+    : ({ label: "Fique de olho", tone: "warning" } as const);
   const limitStatus = limitInfo.status;
-  const alerts = [
-    {
-      cta: dasDone ? "Ver obrigações" : dasLate ? "Revisar DAS" : "Marcar como pago",
-      description: dasDone
-        ? "O DAS do mês já está marcado como pago no checklist."
-        : dasLate
-          ? "O prazo do DAS passou. Abra obrigações para marcar o pagamento ou regularizar."
-          : `O DAS de ${toMonthName(today)} ainda está pendente. Quando pagar, marque no checklist.`,
-      href: "/app/obrigacoes",
-      icon: dasDone ? CheckCircle2 : Receipt,
-      kicker: dasDone ? "EM DIA" : dasLate ? "ATRASADO" : "PENDENTE",
-      title: dasDone ? "DAS em dia" : dasLate ? "DAS atrasado" : `DAS de ${toMonthName(today)} pendente`,
-      tone: dasDone ? "success" : dasLate ? "danger" : "warning",
-    },
+  const obligationAlert: DashboardAlert = checklistAvailable
+    ? {
+        cta: dasDone ? "Ver obrigações" : dasLate ? "Revisar DAS" : "Marcar como pago",
+        description: dasDone
+          ? "O DAS do mês já está marcado como pago no checklist."
+          : dasLate
+            ? "O prazo do DAS passou. Abra obrigações para marcar o pagamento ou regularizar."
+            : `O DAS de ${toMonthName(today)} ainda está pendente. Quando pagar, marque no checklist.`,
+        href: "/app/obrigacoes",
+        icon: dasDone ? CheckCircle2 : Receipt,
+        kicker: dasDone ? "EM DIA" : dasLate ? "ATRASADO" : "PENDENTE",
+        title: dasDone ? "DAS em dia" : dasLate ? "DAS atrasado" : `DAS de ${toMonthName(today)} pendente`,
+        tone: dasDone ? "success" : dasLate ? "danger" : "warning",
+      }
+    : {
+        cta: "Ver obrigações",
+        description: "Não conseguimos confirmar o checklist agora. Abra obrigações para conferir o DAS e os demais itens.",
+        href: "/app/obrigacoes",
+        icon: Receipt,
+        kicker: "CONFERIR",
+        title: "Checklist não carregou",
+        tone: "warning",
+      };
+  const alerts: DashboardAlert[] = [
+    obligationAlert,
     {
       cta: limitUsage >= 1 ? "Revisar limite" : "Ver fechamento",
       description:
@@ -386,7 +413,7 @@ export function DashboardOverview({
               <LimitMetric label="Disponível" value={toCompactCurrency(remainingLimit)} />
               <LimitMetric
                 label="Checklist"
-                value={`${Math.min(checklistDoneCount, DASHBOARD_CHECKLIST_ITEMS)}/${DASHBOARD_CHECKLIST_ITEMS}`}
+                value={checklistAvailable ? `${Math.min(checklistDoneCount, DASHBOARD_CHECKLIST_ITEMS)}/${DASHBOARD_CHECKLIST_ITEMS}` : "--"}
               />
             </div>
           </div>
@@ -445,7 +472,12 @@ export function DashboardOverview({
               </Button>
             </div>
 
-            {recentMovements.length === 0 ? (
+            {!recentMovementsAvailable ? (
+              <div className="border-t border-border/70 px-4 py-5 text-sm leading-6 text-muted-foreground min-[380px]:px-5">
+                <p className="font-bold text-foreground">Últimas movimentações indisponíveis agora.</p>
+                <p className="mt-1">O resumo financeiro carregou, mas essa lista secundária demorou mais que o esperado.</p>
+              </div>
+            ) : recentMovements.length === 0 ? (
               <div className="border-t border-border/70 px-4 py-5 text-sm leading-6 text-muted-foreground min-[380px]:px-5">
                 <p className="font-bold text-foreground">Nenhuma movimentação registrada ainda.</p>
                 <p className="mt-1">Adicione uma entrada ou despesa para começar a acompanhar seu mês.</p>

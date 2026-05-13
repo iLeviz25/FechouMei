@@ -325,6 +325,21 @@ export function FechamentoMensalOverview({
   }, [routeSelectedMonthValue]);
 
   useEffect(() => {
+    function syncMonthFromHistory() {
+      const month = new URL(window.location.href).searchParams.get("month");
+      setSelectedMonthValue(month && /^\d{4}-\d{2}$/.test(month) ? month : routeSelectedMonthValue);
+      setRangeStart("");
+      setRangeEnd("");
+    }
+
+    window.addEventListener("popstate", syncMonthFromHistory);
+
+    return () => {
+      window.removeEventListener("popstate", syncMonthFromHistory);
+    };
+  }, [routeSelectedMonthValue]);
+
+  useEffect(() => {
     setRangeStart("");
     setRangeEnd("");
   }, [monthEndValue, monthStartValue]);
