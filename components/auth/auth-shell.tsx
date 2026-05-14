@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight, CheckCircle2, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
+import { PwaInstallLink } from "@/components/pwa/pwa-install-link";
 
 type AuthShellProps = {
   title: string;
@@ -8,6 +9,7 @@ type AuthShellProps = {
   switchText: string;
   switchHref: string;
   switchLabel: string;
+  showPwaInstallLink?: boolean;
   children: React.ReactNode;
 };
 
@@ -17,6 +19,7 @@ export function AuthShell({
   switchText,
   switchHref,
   switchLabel,
+  showPwaInstallLink = false,
   children,
 }: AuthShellProps) {
   return (
@@ -49,6 +52,7 @@ export function AuthShell({
               {switchLabel}
             </Link>
           </p>
+          {showPwaInstallLink ? <PwaInstallLink /> : null}
         </div>
 
         <p className="text-center text-xs text-muted-foreground">© {new Date().getFullYear()} FechouMEI</p>

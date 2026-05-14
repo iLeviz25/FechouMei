@@ -35,6 +35,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       switchHref="/cadastro"
       switchLabel="crie sua conta"
       switchText="Ainda não tem conta?"
+      showPwaInstallLink
       title="Entrar no FechouMEI"
     >
       <LoginForm initialMessage={initialMessage} initialTone={initialTone} redirectedFrom={params?.redirectedFrom} />
