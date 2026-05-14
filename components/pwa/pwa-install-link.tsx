@@ -17,6 +17,8 @@ type NavigatorWithStandalone = Navigator & {
   standalone?: boolean;
 };
 
+type InstallFeedback = "installed" | "dismissed" | null;
+
 function isStandaloneMode() {
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
@@ -44,6 +46,7 @@ export function PwaInstallLink() {
   const [showIosHelp, setShowIosHelp] = useState(false);
   const [canShowIosHelp, setCanShowIosHelp] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [installFeedback, setInstallFeedback] = useState<InstallFeedback>(null);
 
   useEffect(() => {
     const standalone = isStandaloneMode();
@@ -63,6 +66,7 @@ export function PwaInstallLink() {
 
       event.preventDefault();
       setInstallPrompt(event as BeforeInstallPromptEvent);
+      setInstallFeedback(null);
       setShowIosHelp(false);
     }
 
@@ -70,7 +74,7 @@ export function PwaInstallLink() {
       setInstallPrompt(null);
       setCanShowIosHelp(false);
       setShowIosHelp(false);
-      setIsStandalone(true);
+      setInstallFeedback("installed");
     }
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -92,14 +96,32 @@ export function PwaInstallLink() {
 
     try {
       await promptEvent.prompt();
-      await promptEvent.userChoice;
+      const choice = await promptEvent.userChoice;
+      setInstallFeedback(choice.outcome === "accepted" ? "installed" : "dismissed");
     } catch {
       // Se o navegador bloquear o prompt, a tela continua funcionando normalmente.
+      setInstallFeedback(null);
     }
   }
 
-  if (isStandalone || (!installPrompt && !canShowIosHelp)) {
+  if (isStandalone || (!installPrompt && !canShowIosHelp && !installFeedback)) {
     return null;
+  }
+
+  if (installFeedback === "installed") {
+    return (
+      <p className="mt-2 text-center text-sm font-medium text-primary md:hidden" role="status">
+        Instalação iniciada! O FechouMEI aparecerá entre seus aplicativos.
+      </p>
+    );
+  }
+
+  if (installFeedback === "dismissed") {
+    return (
+      <p className="mt-2 text-center text-sm text-muted-foreground md:hidden" role="status">
+        Instalação cancelada. Se quiser, tente novamente pelo menu do navegador.
+      </p>
+    );
   }
 
   if (installPrompt) {
