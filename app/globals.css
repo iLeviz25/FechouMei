@@ -211,6 +211,24 @@
   }
 }
 
+.pwa-launch-splash {
+  display: none;
+}
+
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  .pwa-launch-splash {
+    display: flex;
+  }
+}
+
+.pwa-launch-splash--client-standalone {
+  display: flex;
+}
+
+.pwa-launch-splash--leaving {
+  pointer-events: none;
+}
+
 @media print {
   @page {
     margin: 12mm;

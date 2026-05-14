@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-const SPLASH_VISIBLE_MS = 850;
-const SPLASH_FADE_MS = 180;
+const SPLASH_VISIBLE_MS = 560;
+const SPLASH_FADE_MS = 140;
 
 type NavigatorWithStandalone = Navigator & {
   standalone?: boolean;
@@ -18,25 +18,27 @@ function isStandalonePwa() {
 }
 
 export function PwaLaunchSplash() {
-  const [visible, setVisible] = useState(false);
+  const [hidden, setHidden] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [clientStandalone, setClientStandalone] = useState(false);
 
   useEffect(() => {
     if (!isStandalonePwa()) {
+      setHidden(true);
       return;
     }
 
+    setClientStandalone(true);
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    setVisible(true);
 
     if (prefersReducedMotion) {
-      const timeout = window.setTimeout(() => setVisible(false), 500);
+      const timeout = window.setTimeout(() => setHidden(true), 350);
       return () => window.clearTimeout(timeout);
     }
 
     const fadeTimeout = window.setTimeout(() => setLeaving(true), SPLASH_VISIBLE_MS);
     const hideTimeout = window.setTimeout(
-      () => setVisible(false),
+      () => setHidden(true),
       SPLASH_VISIBLE_MS + SPLASH_FADE_MS,
     );
 
@@ -46,7 +48,7 @@ export function PwaLaunchSplash() {
     };
   }, []);
 
-  if (!visible) {
+  if (hidden) {
     return null;
   }
 
@@ -55,12 +57,13 @@ export function PwaLaunchSplash() {
       aria-label="Abrindo FechouMEI"
       aria-live="polite"
       className={[
-        "fixed inset-0 z-[1000] flex flex-col items-center justify-center",
+        "pwa-launch-splash fixed inset-0 z-[1000] flex-col items-center justify-center",
         "bg-[#F7FBF8] text-[#0F2F25]",
         "transition-opacity duration-200 ease-out",
         "[@media(prefers-color-scheme:dark)]:bg-[#033D27]",
         "[@media(prefers-color-scheme:dark)]:text-white",
-        leaving ? "opacity-0" : "opacity-100",
+        clientStandalone ? "pwa-launch-splash--client-standalone" : "",
+        leaving ? "pwa-launch-splash--leaving opacity-0" : "opacity-100",
       ].join(" ")}
       role="status"
     >
