@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { PwaLaunchSplash } from "@/components/pwa/pwa-launch-splash";
 import { PwaServiceWorkerRegistration } from "@/components/pwa/pwa-service-worker-registration";
 import "./globals.css";
 
@@ -42,7 +43,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#178554",
+  themeColor: "#033D27",
 };
 
 export default function RootLayout({
@@ -58,6 +59,7 @@ export default function RootLayout({
     >
       <body>
         {children}
+        <PwaLaunchSplash />
         <PwaServiceWorkerRegistration />
       </body>
     </html>
