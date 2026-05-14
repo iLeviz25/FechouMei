@@ -272,7 +272,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = emptyNoti
         </div>
       </aside>
 
-      <header className="fixed inset-x-0 top-0 z-40 border-b border-border/70 bg-background/98 px-4 py-3.5 shadow-sm print:hidden lg:hidden">
+      <header className="mobile-fixed-chrome fixed inset-x-0 top-0 z-40 border-b border-border/70 bg-background/98 px-4 py-3.5 print:hidden lg:hidden">
         <div className="flex items-center justify-between gap-3">
           <Link
             className="flex items-center gap-2"
@@ -318,10 +318,10 @@ export function AppSidebar({ profile, isAdmin = false, notifications = emptyNoti
         </div>
       </header>
 
-      <div className="fixed inset-x-0 top-[4.65rem] z-30 px-3 print:hidden lg:hidden">
+      <div className="mobile-fixed-chrome fixed inset-x-0 top-[4.65rem] z-30 px-3 print:hidden lg:hidden">
         <nav
           aria-label="Atalhos rápidos"
-          className="mx-auto grid h-12 max-w-[560px] grid-cols-3 gap-1.5 rounded-[24px] border border-border/70 bg-white p-1.5 shadow-[0_8px_20px_rgba(15,23,42,0.08)]"
+          className="mx-auto grid h-12 max-w-[560px] grid-cols-3 gap-1.5 rounded-[24px] border border-border/70 bg-white p-1.5 shadow-[0_4px_12px_rgba(15,23,42,0.055)]"
         >
           {mobileShortcutItems.map((item) => {
             const Icon = item.icon;
@@ -351,10 +351,10 @@ export function AppSidebar({ profile, isAdmin = false, notifications = emptyNoti
         </nav>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 px-2.5 pb-[calc(0.65rem+env(safe-area-inset-bottom))] pt-8 print:hidden lg:hidden">
+      <div className="mobile-fixed-chrome fixed inset-x-0 bottom-0 z-30 px-2.5 pb-[calc(0.65rem+env(safe-area-inset-bottom))] pt-8 print:hidden lg:hidden">
         <nav
           aria-label="Navegação principal"
-          className="mx-auto grid h-[76px] max-w-[560px] grid-cols-[1fr_1fr_80px_1fr_1fr] items-end gap-0.5 rounded-[30px] border border-border/70 bg-white px-2 py-2 shadow-[0_-6px_22px_rgba(15,23,42,0.08),0_14px_28px_rgba(15,23,42,0.08)]"
+          className="mx-auto grid h-[76px] max-w-[560px] grid-cols-[1fr_1fr_80px_1fr_1fr] items-end gap-0.5 rounded-[30px] border border-border/70 bg-white px-2 py-2 shadow-[0_-4px_14px_rgba(15,23,42,0.06)]"
         >
           {mobileNavItems.map((item) => {
             const isPrimaryAction = "primaryAction" in item && item.primaryAction === true;
@@ -369,7 +369,7 @@ export function AppSidebar({ profile, isAdmin = false, notifications = emptyNoti
             const iconClassName = cn(
               "icon-tile flex h-8 w-8 items-center justify-center rounded-[17px] transition-colors",
               isPrimaryAction
-                ? "h-16 w-16 rounded-[24px] bg-gradient-amber text-secondary-foreground shadow-[0_14px_28px_rgba(245,158,11,0.32)]"
+                ? "h-16 w-16 rounded-[24px] bg-gradient-amber text-secondary-foreground shadow-[0_8px_18px_rgba(245,158,11,0.24)]"
                 : isActive
                   ? "bg-primary-soft text-primary"
                   : "bg-transparent text-current",

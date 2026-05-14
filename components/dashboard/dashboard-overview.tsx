@@ -346,9 +346,9 @@ export function DashboardOverview({
 
       <section>
         <div className="relative overflow-hidden rounded-[30px] bg-gradient-hero px-4 py-4 text-primary-foreground shadow-elevated min-[380px]:px-5 sm:py-5">
-          <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(hsl(0_0%_100%/0.08)_1px,transparent_1px),linear-gradient(90deg,hsl(0_0%_100%/0.08)_1px,transparent_1px)] [background-size:22px_22px]" />
-          <div className="pointer-events-none absolute -right-16 top-0 h-40 w-40 rounded-full bg-[radial-gradient(circle,hsl(38_95%_55%/0.22)_0%,transparent_70%)]" />
-          <div className="pointer-events-none absolute -bottom-20 left-0 h-44 w-44 rounded-full bg-[radial-gradient(circle,hsl(0_0%_100%/0.14)_0%,transparent_70%)]" />
+          <div className="pointer-events-none absolute inset-0 hidden opacity-20 [background-image:linear-gradient(hsl(0_0%_100%/0.08)_1px,transparent_1px),linear-gradient(90deg,hsl(0_0%_100%/0.08)_1px,transparent_1px)] [background-size:22px_22px] sm:block" />
+          <div className="pointer-events-none absolute -right-16 top-0 hidden h-40 w-40 rounded-full bg-[radial-gradient(circle,hsl(38_95%_55%/0.22)_0%,transparent_70%)] sm:block" />
+          <div className="pointer-events-none absolute -bottom-20 left-0 hidden h-44 w-44 rounded-full bg-[radial-gradient(circle,hsl(0_0%_100%/0.14)_0%,transparent_70%)] sm:block" />
 
           <div className="relative space-y-4 sm:space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-2">

@@ -211,6 +211,34 @@
   }
 }
 
+@media (max-width: 767px) {
+  :root {
+    --gradient-surface: linear-gradient(180deg, hsl(150 25% 98%) 0%, hsl(150 20% 97%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(165 50% 18%) 0%, hsl(158 60% 22%) 100%);
+    --shadow-card: 0 2px 8px hsl(165 30% 15% / 0.045);
+    --shadow-elevated: 0 4px 12px -8px hsl(158 50% 20% / 0.14);
+    --shadow-amber: 0 6px 14px -10px hsl(38 95% 55% / 0.28);
+  }
+
+  .surface-panel,
+  .surface-panel-muted,
+  .surface-panel-ghost,
+  .summary-shell,
+  .hero-panel,
+  .hero-panel-soft {
+    box-shadow: 0 2px 8px hsl(165 30% 15% / 0.045);
+  }
+
+  .icon-tile {
+    box-shadow: none;
+  }
+
+  .mobile-fixed-chrome {
+    backface-visibility: hidden;
+    transform: translateZ(0);
+  }
+}
+
 .pwa-launch-splash {
   display: none;
 }

@@ -71,6 +71,18 @@ function canWarmOnCurrentNetwork() {
   return connection.effectiveType !== "slow-2g" && connection.effectiveType !== "2g";
 }
 
+function canAutoWarmRoutes() {
+  if (typeof window === "undefined") {
+    return true;
+  }
+
+  if (window.matchMedia("(pointer: coarse)").matches) {
+    return false;
+  }
+
+  return canWarmOnCurrentNetwork();
+}
+
 function prefetchRoute(router: RoutePrefetcher, href: string, force = false) {
   const normalizedHref = normalizeInternalHref(href);
 
@@ -169,7 +181,7 @@ export function RouteWarmup({ routes }: RouteWarmupProps) {
   const routeQueueKey = routeQueue.join("|");
 
   useEffect(() => {
-    if (!routeQueue.length || !canWarmOnCurrentNetwork() || document.visibilityState !== "visible") {
+    if (!routeQueue.length || !canAutoWarmRoutes() || document.visibilityState !== "visible") {
       return;
     }
 

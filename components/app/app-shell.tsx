@@ -30,7 +30,7 @@ export function AppShell({ profile, children, isAdmin = false, notifications = [
   return (
     <ProfileProvider profile={profile}>
       <OnboardingTourProvider completedAt={profile?.onboarding_tour_completed_at}>
-        <div className="min-h-screen overflow-x-hidden bg-gradient-surface print:bg-white">
+        <div className="min-h-screen overflow-x-hidden bg-background md:bg-gradient-surface print:bg-white">
           <RouteWarmup routes={warmupRoutes} />
           <RealtimeAppRefresh userId={profile?.id ?? null} />
           <AppSidebar isAdmin={isAdmin} notifications={notifications} profile={profile} />

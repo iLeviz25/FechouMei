@@ -25,7 +25,7 @@ export function Logo({ className, size = "md", variant = "default" }: LogoProps)
           config.radius,
         )}
       >
-        <span className="pointer-events-none absolute inset-x-1.5 top-1 h-1/3 rounded-t-md bg-white/15 blur-[2px]" />
+        <span className="pointer-events-none absolute inset-x-1.5 top-1 h-1/3 rounded-t-md bg-white/12" />
         <svg className="relative h-[60%] w-[60%]" fill="none" viewBox="0 0 32 32">
           <path
             d="M8 6 H24 V11 H13 V15 H21 V20 H13 V26 H8 Z"
