@@ -301,7 +301,7 @@ test("transcricao com Gemini usa upload temporario e retorna texto limpo", async
   process.env.GEMINI_API_KEY = "gemini-text-key";
   process.env.GEMINI_TRANSCRIPTION_API_KEY = "gemini-audio-key";
   process.env.GEMINI_MODEL = "gemini-text-model";
-  process.env.GEMINI_TRANSCRIPTION_MODEL = "gemini-3.1-flash-lite-preview";
+  process.env.GEMINI_TRANSCRIPTION_MODEL = "gemini-3.1-flash-lite";
 
   try {
     globalThis.fetch = async (url, init) => {
@@ -349,7 +349,7 @@ test("transcricao com Gemini usa upload temporario e retorna texto limpo", async
 
     assert.equal(text, "paguei 120 de internet");
     assert.equal(calls.some((call) => call.url.includes(":generateContent")), true);
-    assert.equal(calls.some((call) => call.url.includes("/models/gemini-3.1-flash-lite-preview:generateContent")), true);
+    assert.equal(calls.some((call) => call.url.includes("/models/gemini-3.1-flash-lite:generateContent")), true);
     assert.equal(calls.some((call) => call.url.includes("key=gemini-audio-key")), true);
     assert.equal(calls.some((call) => call.url.includes("key=gemini-text-key")), false);
     assert.equal(calls.some((call) => call.url.includes("/models/gemini-text-model:generateContent")), false);
