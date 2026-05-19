@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { type FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +12,23 @@ import { getAuthErrorMessage } from "@/lib/auth/errors";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
-export function ResetPasswordForm() {
+type ResetPasswordFormProps = {
+  mode?: "invite" | "recovery";
+  nextPath?: string;
+};
+
+function getSafeNextPath(nextPath: string | null | undefined) {
+  if (!nextPath || !nextPath.startsWith("/") || nextPath.startsWith("//")) {
+    return "/app/dashboard";
+  }
+
+  return nextPath;
+}
+
+export function ResetPasswordForm({ mode = "recovery", nextPath }: ResetPasswordFormProps) {
+  const router = useRouter();
+  const isInviteMode = mode === "invite";
+  const safeNextPath = getSafeNextPath(nextPath);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [canReset, setCanReset] = useState(false);
@@ -39,7 +56,11 @@ export function ResetPasswordForm() {
         if (error || !user) {
           setCanReset(false);
           setMessageTone("danger");
-          setMessage("Use o link de recuperação enviado por e-mail para criar uma nova senha.");
+          setMessage(
+            isInviteMode
+              ? "Use o link de acesso enviado por e-mail para criar sua senha."
+              : "Use o link de recuperação enviado por e-mail para criar uma nova senha.",
+          );
         } else {
           setCanReset(true);
         }
@@ -50,7 +71,14 @@ export function ResetPasswordForm() {
 
         setCanReset(false);
         setMessageTone("danger");
-        setMessage(getAuthErrorMessage(error, "Não foi possível validar o link de recuperação."));
+        setMessage(
+          getAuthErrorMessage(
+            error,
+            isInviteMode
+              ? "Não foi possível validar o link de acesso."
+              : "Não foi possível validar o link de recuperação.",
+          ),
+        );
       } finally {
         if (isMounted) {
           setIsCheckingSession(false);
@@ -63,7 +91,7 @@ export function ResetPasswordForm() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isInviteMode]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -71,13 +99,17 @@ export function ResetPasswordForm() {
 
     if (!canReset) {
       setMessageTone("danger");
-      setMessage("Solicite um novo link de recuperação antes de criar uma nova senha.");
+      setMessage(
+        isInviteMode
+          ? "Use o link de acesso mais recente antes de criar sua senha."
+          : "Solicite um novo link de recuperação antes de criar uma nova senha.",
+      );
       return;
     }
 
     if (password.length < 6) {
       setMessageTone("danger");
-      setMessage("A nova senha precisa ter pelo menos 6 caracteres.");
+      setMessage(isInviteMode ? "Sua senha precisa ter pelo menos 6 caracteres." : "A nova senha precisa ter pelo menos 6 caracteres.");
       return;
     }
 
@@ -96,22 +128,37 @@ export function ResetPasswordForm() {
       if (error) {
         setIsSubmitting(false);
         setMessageTone("danger");
-        setMessage(getAuthErrorMessage(error, "Não foi possível redefinir a senha agora."));
+        setMessage(
+          getAuthErrorMessage(
+            error,
+            isInviteMode ? "Não foi possível criar sua senha agora." : "Não foi possível redefinir a senha agora.",
+          ),
+        );
         return;
       }
-
-      await supabase.auth.signOut();
 
       setPassword("");
       setConfirmPassword("");
       setIsSuccess(true);
       setIsSubmitting(false);
       setMessageTone("success");
-      setMessage("Senha redefinida com sucesso. Entre novamente com a nova senha.");
+      setMessage(isInviteMode ? "Senha criada com sucesso. Vamos continuar seu acesso." : "Senha redefinida com sucesso. Entre novamente com a nova senha.");
+
+      if (isInviteMode) {
+        router.replace(safeNextPath);
+        return;
+      }
+
+      await supabase.auth.signOut();
     } catch (error) {
       setIsSubmitting(false);
       setMessageTone("danger");
-      setMessage(getAuthErrorMessage(error, "Não foi possível redefinir a senha agora."));
+      setMessage(
+        getAuthErrorMessage(
+          error,
+          isInviteMode ? "Não foi possível criar sua senha agora." : "Não foi possível redefinir a senha agora.",
+        ),
+      );
     }
   }
 
@@ -120,7 +167,7 @@ export function ResetPasswordForm() {
       <CardContent className="p-4 sm:p-6">
         <form className="space-y-5" onSubmit={handleSubmit}>
           <div className="space-y-2">
-            <Label htmlFor="newPassword">Nova senha</Label>
+            <Label htmlFor="newPassword">{isInviteMode ? "Criar senha" : "Nova senha"}</Label>
             <Input
               id="newPassword"
               autoComplete="new-password"
@@ -134,7 +181,7 @@ export function ResetPasswordForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmNewPassword">Confirmar nova senha</Label>
+            <Label htmlFor="confirmNewPassword">{isInviteMode ? "Confirmar senha" : "Confirmar nova senha"}</Label>
             <Input
               id="confirmNewPassword"
               autoComplete="new-password"
@@ -162,10 +209,10 @@ export function ResetPasswordForm() {
 
           <Button className="w-full" disabled={isCheckingSession || isSubmitting || isSuccess} type="submit">
             {isCheckingSession || isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Salvar nova senha
+            {isInviteMode ? "Criar senha e continuar" : "Salvar nova senha"}
           </Button>
 
-          {isSuccess ? (
+          {isSuccess && !isInviteMode ? (
             <Button asChild className="w-full" type="button" variant="outline">
               <Link href="/login">Entrar com a nova senha</Link>
             </Button>

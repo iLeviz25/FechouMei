@@ -666,13 +666,16 @@ function findEmailDeep(value: unknown, depth = 0): string | null {
 }
 
 function getInviteRedirectUrl() {
-  const redirectUrl = buildAppUrl("/auth/callback?next=/onboarding");
+  const callbackUrl = buildAppUrl("/auth/callback");
 
-  if (!redirectUrl) {
+  if (!callbackUrl) {
     throw new Error("app_url_not_configured_for_invite_redirect");
   }
 
-  return redirectUrl;
+  const redirectUrl = new URL(callbackUrl);
+  redirectUrl.searchParams.set("next", "/redefinir-senha?mode=invite&next=/onboarding");
+
+  return redirectUrl.toString();
 }
 
 function isValidEmail(email: string) {

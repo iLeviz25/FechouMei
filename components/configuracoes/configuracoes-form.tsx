@@ -37,10 +37,12 @@ import {
   getSubscriptionAccessFromProfile,
   type SubscriptionAccess,
 } from "@/lib/subscription/access";
+import type { BillingCycleCode } from "@/lib/billing/plans";
 import { cn } from "@/lib/utils";
 import type { Profile } from "@/types/database";
 
 type ConfiguracoesFormProps = {
+  billingCycle?: BillingCycleCode | null;
   contactEmail?: string;
   profile: Pick<
     Profile,
@@ -101,7 +103,7 @@ const goalOptions = [
   "acompanhar limite do MEI",
 ];
 
-export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesFormProps) {
+export function ConfiguracoesForm({ billingCycle = null, contactEmail = "", profile }: ConfiguracoesFormProps) {
   const router = useRouter();
   const { openTour } = useOnboardingTour();
   const initialValues = useMemo(() => getInitialProfileValues(profile), [profile]);
@@ -332,7 +334,7 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
           </div>
         </div>
 
-        <SubscriptionSummaryCard access={subscriptionAccess} />
+        <SubscriptionSummaryCard access={subscriptionAccess} billingCycle={billingCycle} />
       </section>
 
       <section className="space-y-3">
@@ -738,17 +740,15 @@ export function ConfiguracoesForm({ contactEmail = "", profile }: ConfiguracoesF
   );
 }
 
-function SubscriptionSummaryCard({ access }: { access: SubscriptionAccess }) {
+function SubscriptionSummaryCard({ access, billingCycle }: { access: SubscriptionAccess; billingCycle: BillingCycleCode | null }) {
   const statusLabel = getAccessStatusLabel(access);
   const description = "Veja o status da sua assinatura e do acesso ao app.";
+  const planLabel = getBillingCycleLabel(billingCycle, access);
   const helenaLabel = access.isAdmin
     ? "Sem limite de uso"
     : access.status === "active"
       ? "50 mensagens/dia"
       : "Disponível com acesso ativo";
-  const enabledLabel = access.canAccessApp ? "Disponível" : "Acesso pendente";
-  const importLabel = access.canUseAppImport ? "Disponível" : "Acesso pendente";
-  const reportsLabel = access.canUseAppExport ? "Disponíveis" : "Acesso pendente";
 
   return (
     <Card className="overflow-hidden rounded-[28px] border-primary/15 bg-primary-soft/30">
@@ -768,11 +768,8 @@ function SubscriptionSummaryCard({ access }: { access: SubscriptionAccess }) {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <SubscriptionSummaryItem label="Status do acesso" value={statusLabel} />
+          <SubscriptionSummaryItem label="Plano atual" value={planLabel} />
           <SubscriptionSummaryItem label="Helena" value={helenaLabel} />
-          <SubscriptionSummaryItem label="Importação" value={importLabel} />
-          <SubscriptionSummaryItem label="Relatórios" value={reportsLabel} />
-          <SubscriptionSummaryItem label="Movimentações" value={enabledLabel} />
-          <SubscriptionSummaryItem label="Fechamento mensal" value={enabledLabel} />
         </div>
       </CardContent>
     </Card>
@@ -789,6 +786,30 @@ function getAccessStatusLabel(access: SubscriptionAccess) {
   }
 
   return "Acesso pendente";
+}
+
+function getBillingCycleLabel(billingCycle: BillingCycleCode | null, access: SubscriptionAccess) {
+  if (access.isAdmin) {
+    return "Administrador";
+  }
+
+  if (access.status !== "active") {
+    return "Aguardando ativação";
+  }
+
+  if (billingCycle === "monthly") {
+    return "Mensal";
+  }
+
+  if (billingCycle === "quarterly") {
+    return "Trimestral";
+  }
+
+  if (billingCycle === "annual") {
+    return "Anual";
+  }
+
+  return "Ativo";
 }
 
 function SubscriptionSummaryItem({ label, value }: { label: string; value: string }) {
