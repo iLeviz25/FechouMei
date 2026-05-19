@@ -32,6 +32,24 @@ const approvedCaktoEvents = [
   "subscription_renewed",
 ] as const;
 
+export const approvedCaktoOrderStatuses = [
+  "paid",
+  "approved",
+  "authorized",
+  "completed",
+  "complete",
+] as const;
+
+const refundedCaktoEvents = [
+  "refund",
+  "purchase_refund",
+  "purchase_refunded",
+  "refund_approved",
+  "refund_confirmed",
+  "chargeback",
+  "chargeback_approved",
+] as const;
+
 const ignoredCaktoPaymentEvents = [
   "initiate_checkout",
   "checkout_abandonment",
@@ -40,14 +58,13 @@ const ignoredCaktoPaymentEvents = [
   "boleto_gerado",
   "picpay_gerado",
   "openfinance_nubank_gerado",
-  "chargeback",
-  "refund",
   "subscription_created",
   "subscription_canceled",
   "subscription_renewal_refused",
 ] as const;
 
 export type ApprovedCaktoEvent = (typeof approvedCaktoEvents)[number];
+export type RefundedCaktoEvent = (typeof refundedCaktoEvents)[number];
 export type IgnoredCaktoPaymentEvent = (typeof ignoredCaktoPaymentEvents)[number];
 
 export function isApprovedCaktoEvent(event: string): event is ApprovedCaktoEvent {
@@ -58,8 +75,12 @@ export function isKnownIgnoredCaktoEvent(event: string): event is IgnoredCaktoPa
   return (ignoredCaktoPaymentEvents as readonly string[]).includes(normalizeEventName(event));
 }
 
+export function isRefundedCaktoEvent(event: string): event is RefundedCaktoEvent {
+  return (refundedCaktoEvents as readonly string[]).includes(normalizeEventName(event));
+}
+
 export function isApprovedCaktoOrderStatus(status: string | null): boolean {
-  return ["paid", "approved", "authorized", "completed", "complete"].includes(normalizeStatus(status));
+  return (approvedCaktoOrderStatuses as readonly string[]).includes(normalizeStatus(status));
 }
 
 export function getCaktoBillingCycleByOfferId(offerId: string | null): CaktoBillingCycle | null {
@@ -127,23 +148,49 @@ export function extractCaktoOrder(payload: Record<string, unknown>): ExtractedCa
 export function getCaktoEventKey({
   event,
   order,
+  orderId,
   payload,
 }: {
   event: string;
   order: ExtractedCaktoOrder | null;
+  orderId?: string | null;
   payload: Record<string, unknown>;
 }): string | null {
   const explicitEventId = normalizeId(payload.event_id ?? payload.eventId ?? payload.id);
+  const resolvedOrderId = order?.caktoOrderId ?? normalizeId(orderId);
 
-  if (explicitEventId && order?.caktoOrderId) {
-    return `${normalizeEventName(event)}:${explicitEventId}:${order.caktoOrderId}`;
+  if (explicitEventId && resolvedOrderId) {
+    return `${normalizeEventName(event)}:${explicitEventId}:${resolvedOrderId}`;
   }
 
-  if (order?.caktoOrderId) {
-    return `${normalizeEventName(event)}:${order.caktoOrderId}`;
+  if (resolvedOrderId) {
+    return `${normalizeEventName(event)}:${resolvedOrderId}`;
   }
 
   return explicitEventId ? `${normalizeEventName(event)}:${explicitEventId}` : null;
+}
+
+export function extractCaktoOrderId(payload: Record<string, unknown>): string | null {
+  const data = getRecord(payload.data) ?? payload;
+  const order = getRecord(data.order) ?? getRecord(payload.order);
+
+  return normalizeId(order?.id ?? order?.order_id ?? order?.orderId)
+    ?? normalizeId(data.order_id ?? data.orderId)
+    ?? normalizeId(payload.order_id ?? payload.orderId)
+    ?? normalizeId(data.purchase_id ?? data.purchaseId)
+    ?? normalizeId(payload.purchase_id ?? payload.purchaseId)
+    ?? normalizeId(data.sale_id ?? data.saleId)
+    ?? normalizeId(payload.sale_id ?? payload.saleId)
+    ?? normalizeId(data.id ?? payload.id);
+}
+
+export function extractCaktoRefundedAt(payload: Record<string, unknown>): string | null {
+  const data = getRecord(payload.data) ?? payload;
+
+  return getString(data, ["refundedAt", "refunded_at", "refundAt", "refund_at", "refunded_at_date"])
+    ?? getString(payload, ["refundedAt", "refunded_at", "refundAt", "refund_at", "refunded_at_date"])
+    ?? getString(data, ["updatedAt", "updated_at"])
+    ?? getString(payload, ["updatedAt", "updated_at"]);
 }
 
 export function normalizeEventName(event: string | null | undefined) {

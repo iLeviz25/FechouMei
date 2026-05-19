@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json, Profile } from "@/types/database";
 
 export type SubscriptionPlan = "essential" | "pro";
-export type SubscriptionStatus = "active" | "pending_payment" | "past_due" | "canceled";
+export type SubscriptionStatus = "active" | "pending_payment" | "past_due" | "canceled" | "refunded";
 
 export type SubscriptionAccess = {
   canAccessApp: boolean;
@@ -47,6 +47,7 @@ const subscriptionBlockedReplies: Record<SubscriptionStatus, string> = {
   canceled: "Seu acesso ao FechouMEI está inativo. Regularize sua assinatura para continuar usando o app.",
   past_due: "Não encontramos um pagamento ativo para esta conta. Regularize sua assinatura para continuar.",
   pending_payment: "Ainda não encontramos uma assinatura ativa para esta conta. Se você já pagou, aguarde alguns minutos e use o mesmo e-mail da compra.",
+  refunded: "Identificamos que esta compra foi reembolsada, por isso o acesso ao FechouMEI foi encerrado. Se você acredita que isso aconteceu por engano, entre em contato com o suporte.",
 };
 
 export function normalizeSubscriptionPlan(value: unknown): SubscriptionPlan {
@@ -54,7 +55,7 @@ export function normalizeSubscriptionPlan(value: unknown): SubscriptionPlan {
 }
 
 export function normalizeSubscriptionStatus(value: unknown): SubscriptionStatus {
-  return value === "active" || value === "past_due" || value === "canceled"
+  return value === "active" || value === "past_due" || value === "canceled" || value === "refunded"
     ? value
     : "pending_payment";
 }
@@ -99,6 +100,10 @@ export function getSubscriptionBlockedTitle(status: SubscriptionStatus) {
     return "Acesso inativo";
   }
 
+  if (status === "refunded") {
+    return "Acesso encerrado";
+  }
+
   return "Acesso pendente";
 }
 
@@ -108,6 +113,7 @@ export function getSubscriptionStatusLabel(status: SubscriptionStatus) {
     canceled: "Acesso inativo",
     past_due: "Acesso pendente",
     pending_payment: "Acesso pendente",
+    refunded: "Reembolsado",
   };
 
   return labels[status];

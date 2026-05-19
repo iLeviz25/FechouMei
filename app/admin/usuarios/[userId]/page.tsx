@@ -73,6 +73,7 @@ function subscriptionStatusLabel(status: AdminSubscriptionStatus) {
     canceled: "Cancelada",
     past_due: "Pendente",
     pending_payment: "Aguardando pagamento",
+    refunded: "Reembolsado",
   };
 
   return labels[status];
@@ -205,6 +206,7 @@ function SubscriptionManagement({ user }: { user: AdminUserDetail }) {
                 <option value="pending_payment">Aguardando pagamento</option>
                 <option value="past_due">Pagamento pendente</option>
                 <option value="canceled">Cancelada</option>
+                <option value="refunded">Reembolsada</option>
               </Select>
             </label>
           </div>
@@ -268,6 +270,20 @@ function RoleManagement({
       </CardContent>
     </Card>
   );
+}
+
+function billingCycleLabel(value: string | null) {
+  const labels: Record<string, string> = {
+    annual: "Anual",
+    monthly: "Mensal",
+    quarterly: "Trimestral",
+  };
+
+  return value ? labels[value] ?? value : "Sem registro";
+}
+
+function shortOrderId(value: string | null) {
+  return value ? `${value.slice(0, 8)}...` : "Sem registro";
 }
 
 export default async function AdminUsuarioDetalhePage({
@@ -393,6 +409,15 @@ export default async function AdminUsuarioDetalhePage({
             <InfoRow label="Atividade recente" value={formatDateTime(user.metrics.lastActivityAt)} />
             <InfoRow label="Acesso" value={subscriptionPlanLabel(user.subscriptionPlan)} />
             <InfoRow label="Status assinatura" value={subscriptionStatusLabel(user.subscriptionStatus)} />
+            <InfoRow label="Plano Cakto" value={billingCycleLabel(user.latestCaktoOrder?.billingCycle ?? null)} />
+            <InfoRow label="Último pedido" value={shortOrderId(user.latestCaktoOrder?.orderId ?? null)} />
+            <InfoRow label="Status do pedido" value={user.latestCaktoOrder?.status ?? "Sem registro"} />
+            {user.latestCaktoOrder?.refundedAt ? (
+              <InfoRow label="Reembolsado em" value={formatDateTime(user.latestCaktoOrder.refundedAt)} />
+            ) : null}
+            {user.latestCaktoOrder?.accessRevokedAt ? (
+              <InfoRow label="Acesso revogado em" value={formatDateTime(user.latestCaktoOrder.accessRevokedAt)} />
+            ) : null}
             <InfoRow label="Onboarding" value={user.onboardingCompleted ? "Concluído" : "Pendente"} />
             <InfoRow label="Atuação" value={user.workType ?? "Não informado"} />
             <InfoRow label="Tipo de trabalho" value={user.businessMode ?? "Não informado"} />

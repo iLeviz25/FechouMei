@@ -49,6 +49,15 @@ export type AdminUserDetailEvent = {
   createdAt: string | null;
 };
 
+export type AdminCaktoOrderSummary = {
+  accessRevokedAt: string | null;
+  billingCycle: string | null;
+  orderId: string | null;
+  paidAt: string | null;
+  refundedAt: string | null;
+  status: string | null;
+};
+
 export type AdminUserDetail = {
   id: string;
   fullName: string | null;
@@ -76,6 +85,7 @@ export type AdminUserDetail = {
     helenaMessagesTotal: number;
     lastActivityAt: string | null;
   };
+  latestCaktoOrder: AdminCaktoOrderSummary | null;
   recentEvents: AdminUserDetailEvent[];
 };
 
@@ -334,6 +344,7 @@ function parseUserDetail(value: unknown): AdminUserDetail | null {
       helenaMessagesTotal: asNumber(metrics.helenaMessagesTotal),
       lastActivityAt: asString(metrics.lastActivityAt),
     },
+    latestCaktoOrder: null,
     recentEvents: parseEvents(record.recentEvents),
   };
 }
@@ -346,19 +357,42 @@ async function enrichUserDetailWithSubscription(
     return null;
   }
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("subscription_plan, subscription_status")
-    .eq("id", user.id)
-    .maybeSingle();
+  const [{ data, error }, { data: orderData, error: orderError }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("subscription_plan, subscription_status")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("cakto_orders")
+      .select("cakto_order_id, billing_cycle, status, paid_at, refunded_at, access_revoked_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
   if (error) {
     console.error("[admin-users] Failed to enrich user subscription", error);
     return user;
   }
 
+  if (orderError) {
+    console.error("[admin-users] Failed to enrich user Cakto order", orderError);
+  }
+
   return {
     ...user,
+    latestCaktoOrder: orderData
+      ? {
+          accessRevokedAt: orderData.access_revoked_at,
+          billingCycle: orderData.billing_cycle,
+          orderId: orderData.cakto_order_id,
+          paidAt: orderData.paid_at,
+          refundedAt: orderData.refunded_at,
+          status: orderData.status,
+        }
+      : null,
     subscriptionPlan: normalizeSubscriptionPlan(data?.subscription_plan),
     subscriptionStatus: normalizeSubscriptionStatus(data?.subscription_status),
   };

@@ -760,7 +760,7 @@ function SubscriptionSummaryCard({ access, billingCycle }: { access: Subscriptio
             <p className="text-sm leading-6 text-muted-foreground">{description}</p>
           </div>
           <div className="flex flex-wrap gap-2 min-[430px]:justify-end">
-            <Badge variant={access.isAdmin || access.status === "active" ? "success" : "secondary"}>
+            <Badge variant={access.isAdmin || access.status === "active" ? "success" : access.status === "refunded" ? "danger" : "secondary"}>
               {statusLabel}
             </Badge>
           </div>
@@ -785,6 +785,10 @@ function getAccessStatusLabel(access: SubscriptionAccess) {
     return "Acesso inativo";
   }
 
+  if (access.status === "refunded") {
+    return "Acesso encerrado";
+  }
+
   return "Acesso pendente";
 }
 
@@ -794,6 +798,10 @@ function getBillingCycleLabel(billingCycle: BillingCycleCode | null, access: Sub
   }
 
   if (access.status !== "active") {
+    if (access.status === "refunded") {
+      return "Reembolsado";
+    }
+
     return "Aguardando ativação";
   }
 

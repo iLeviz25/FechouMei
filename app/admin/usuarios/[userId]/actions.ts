@@ -63,7 +63,8 @@ export async function changeAdminUserSubscriptionAction(formData: FormData) {
     newStatus !== "active" &&
     newStatus !== "pending_payment" &&
     newStatus !== "past_due" &&
-    newStatus !== "canceled"
+    newStatus !== "canceled" &&
+    newStatus !== "refunded"
   ) {
     redirect(buildDetailPath(userId, { subscriptionError: "invalid-status" }));
   }

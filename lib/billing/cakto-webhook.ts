@@ -1,11 +1,15 @@
 import { timingSafeEqual } from "crypto";
 import { provisionAccessForPaidCaktoOrder } from "@/lib/billing/cakto-access-provisioning";
 import {
+  approvedCaktoOrderStatuses,
+  extractCaktoOrderId,
+  extractCaktoRefundedAt,
   extractCaktoOrder,
   getCaktoEventKey,
   isApprovedCaktoEvent,
   isApprovedCaktoOrderStatus,
   isKnownIgnoredCaktoEvent,
+  isRefundedCaktoEvent,
   normalizeEventName,
   type ExtractedCaktoOrder,
 } from "@/lib/billing/cakto-events";
@@ -62,7 +66,9 @@ export type ProcessCaktoWebhookEventResult = {
 
 type ServiceRoleClient = ReturnType<typeof createServiceRoleClient>;
 type WebhookEventUpdate = Database["public"]["Tables"]["cakto_webhook_events"]["Update"];
+type CaktoOrderRow = Database["public"]["Tables"]["cakto_orders"]["Row"];
 type CaktoOrderInsert = Database["public"]["Tables"]["cakto_orders"]["Insert"];
+type CaktoOrderUpdate = Database["public"]["Tables"]["cakto_orders"]["Update"];
 
 export function validateCaktoWebhookSecret(
   request: Request,
@@ -110,14 +116,15 @@ export function parseCaktoWebhookEvent(payload: unknown): CaktoWebhookParseResul
   }
 
   const order = extractCaktoOrder(payload);
+  const orderId = order?.caktoOrderId ?? extractCaktoOrderId(payload);
 
   return {
     ok: true,
     event: {
-      caktoEventKey: getCaktoEventKey({ event, order, payload }),
+      caktoEventKey: getCaktoEventKey({ event, order, orderId, payload }),
       event,
       order,
-      orderId: order?.caktoOrderId ?? null,
+      orderId,
       offerId: order?.caktoOfferId ?? null,
       payload: payload as Json,
     },
@@ -208,6 +215,10 @@ async function processCaktoWebhookEventPayload(
   supabase: ServiceRoleClient,
   event: ParsedCaktoWebhookEvent,
 ): Promise<ProcessCaktoWebhookEventResult> {
+  if (isRefundedCaktoEvent(event.event)) {
+    return revokeAccessForRefundedCaktoOrder(supabase, event);
+  }
+
   if (isKnownIgnoredCaktoEvent(event.event)) {
     return {
       status: "ignored",
@@ -233,6 +244,16 @@ async function processCaktoWebhookEventPayload(
   }
 
   const order = event.order;
+
+  const existingOrder = await getExistingCaktoOrderByCaktoOrderId(supabase, order.caktoOrderId);
+
+  if (existingOrder?.status === "refunded") {
+    return {
+      status: "processed",
+      operations: [caktoBillingTables.orders, "cakto_order_already_refunded"],
+      reason: "order_already_refunded",
+    };
+  }
 
   if (!isApprovedCaktoOrderStatus(order.status)) {
     await upsertCaktoOrder(supabase, order);
@@ -271,6 +292,241 @@ async function processCaktoWebhookEventPayload(
     status: "processed",
     operations,
   };
+}
+
+async function revokeAccessForRefundedCaktoOrder(
+  supabase: ServiceRoleClient,
+  event: ParsedCaktoWebhookEvent,
+): Promise<ProcessCaktoWebhookEventResult> {
+  const now = new Date().toISOString();
+  const refundedAt = extractCaktoRefundedAt(event.payload as Record<string, unknown>) ?? now;
+  const existingOrder = await findExistingCaktoOrderForRefund(supabase, event);
+
+  if (!existingOrder) {
+    if (event.order) {
+      await insertRefundedCaktoOrder(supabase, event.order, event.payload, refundedAt);
+
+      return {
+        status: "processed",
+        operations: [caktoBillingTables.orders],
+        reason: "refunded_order_recorded_without_user",
+      };
+    }
+
+    return {
+      status: "ignored",
+      operations: [],
+      reason: "refunded_order_not_found",
+    };
+  }
+
+  const operations = [caktoBillingTables.orders];
+  const orderUpdate: CaktoOrderUpdate = {
+    access_revoked_at: existingOrder.user_id ? existingOrder.access_revoked_at ?? now : existingOrder.access_revoked_at,
+    raw_payload: event.payload,
+    refunded_at: existingOrder.refunded_at ?? refundedAt,
+    status: "refunded",
+  };
+
+  const { error: orderError } = await supabase
+    .from(caktoBillingTables.orders)
+    .update(orderUpdate)
+    .eq("id", existingOrder.id);
+
+  if (orderError) {
+    throw orderError;
+  }
+
+  if (!existingOrder.user_id) {
+    return {
+      status: "processed",
+      operations,
+      reason: "refunded_order_not_linked_to_user",
+    };
+  }
+
+  const hasNewerPaidOrder = await hasNewerActiveCaktoOrder(
+    supabase,
+    existingOrder.user_id,
+    existingOrder.cakto_order_id,
+    existingOrder.paid_at ?? existingOrder.created_at,
+  );
+
+  if (hasNewerPaidOrder) {
+    return {
+      status: "processed",
+      operations: [...operations, "profile_revocation_skipped_newer_paid_order"],
+      reason: "refund_did_not_revoke_newer_active_order",
+    };
+  }
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({
+      subscription_status: "refunded",
+      updated_at: now,
+    })
+    .eq("id", existingOrder.user_id);
+
+  if (profileError) {
+    throw profileError;
+  }
+
+  return {
+    status: "processed",
+    operations: [...operations, "profiles_access_revoked"],
+  };
+}
+
+async function getExistingCaktoOrderByCaktoOrderId(
+  supabase: ServiceRoleClient,
+  caktoOrderId: string,
+): Promise<Pick<CaktoOrderRow, "id" | "status" | "user_id"> | null> {
+  const { data, error } = await supabase
+    .from(caktoBillingTables.orders)
+    .select("id, status, user_id")
+    .eq("cakto_order_id", caktoOrderId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+async function findExistingCaktoOrderForRefund(
+  supabase: ServiceRoleClient,
+  event: ParsedCaktoWebhookEvent,
+): Promise<Pick<
+  CaktoOrderRow,
+  | "access_revoked_at"
+  | "cakto_order_id"
+  | "cakto_ref_id"
+  | "cakto_subscription_id"
+  | "created_at"
+  | "id"
+  | "paid_at"
+  | "refunded_at"
+  | "user_id"
+> | null> {
+  const select = "id, user_id, cakto_order_id, cakto_ref_id, cakto_subscription_id, paid_at, created_at, refunded_at, access_revoked_at";
+
+  if (event.orderId) {
+    const { data, error } = await supabase
+      .from(caktoBillingTables.orders)
+      .select(select)
+      .eq("cakto_order_id", event.orderId)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    if (data) {
+      return data;
+    }
+  }
+
+  if (event.order?.caktoRefId) {
+    const { data, error } = await supabase
+      .from(caktoBillingTables.orders)
+      .select(select)
+      .eq("cakto_ref_id", event.order.caktoRefId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    if (data) {
+      return data;
+    }
+  }
+
+  if (event.order?.caktoSubscriptionId) {
+    const { data, error } = await supabase
+      .from(caktoBillingTables.orders)
+      .select(select)
+      .eq("cakto_subscription_id", event.order.caktoSubscriptionId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    if (data) {
+      return data;
+    }
+  }
+
+  return null;
+}
+
+async function insertRefundedCaktoOrder(
+  supabase: ServiceRoleClient,
+  order: ExtractedCaktoOrder,
+  payload: Json,
+  refundedAt: string,
+) {
+  const row: CaktoOrderInsert = {
+    ...getCaktoOrderRow(order),
+    raw_payload: payload,
+    refunded_at: refundedAt,
+    status: "refunded",
+  };
+  const { error } = await supabase
+    .from(caktoBillingTables.orders)
+    .insert(row);
+
+  if (error) {
+    throw error;
+  }
+}
+
+async function hasNewerActiveCaktoOrder(
+  supabase: ServiceRoleClient,
+  userId: string,
+  refundedCaktoOrderId: string,
+  referenceTimestamp: string | null,
+) {
+  if (!referenceTimestamp) {
+    return false;
+  }
+
+  const referenceTime = Date.parse(referenceTimestamp);
+
+  if (!Number.isFinite(referenceTime)) {
+    return false;
+  }
+
+  const { data, error } = await supabase
+    .from(caktoBillingTables.orders)
+    .select("cakto_order_id, paid_at, created_at, status")
+    .eq("user_id", userId)
+    .neq("cakto_order_id", refundedCaktoOrderId)
+    .in("status", [...approvedCaktoOrderStatuses])
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).some((order) => {
+    const paidAt = order.paid_at ? Date.parse(order.paid_at) : Number.NaN;
+    const createdAt = order.created_at ? Date.parse(order.created_at) : Number.NaN;
+    const orderTime = Math.max(
+      Number.isFinite(paidAt) ? paidAt : 0,
+      Number.isFinite(createdAt) ? createdAt : 0,
+    );
+
+    return orderTime > referenceTime;
+  });
 }
 
 async function upsertCaktoOrder(

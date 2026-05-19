@@ -46,15 +46,25 @@ function SubscriptionBlockedScreen({ access }: { access: SubscriptionAccess }) {
   const reply = getSubscriptionBlockedReply(access.status);
   const statusLabel = getSubscriptionStatusLabel(access.status);
   const monthlyCheckoutUrl = getBillingCycles()[0]?.checkoutUrl;
-  const supportSubject = "Suporte FechouMEI - Acesso após compra";
-  const supportBody = [
-    "Olá, acabei de comprar o FechouMEI e preciso de ajuda com meu acesso.",
-    "",
-    "E-mail usado na compra:",
-    "Nome:",
-    "Plano comprado:",
-    "Mensagem:",
-  ].join("\n");
+  const supportSubject = access.status === "refunded"
+    ? "Suporte FechouMEI - Acesso encerrado"
+    : "Suporte FechouMEI - Acesso após compra";
+  const supportBody = access.status === "refunded"
+    ? [
+        "Olá, meu acesso ao FechouMEI aparece como encerrado e preciso de ajuda.",
+        "",
+        "E-mail usado na compra:",
+        "Nome:",
+        "Mensagem:",
+      ].join("\n")
+    : [
+        "Olá, acabei de comprar o FechouMEI e preciso de ajuda com meu acesso.",
+        "",
+        "E-mail usado na compra:",
+        "Nome:",
+        "Plano comprado:",
+        "Mensagem:",
+      ].join("\n");
   const supportEmail = "fechoumei@gmail.com";
   const supportHref = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(supportEmail)}&su=${encodeURIComponent(supportSubject)}&body=${encodeURIComponent(supportBody)}`;
 

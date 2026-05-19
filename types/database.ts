@@ -388,6 +388,8 @@ export type Database = {
           payment_method: string | null;
           paid_at: string | null;
           checkout_url: string | null;
+          refunded_at: string | null;
+          access_revoked_at: string | null;
           raw_payload: Json | null;
           created_at: string;
           updated_at: string;
@@ -411,6 +413,8 @@ export type Database = {
           payment_method?: string | null;
           paid_at?: string | null;
           checkout_url?: string | null;
+          refunded_at?: string | null;
+          access_revoked_at?: string | null;
           raw_payload?: Json | null;
           created_at?: string;
           updated_at?: string;
@@ -434,6 +438,8 @@ export type Database = {
           payment_method?: string | null;
           paid_at?: string | null;
           checkout_url?: string | null;
+          refunded_at?: string | null;
+          access_revoked_at?: string | null;
           raw_payload?: Json | null;
           created_at?: string;
           updated_at?: string;
@@ -1143,7 +1149,7 @@ export type Database = {
           onboarding_tour_completed_at: string | null;
           role: "user" | "admin";
           subscription_plan: "essential" | "pro";
-          subscription_status: "active" | "pending_payment" | "past_due" | "canceled";
+          subscription_status: "active" | "pending_payment" | "past_due" | "canceled" | "refunded";
           created_at: string;
           updated_at: string;
         };
@@ -1159,7 +1165,7 @@ export type Database = {
           onboarding_tour_completed_at?: string | null;
           role?: "user" | "admin";
           subscription_plan?: "essential" | "pro";
-          subscription_status?: "active" | "pending_payment" | "past_due" | "canceled";
+          subscription_status?: "active" | "pending_payment" | "past_due" | "canceled" | "refunded";
           created_at?: string;
           updated_at?: string;
         };
@@ -1175,7 +1181,7 @@ export type Database = {
           onboarding_tour_completed_at?: string | null;
           role?: "user" | "admin";
           subscription_plan?: "essential" | "pro";
-          subscription_status?: "active" | "pending_payment" | "past_due" | "canceled";
+          subscription_status?: "active" | "pending_payment" | "past_due" | "canceled" | "refunded";
           created_at?: string;
           updated_at?: string;
         };
@@ -1314,7 +1320,7 @@ export type Database = {
         Args: {
           target_user_id: string;
           new_plan: "essential" | "pro";
-          new_status: "active" | "pending_payment" | "past_due" | "canceled";
+          new_status: "active" | "pending_payment" | "past_due" | "canceled" | "refunded";
         };
         Returns: void;
       };

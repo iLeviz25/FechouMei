@@ -62,6 +62,7 @@ function subscriptionStatusBadge(status: AdminSubscriptionStatus) {
     canceled: "Cancelada",
     past_due: "Pendente",
     pending_payment: "Aguardando",
+    refunded: "Reembolsado",
   };
 
   const variant = status === "active" ? "success" : status === "pending_payment" ? "secondary" : "danger";
