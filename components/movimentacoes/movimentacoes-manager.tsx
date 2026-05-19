@@ -167,13 +167,24 @@ export function MovimentacoesManager({ initialBalance, movements }: Movimentacoe
   const balance = safeInitialBalance + summary.income - summary.expense;
 
   const categoryOptions = useMemo(() => {
-    const knownCategories = new Set(movementCategories.map(normalizeSearchValue));
-    const extraCategories = movements
-      .map((movement) => movement.category)
-      .filter((category) => category && !knownCategories.has(normalizeSearchValue(category)))
-      .sort((a, b) => a.localeCompare(b, "pt-BR"));
+    const options = new Map<string, string>();
+    const addCategoryOption = (category: string) => {
+      const key = normalizeSearchValue(category);
 
-    return [...movementCategories, ...extraCategories];
+      if (key && !options.has(key)) {
+        options.set(key, category);
+      }
+    };
+
+    movementCategories.forEach(addCategoryOption);
+
+    movements
+      .map((movement) => movement.category)
+      .filter((category): category is string => Boolean(category))
+      .sort((a, b) => a.localeCompare(b, "pt-BR"))
+      .forEach(addCategoryOption);
+
+    return Array.from(options.values());
   }, [movements]);
 
   const filteredMovements = useMemo(() => {
