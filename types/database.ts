@@ -1248,6 +1248,10 @@ export type Database = {
         Args: Record<PropertyKey, never>;
         Returns: Json;
       };
+      get_dashboard_overview: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
       get_admin_helena_dashboard: {
         Args: Record<PropertyKey, never>;
         Returns: Json;
