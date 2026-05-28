@@ -3,6 +3,8 @@ import { toCurrency, toDateInputValue } from "@/lib/agent/utils";
 
 type MovementRow = {
   amount: number;
+  category?: string | null;
+  description?: string | null;
   occurred_on: string;
   type: "entrada" | "despesa";
 };
@@ -31,7 +33,8 @@ export function parseQuickPeriodQuery(normalized: string): AgentQuickPeriodQuery
     return null;
   }
 
-  const metric = parsePeriodMetric(normalized);
+  const reportFormat = isPeriodReportQuestion(normalized);
+  const metric = parsePeriodMetric(normalized) ?? (reportFormat ? "summary" : null);
 
   if (!metric) {
     return null;
@@ -39,6 +42,7 @@ export function parseQuickPeriodQuery(normalized: string): AgentQuickPeriodQuery
 
   return {
     ...range,
+    format: reportFormat ? "report" : undefined,
     metric,
     type: "period",
   };
@@ -150,6 +154,10 @@ export function buildQuickPeriodReply(query: Extract<AgentQuickPeriodQuery, { ty
   const totals = summarizeMovementRows(rangeRows);
   const balance = totals.income - totals.expense;
 
+  if (query.format === "report") {
+    return buildPeriodReportReply(range, rangeRows, totals, balance);
+  }
+
   if (query.metric === "income") {
     if (totals.income <= 0) {
       return `Não encontrei entradas ${range.label}.`;
@@ -240,19 +248,23 @@ function parsePeriodRange(normalized: string): Omit<Extract<AgentQuickPeriodQuer
     return { range: "last_week" };
   }
 
-  if (/(essa semana|esta semana|nessa semana|nesta semana|minha semana|semana atual)/.test(normalized)) {
+  if (/(essa semana|esta semana|nessa semana|nesta semana|minha semana|semana atual|relatorio semanal|resumo semanal|relatorio da semana|resumo da semana|\bsemanal\b)/.test(normalized)) {
     return { range: "this_week" };
   }
 
-  if (/(este mes|esse mes|mes atual|neste mes)/.test(normalized)) {
+  if (/(este mes|esse mes|deste mes|desse mes|do mes|mes atual|neste mes|relatorio mensal|resumo mensal|\bmensal\b)/.test(normalized)) {
     return { range: "this_month" };
+  }
+
+  if (/(relatorio diario|resumo diario|\bdiari[oa]\b|relatorio do dia|resumo do dia)/.test(normalized)) {
+    return { range: "today" };
   }
 
   return null;
 }
 
 function parsePeriodMetric(normalized: string): AgentQuickPeriodQuery["metric"] | null {
-  if (/(como foi|como foram|resumo)/.test(normalized)) {
+  if (/(como foi|como foram|resumo|relatorio|fechamento)/.test(normalized)) {
     return "summary";
   }
 
@@ -272,7 +284,90 @@ function parsePeriodMetric(normalized: string): AgentQuickPeriodQuery["metric"] 
 }
 
 function isQuickPeriodQuestion(normalized: string) {
-  return /^(quanto|qual|como|total|resumo|mostra|mostre|me mostra|me fala)\b/.test(normalized);
+  return /^(quanto|qual|como|total|resumo|relatorio|fechamento|mostra|mostre|me mostra|me fala|gera|gerar|mande|manda|envia|enviar)\b/.test(normalized);
+}
+
+function isPeriodReportQuestion(normalized: string) {
+  return /\b(relatorio|fechamento)\b/.test(normalized);
+}
+
+function buildPeriodReportReply(
+  range: ResolvedRange,
+  rows: MovementRow[],
+  totals: ReturnType<typeof summarizeMovementRows>,
+  balance: number,
+) {
+  const incomeCount = rows.filter((row) => row.type === "entrada").length;
+  const expenseCount = rows.filter((row) => row.type === "despesa").length;
+  const topIncome = getTopMovement(rows, "entrada");
+  const topExpense = getTopMovement(rows, "despesa");
+  const topExpenseCategory = getTopCategory(rows, "despesa");
+  const title = `Relatorio ${range.label}`;
+
+  if (rows.length === 0) {
+    return [
+      title,
+      `Periodo: ${formatRangeDates(range)}`,
+      "",
+      "Nao encontrei movimentacoes nesse periodo.",
+      "Quando voce registrar entradas e despesas, eu consigo montar o resumo por aqui.",
+    ].join("\n");
+  }
+
+  return [
+    title,
+    `Periodo: ${formatRangeDates(range)}`,
+    "",
+    `Entradas: ${toCurrency(totals.income)} (${incomeCount})`,
+    `Despesas: ${toCurrency(totals.expense)} (${expenseCount})`,
+    `Resultado: ${toCurrency(balance)}`,
+    `Movimentacoes: ${rows.length}`,
+    "",
+    topIncome ? `Maior entrada: ${formatMovementHighlight(topIncome, "entrada")}` : "Maior entrada: nenhuma entrada no periodo.",
+    topExpense ? `Maior despesa: ${formatMovementHighlight(topExpense, "despesa")}` : "Maior despesa: nenhuma despesa no periodo.",
+    topExpenseCategory ? `Categoria com mais despesas: ${topExpenseCategory.category} (${toCurrency(topExpenseCategory.total)})` : null,
+  ].filter(Boolean).join("\n");
+}
+
+function getTopMovement(rows: MovementRow[], type: MovementRow["type"]) {
+  return rows
+    .filter((row) => row.type === type)
+    .sort((left, right) => right.amount - left.amount)[0] ?? null;
+}
+
+function getTopCategory(rows: MovementRow[], type: MovementRow["type"]) {
+  const totals = new Map<string, number>();
+
+  for (const row of rows) {
+    if (row.type !== type) {
+      continue;
+    }
+
+    const category = row.category?.trim() || "Outros";
+    totals.set(category, (totals.get(category) ?? 0) + row.amount);
+  }
+
+  return Array.from(totals.entries())
+    .map(([category, total]) => ({ category, total }))
+    .sort((left, right) => right.total - left.total)[0] ?? null;
+}
+
+function formatMovementHighlight(row: MovementRow, type: MovementRow["type"]) {
+  const connector = type === "entrada" ? "de" : "com";
+  const description = row.description?.trim() || "sem descricao";
+
+  return `${toCurrency(row.amount)} ${connector} ${description}, em ${formatDate(row.occurred_on)}`;
+}
+
+function formatRangeDates(range: Pick<ResolvedRange, "end" | "start">) {
+  return range.start === range.end
+    ? formatDate(range.start)
+    : `${formatDate(range.start)} a ${formatDate(range.end)}`;
+}
+
+function formatDate(value: string) {
+  const [year, month, day] = value.split("-");
+  return year && month && day ? `${day}/${month}/${year}` : value;
 }
 
 function startOfWeek(date: Date) {

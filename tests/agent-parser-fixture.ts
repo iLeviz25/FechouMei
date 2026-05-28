@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { classifyDeterministically, inferCorrectionFields } from "../lib/agent/classifier";
 import { runAgentTurnForContext } from "../lib/agent/orchestrator";
+import { buildQuickPeriodReply } from "../lib/agent/period-queries";
 import { parseTransactionMessage, parseTransactionMessages } from "../lib/agent/transaction-parser";
 import type { MovementField, MovementType } from "../lib/agent/types";
 
@@ -256,6 +257,55 @@ assert.equal(classifyDeterministically("como tá meu mês?", idleState)?.action,
 assert.equal(classifyDeterministically("qual meu saldo?", idleState)?.action, "monthly_summary");
 assert.equal(classifyDeterministically("tenho obrigação pendente?", idleState)?.action, "obligations_status");
 assert.ok(["recent_transactions", "specific_movement_query"].includes(classifyDeterministically("quais meus últimos registros?", idleState)?.action ?? ""));
+
+const dailyReport = classifyDeterministically("relatorio diario", idleState);
+assert.equal(dailyReport?.action, "quick_period_query");
+assert.equal(dailyReport?.periodQuery?.type, "period");
+if (dailyReport?.periodQuery?.type !== "period") {
+  throw new Error("Expected daily report period query.");
+}
+assert.equal(dailyReport.periodQuery.range, "today");
+assert.equal(dailyReport.periodQuery.format, "report");
+
+const weeklyReport = classifyDeterministically("relatorio semanal", idleState);
+assert.equal(weeklyReport?.action, "quick_period_query");
+assert.equal(weeklyReport?.periodQuery?.type, "period");
+if (weeklyReport?.periodQuery?.type !== "period") {
+  throw new Error("Expected weekly report period query.");
+}
+assert.equal(weeklyReport.periodQuery.range, "this_week");
+assert.equal(weeklyReport.periodQuery.format, "report");
+
+const monthlyReport = classifyDeterministically("relatorio mensal", idleState);
+assert.equal(monthlyReport?.action, "quick_period_query");
+assert.equal(monthlyReport?.periodQuery?.type, "period");
+if (monthlyReport?.periodQuery?.type !== "period") {
+  throw new Error("Expected monthly report period query.");
+}
+assert.equal(monthlyReport.periodQuery.range, "this_month");
+assert.equal(monthlyReport.periodQuery.format, "report");
+
+const naturalMonthlyReport = classifyDeterministically("manda relatorio desse mes", idleState);
+assert.equal(naturalMonthlyReport?.action, "quick_period_query");
+assert.equal(naturalMonthlyReport?.periodQuery?.type, "period");
+if (naturalMonthlyReport?.periodQuery?.type !== "period") {
+  throw new Error("Expected natural monthly report period query.");
+}
+assert.equal(naturalMonthlyReport.periodQuery.range, "this_month");
+assert.equal(naturalMonthlyReport.periodQuery.format, "report");
+
+const reportReply = buildQuickPeriodReply(
+  { format: "report", metric: "summary", range: "today", type: "period" },
+  { end: "2026-05-27", label: "hoje", prefix: "Hoje", start: "2026-05-27" },
+  [
+    { amount: 500, category: "Cliente", description: "cliente Ana", occurred_on: "2026-05-27", type: "entrada" },
+    { amount: 120, category: "Internet", description: "internet", occurred_on: "2026-05-27", type: "despesa" },
+  ],
+);
+assert.match(reportReply, /Relatorio hoje/);
+assert.match(reportReply, /Entradas: R\$\s*500,00 \(1\)/);
+assert.match(reportReply, /Despesas: R\$\s*120,00 \(1\)/);
+assert.match(reportReply, /Maior despesa: R\$\s*120,00 com internet/);
 
 const interruption = classifyDeterministically("pera, antes disso, como tá meu mês?", pendingExpenseState);
 assert.equal(interruption?.kind, "interruption");

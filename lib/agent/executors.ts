@@ -60,6 +60,8 @@ const reminderKeys = Object.keys(reminderLabels) as ReminderPreferenceKey[];
 
 type PeriodMovementRow = {
   amount: number;
+  category?: string | null;
+  description?: string | null;
   occurred_on: string;
   type: MovementType;
 };
@@ -632,7 +634,7 @@ async function fetchMovementsForDateRange(
 ) {
   let request = context.supabase
     .from("movimentacoes")
-    .select("type, amount, occurred_on")
+    .select("type, amount, occurred_on, description, category")
     .eq("user_id", context.userId)
     .gte("occurred_on", range.start)
     .lte("occurred_on", range.end);
@@ -677,18 +679,34 @@ function getMovementTypeForPeriodMetric(metric: Extract<AgentQuickPeriodQuery, {
   return undefined;
 }
 
-function normalizePeriodMovementRows(rows: Array<{ amount: number | string; occurred_on: string; type: string }>): PeriodMovementRow[] {
+function normalizePeriodMovementRows(rows: Array<{
+  amount: number | string;
+  category?: string | null;
+  description?: string | null;
+  occurred_on: string;
+  type: string;
+}>): PeriodMovementRow[] {
   return rows
-    .map((row) => ({
-      amount: Number(row.amount),
-      occurred_on: row.occurred_on,
-      type: row.type,
-    }))
-    .filter((row): row is PeriodMovementRow =>
-      (row.type === "entrada" || row.type === "despesa") &&
-      Number.isFinite(row.amount) &&
-      /^\d{4}-\d{2}-\d{2}$/.test(row.occurred_on),
-    );
+    .map((row): PeriodMovementRow | null => {
+      const amount = Number(row.amount);
+
+      if (
+        (row.type !== "entrada" && row.type !== "despesa") ||
+        !Number.isFinite(amount) ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(row.occurred_on)
+      ) {
+        return null;
+      }
+
+      return {
+        amount,
+        category: row.category,
+        description: row.description,
+        occurred_on: row.occurred_on,
+        type: row.type,
+      };
+    })
+    .filter((row): row is PeriodMovementRow => Boolean(row));
 }
 
 function getPeriodRowsStats(rows: PeriodMovementRow[]) {

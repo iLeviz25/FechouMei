@@ -1737,10 +1737,15 @@ function getWhatsAppExportIntent(messageText?: string | null) {
   const asksXlsx = /\b(xlsx|excel)\b/.test(normalized);
   const mentionsImport = /\b(importa|importar|importacao)\b/.test(normalized);
   const hasExportVerb = /\b(exporta|exportar|gera|gerar|manda|mandar|envia|enviar|baixar|baixa|download)\b/.test(normalized);
-  const hasFileWord = /\b(csv|arquivo|relatorio|movimentacao|movimentacoes|entradas?|despesas?|dados)\b/.test(normalized);
-  const wantsReport = /\b(quero|preciso|gostaria)\b/.test(normalized) && /\b(relatorio|csv|arquivo|movimentacao|movimentacoes)\b/.test(normalized);
+  const hasFileExportVerb = /\b(exporta|exportar|baixar|baixa|download)\b/.test(normalized);
+  const hasFileWord = /\b(csv|arquivo|movimentacao|movimentacoes|entradas?|despesas?|dados)\b/.test(normalized);
+  const wantsReport = /\b(quero|preciso|gostaria)\b/.test(normalized) && /\b(csv|arquivo|movimentacao|movimentacoes)\b/.test(normalized);
   const parsedPeriod = parseWhatsAppExportPeriod(normalized);
-  const looksLikeExport = /\bcsv\b/.test(normalized) || wantsReport || (hasExportVerb && (hasFileWord || parsedPeriod.explicit));
+  const looksLikeExport =
+    /\bcsv\b/.test(normalized) ||
+    wantsReport ||
+    (hasExportVerb && hasFileWord) ||
+    (hasFileExportVerb && parsedPeriod.explicit);
 
   if (mentionsImport && !/\b(exporta|exportar|csv|relatorio|baixar|download)\b/.test(normalized)) {
     return null;

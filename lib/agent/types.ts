@@ -93,6 +93,7 @@ export type AgentQuickPeriodMetric = "income" | "expense" | "balance" | "summary
 export type AgentQuickPeriodQuery =
   | {
       days?: number;
+      format?: "report";
       metric: AgentQuickPeriodMetric;
       range: AgentQuickPeriodRange;
       type: "period";
