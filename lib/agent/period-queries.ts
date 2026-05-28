@@ -321,7 +321,7 @@ function parsePeriodMetric(normalized: string): AgentQuickPeriodQuery["metric"] 
 }
 
 function isQuickPeriodQuestion(normalized: string) {
-  return /^(quanto|qual|como|total|resumo|relatorio|fechamento|mostra|mostre|me mostra|me fala|me faz|me faca|faz|faca|fazer|gera|gerar|mande|manda|me mande|me manda|envia|enviar)\b/.test(normalized);
+  return /^(quanto|qual|como|total|resumo|relatorio|fechamento|mostra|mostre|me mostra|me fala|me faz|me faca|faz|faca|fazer|gera|gerar|mande|manda|me mande|me manda|envia|enviar|quero|preciso|gostaria)\b/.test(normalized);
 }
 
 function isPeriodReportQuestion(normalized: string) {

@@ -3,6 +3,7 @@ import { classifyDeterministically, inferCorrectionFields } from "../lib/agent/c
 import { runAgentTurnForContext } from "../lib/agent/orchestrator";
 import { buildQuickPeriodReply, resolveQuickPeriodRange } from "../lib/agent/period-queries";
 import { parseTransactionMessage, parseTransactionMessages } from "../lib/agent/transaction-parser";
+import { normalizeEvolutionWebhookPayload } from "../lib/channels/whatsapp/evolution";
 import type { MovementField, MovementType } from "../lib/agent/types";
 
 type ParserCase = {
@@ -360,6 +361,45 @@ if (requestedMonthlyReport?.periodQuery?.type !== "period") {
 assert.equal(requestedMonthlyReport.periodQuery.range, "this_month");
 assert.equal(requestedMonthlyReport.periodQuery.format, "report");
 
+for (const message of [
+  "Me faça um relatório do mês de abril",
+  "Me faça um relatório de abril",
+  "Relatório do mês de abril",
+  "Quero meu relatório de abril",
+]) {
+  const report = classifyDeterministically(message, idleState);
+  assert.equal(report?.action, "quick_period_query", message);
+  assert.equal(report?.periodQuery?.type, "period", message);
+  if (report?.periodQuery?.type !== "period") {
+    throw new Error(`Expected explicit April report period query for: ${message}`);
+  }
+  assert.equal(report.periodQuery.range, "explicit_month", message);
+  assert.equal(report.periodQuery.month, 4, message);
+  assert.equal(report.periodQuery.format, "report", message);
+  assert.deepEqual(resolveQuickPeriodRange(report.periodQuery, saoPauloReferenceNow), {
+    end: "2026-04-30",
+    label: "em abril de 2026",
+    prefix: "Em abril de 2026",
+    start: "2026-04-01",
+  }, message);
+}
+
+const aprilProfit = classifyDeterministically("Quanto lucrei em abril?", idleState);
+assert.equal(aprilProfit?.action, "quick_period_query");
+assert.equal(aprilProfit?.periodQuery?.type, "period");
+if (aprilProfit?.periodQuery?.type !== "period") {
+  throw new Error("Expected April profit period query.");
+}
+assert.equal(aprilProfit.periodQuery.range, "explicit_month");
+assert.equal(aprilProfit.periodQuery.month, 4);
+assert.equal(aprilProfit.periodQuery.metric, "balance");
+assert.deepEqual(resolveQuickPeriodRange(aprilProfit.periodQuery, saoPauloReferenceNow), {
+  end: "2026-04-30",
+  label: "em abril de 2026",
+  prefix: "Em abril de 2026",
+  start: "2026-04-01",
+});
+
 const reportReply = buildQuickPeriodReply(
   { format: "report", metric: "summary", range: "today", type: "period" },
   { end: "2026-05-27", label: "hoje", prefix: "Hoje", start: "2026-05-27" },
@@ -396,6 +436,24 @@ void runConversationChecks()
 
 async function runConversationChecks() {
   const fakeContext = makeFakeContext();
+  const reportYear = getCurrentSaoPauloYearForTest();
+
+  for (const message of [
+    "Me faça um relatório do mês de abril",
+    "Me faça um relatório de abril",
+    "Relatório do mês de abril",
+    "Quero meu relatório de abril",
+  ]) {
+    const result = await runWhatsAppTextTurn(fakeContext, message);
+
+    assert.match(result.reply, new RegExp(`Relatorio de abril de ${reportYear}`), message);
+    assert.match(result.reply, new RegExp(`Periodo: 01/04/${reportYear} a 30/04/${reportYear}`), message);
+    assert.doesNotMatch(result.reply, new RegExp(`Relatorio de maio de ${reportYear}`), message);
+  }
+
+  const profitResult = await runWhatsAppTextTurn(fakeContext, "Quanto lucrei em abril?");
+  assert.match(profitResult.reply, new RegExp(`Em abril de ${reportYear}`));
+  assert.doesNotMatch(profitResult.reply, new RegExp(`Em maio de ${reportYear}`));
 
   const firstExpense = await runAgentTurnForContext({
     context: fakeContext,
@@ -596,6 +654,41 @@ async function confirmWithCapturedWrites(state: Awaited<ReturnType<typeof runAge
   }
 
   return writes;
+}
+
+async function runWhatsAppTextTurn(context: ReturnType<typeof makeFakeContext>, message: string) {
+  const normalized = normalizeEvolutionWebhookPayload({
+    data: {
+      key: {
+        fromMe: false,
+        id: `test-${Date.now()}`,
+        remoteJid: "5511999999999@s.whatsapp.net",
+      },
+      message: {
+        conversation: message,
+      },
+      messageType: "conversation",
+    },
+    event: "messages.upsert",
+    instance: "fechoumei-test",
+  });
+
+  assert.equal(normalized.text, message);
+
+  return runAgentTurnForContext({
+    channel: "whatsapp",
+    context,
+    message: normalized.text ?? "",
+  });
+}
+
+function getCurrentSaoPauloYearForTest() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+  }).formatToParts(new Date());
+
+  return Number(parts.find((part) => part.type === "year")?.value ?? new Date().getFullYear());
 }
 
 function makeFakeContext(writes: FakeWrite[] = []) {
