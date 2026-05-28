@@ -87,6 +87,8 @@ export type AgentQuickPeriodRange =
   | "this_week"
   | "last_week"
   | "this_month"
+  | "last_month"
+  | "explicit_month"
   | "last_days";
 export type AgentQuickPeriodMetric = "income" | "expense" | "balance" | "summary";
 
@@ -95,8 +97,10 @@ export type AgentQuickPeriodQuery =
       days?: number;
       format?: "report";
       metric: AgentQuickPeriodMetric;
+      month?: number;
       range: AgentQuickPeriodRange;
       type: "period";
+      year?: number;
     }
   | {
       metric: "income" | "expense";

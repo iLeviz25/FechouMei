@@ -27,13 +27,13 @@ export function parseQuickPeriodQuery(normalized: string): AgentQuickPeriodQuery
     return weeklyExtreme;
   }
 
-  const range = parsePeriodRange(normalized);
+  const reportFormat = isPeriodReportQuestion(normalized);
+  const range = parsePeriodRange(normalized) ?? (reportFormat ? { range: "this_month" as const } : null);
 
   if (!range) {
     return null;
   }
 
-  const reportFormat = isPeriodReportQuestion(normalized);
   const metric = parsePeriodMetric(normalized) ?? (reportFormat ? "summary" : null);
 
   if (!metric) {
@@ -49,20 +49,22 @@ export function parseQuickPeriodQuery(normalized: string): AgentQuickPeriodQuery
 }
 
 export function resolveQuickPeriodRange(query: Extract<AgentQuickPeriodQuery, { type: "period" }>, now = new Date()): ResolvedRange {
+  const referenceDate = getSaoPauloCalendarDate(now);
+
   if (query.range === "today") {
-    const today = toDateInputValue(now);
+    const today = toDateInputValue(referenceDate);
     return { end: today, label: "hoje", prefix: "Hoje", start: today };
   }
 
   if (query.range === "yesterday") {
-    const yesterday = addDays(now, -1);
+    const yesterday = addDays(referenceDate, -1);
     const value = toDateInputValue(yesterday);
     return { end: value, label: "ontem", prefix: "Ontem", start: value };
   }
 
   if (query.range === "this_week") {
-    const start = startOfWeek(now);
-    const end = endOfWeek(now);
+    const start = startOfWeek(referenceDate);
+    const end = endOfWeek(referenceDate);
     return {
       end: toDateInputValue(end),
       label: "nesta semana",
@@ -72,7 +74,7 @@ export function resolveQuickPeriodRange(query: Extract<AgentQuickPeriodQuery, { 
   }
 
   if (query.range === "last_week") {
-    const lastWeekDay = addDays(startOfWeek(now), -1);
+    const lastWeekDay = addDays(startOfWeek(referenceDate), -1);
     const start = startOfWeek(lastWeekDay);
     const end = endOfWeek(lastWeekDay);
     return {
@@ -84,19 +86,29 @@ export function resolveQuickPeriodRange(query: Extract<AgentQuickPeriodQuery, { 
   }
 
   if (query.range === "this_month") {
-    const start = new Date(now.getFullYear(), now.getMonth(), 1);
-    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const start = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1);
+    const end = new Date(referenceDate.getFullYear(), referenceDate.getMonth() + 1, 0);
+    const label = formatMonthYear(referenceDate.getFullYear(), referenceDate.getMonth() + 1);
     return {
       end: toDateInputValue(end),
-      label: "neste mês",
-      prefix: "Neste mês",
+      label: `em ${label}`,
+      prefix: `Em ${label}`,
       start: toDateInputValue(start),
     };
   }
 
+  if (query.range === "last_month") {
+    const date = new Date(referenceDate.getFullYear(), referenceDate.getMonth() - 1, 1);
+    return resolveMonthRange(date.getFullYear(), date.getMonth() + 1);
+  }
+
+  if (query.range === "explicit_month" && query.month) {
+    return resolveMonthRange(query.year ?? referenceDate.getFullYear(), query.month);
+  }
+
   const days = Math.max(1, Math.min(query.days ?? 7, 31));
-  const start = addDays(now, -(days - 1));
-  const end = toDateInputValue(now);
+  const start = addDays(referenceDate, -(days - 1));
+  const end = toDateInputValue(referenceDate);
 
   return {
     end,
@@ -107,8 +119,9 @@ export function resolveQuickPeriodRange(query: Extract<AgentQuickPeriodQuery, { 
 }
 
 export function getCurrentMonthWeeks(now = new Date()) {
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const referenceDate = getSaoPauloCalendarDate(now);
+  const monthStart = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1);
+  const monthEnd = new Date(referenceDate.getFullYear(), referenceDate.getMonth() + 1, 0);
   const weeks: ResolvedRange[] = [];
   let cursor = startOfWeek(monthStart);
 
@@ -128,6 +141,20 @@ export function getCurrentMonthWeeks(now = new Date()) {
   }
 
   return weeks;
+}
+
+export function getSaoPauloCalendarDate(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+  }).formatToParts(now);
+  const year = Number(parts.find((part) => part.type === "year")?.value ?? now.getFullYear());
+  const month = Number(parts.find((part) => part.type === "month")?.value ?? now.getMonth() + 1);
+  const day = Number(parts.find((part) => part.type === "day")?.value ?? now.getDate());
+
+  return new Date(year, month - 1, day);
 }
 
 export function filterMovementsByRange(rows: MovementRow[], range: Pick<ResolvedRange, "end" | "start">) {
@@ -236,6 +263,16 @@ function parsePeriodRange(normalized: string): Omit<Extract<AgentQuickPeriodQuer
     return { days: Number(lastDays[1]), range: "last_days" };
   }
 
+  if (/\b(mes passado|ultimo mes|mes anterior)\b/.test(normalized)) {
+    return { range: "last_month" };
+  }
+
+  const explicitMonth = parseExplicitMonthRange(normalized);
+
+  if (explicitMonth) {
+    return explicitMonth;
+  }
+
   if (/\bhoje\b/.test(normalized)) {
     return { range: "today" };
   }
@@ -252,7 +289,7 @@ function parsePeriodRange(normalized: string): Omit<Extract<AgentQuickPeriodQuer
     return { range: "this_week" };
   }
 
-  if (/(este mes|esse mes|deste mes|desse mes|do mes|mes atual|neste mes|relatorio mensal|resumo mensal|\bmensal\b)/.test(normalized)) {
+  if (/(este mes|esse mes|deste mes|desse mes|do mes|meu mes|minha movimentacao do mes|mes atual|neste mes|relatorio mensal|resumo mensal|\bmensal\b)/.test(normalized)) {
     return { range: "this_month" };
   }
 
@@ -268,7 +305,7 @@ function parsePeriodMetric(normalized: string): AgentQuickPeriodQuery["metric"] 
     return "summary";
   }
 
-  if (/(sobrou|saldo|balance)/.test(normalized)) {
+  if (/(sobrou|saldo|balance|lucro|lucrei|resultado)/.test(normalized)) {
     return "balance";
   }
 
@@ -284,7 +321,7 @@ function parsePeriodMetric(normalized: string): AgentQuickPeriodQuery["metric"] 
 }
 
 function isQuickPeriodQuestion(normalized: string) {
-  return /^(quanto|qual|como|total|resumo|relatorio|fechamento|mostra|mostre|me mostra|me fala|gera|gerar|mande|manda|envia|enviar)\b/.test(normalized);
+  return /^(quanto|qual|como|total|resumo|relatorio|fechamento|mostra|mostre|me mostra|me fala|me faz|me faca|faz|faca|fazer|gera|gerar|mande|manda|me mande|me manda|envia|enviar)\b/.test(normalized);
 }
 
 function isPeriodReportQuestion(normalized: string) {
@@ -302,14 +339,14 @@ function buildPeriodReportReply(
   const topIncome = getTopMovement(rows, "entrada");
   const topExpense = getTopMovement(rows, "despesa");
   const topExpenseCategory = getTopCategory(rows, "despesa");
-  const title = `Relatorio ${range.label}`;
+  const title = getPeriodReportTitle(range);
 
   if (rows.length === 0) {
     return [
       title,
       `Periodo: ${formatRangeDates(range)}`,
       "",
-      "Nao encontrei movimentacoes nesse periodo.",
+      `Nao encontrei movimentacoes ${range.label}.`,
       "Quando voce registrar entradas e despesas, eu consigo montar o resumo por aqui.",
     ].join("\n");
   }
@@ -326,7 +363,45 @@ function buildPeriodReportReply(
     topIncome ? `Maior entrada: ${formatMovementHighlight(topIncome, "entrada")}` : "Maior entrada: nenhuma entrada no periodo.",
     topExpense ? `Maior despesa: ${formatMovementHighlight(topExpense, "despesa")}` : "Maior despesa: nenhuma despesa no periodo.",
     topExpenseCategory ? `Categoria com mais despesas: ${topExpenseCategory.category} (${toCurrency(topExpenseCategory.total)})` : null,
+    `Resumo: ${getPeriodBalanceSummary(balance)}`,
   ].filter(Boolean).join("\n");
+}
+
+function parseExplicitMonthRange(normalized: string): Omit<Extract<AgentQuickPeriodQuery, { type: "period" }>, "metric" | "type"> | null {
+  const numericMonthYear = normalized.match(/\b(0?[1-9]|1[0-2])[\/.-](20\d{2})\b/);
+
+  if (numericMonthYear) {
+    return {
+      month: Number(numericMonthYear[1]),
+      range: "explicit_month",
+      year: Number(numericMonthYear[2]),
+    };
+  }
+
+  const numericYearMonth = normalized.match(/\b(20\d{2})[\/.-](0?[1-9]|1[0-2])\b/);
+
+  if (numericYearMonth) {
+    return {
+      month: Number(numericYearMonth[2]),
+      range: "explicit_month",
+      year: Number(numericYearMonth[1]),
+    };
+  }
+
+  for (const month of portugueseMonths) {
+    const monthPattern = new RegExp(`\\b${month.normalized}\\b(?:\\s+(?:de\\s+)?(20\\d{2}))?`);
+    const match = normalized.match(monthPattern);
+
+    if (match) {
+      return {
+        month: month.value,
+        range: "explicit_month",
+        year: match[1] ? Number(match[1]) : undefined,
+      };
+    }
+  }
+
+  return null;
 }
 
 function getTopMovement(rows: MovementRow[], type: MovementRow["type"]) {
@@ -350,6 +425,62 @@ function getTopCategory(rows: MovementRow[], type: MovementRow["type"]) {
   return Array.from(totals.entries())
     .map(([category, total]) => ({ category, total }))
     .sort((left, right) => right.total - left.total)[0] ?? null;
+}
+
+function resolveMonthRange(year: number, month: number): ResolvedRange {
+  const start = new Date(year, month - 1, 1);
+  const end = new Date(year, month, 0);
+  const label = formatMonthYear(year, month);
+
+  return {
+    end: toDateInputValue(end),
+    label: `em ${label}`,
+    prefix: `Em ${label}`,
+    start: toDateInputValue(start),
+  };
+}
+
+function formatMonthYear(year: number, month: number) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    month: "long",
+    timeZone: "UTC",
+    year: "numeric",
+  }).format(new Date(Date.UTC(year, month - 1, 1)));
+}
+
+const portugueseMonths = [
+  { normalized: "janeiro", value: 1 },
+  { normalized: "fevereiro", value: 2 },
+  { normalized: "marco", value: 3 },
+  { normalized: "abril", value: 4 },
+  { normalized: "maio", value: 5 },
+  { normalized: "junho", value: 6 },
+  { normalized: "julho", value: 7 },
+  { normalized: "agosto", value: 8 },
+  { normalized: "setembro", value: 9 },
+  { normalized: "outubro", value: 10 },
+  { normalized: "novembro", value: 11 },
+  { normalized: "dezembro", value: 12 },
+];
+
+function getPeriodReportTitle(range: ResolvedRange) {
+  if (range.label.startsWith("em ")) {
+    return `Relatorio de ${range.label.slice(3)}`;
+  }
+
+  return `Relatorio ${range.label}`;
+}
+
+function getPeriodBalanceSummary(balance: number) {
+  if (balance > 0) {
+    return `o periodo ficou positivo em ${toCurrency(balance)}.`;
+  }
+
+  if (balance < 0) {
+    return `as despesas passaram das entradas em ${toCurrency(Math.abs(balance))}.`;
+  }
+
+  return "entradas e despesas ficaram empatadas no periodo.";
 }
 
 function formatMovementHighlight(row: MovementRow, type: MovementRow["type"]) {

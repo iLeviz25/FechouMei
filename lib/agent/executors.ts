@@ -30,6 +30,7 @@ import {
   buildWeeklyExtremeReply,
   filterMovementsByRange,
   getCurrentMonthWeeks,
+  getSaoPauloCalendarDate,
   resolveQuickPeriodRange,
   summarizeMovementRows,
 } from "@/lib/agent/period-queries";
@@ -604,7 +605,7 @@ export async function executeQuickPeriodQuery(context: AgentExecutionContext, qu
   const now = new Date();
 
   if (query.type === "weekly_extreme") {
-    const month = getCurrentMonthRange(now);
+    const month = getCurrentMonthRange(getSaoPauloCalendarDate(now));
     const weeks = getCurrentMonthWeeks(now);
     const movementType = query.metric === "income" ? "entrada" : "despesa";
     const rows = await fetchMovementsForDateRange(context, month, {
@@ -745,7 +746,7 @@ function logQuickPeriodTrace(payload: {
 }
 
 async function getMonthlySummary({ supabase, userId }: AgentExecutionContext) {
-  const month = getCurrentMonthRange();
+  const month = getCurrentMonthRange(getSaoPauloCalendarDate());
   const { data, error } = await supabase
     .from("movimentacoes")
     .select("type, amount")

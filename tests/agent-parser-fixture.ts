@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { classifyDeterministically, inferCorrectionFields } from "../lib/agent/classifier";
 import { runAgentTurnForContext } from "../lib/agent/orchestrator";
-import { buildQuickPeriodReply } from "../lib/agent/period-queries";
+import { buildQuickPeriodReply, resolveQuickPeriodRange } from "../lib/agent/period-queries";
 import { parseTransactionMessage, parseTransactionMessages } from "../lib/agent/transaction-parser";
 import type { MovementField, MovementType } from "../lib/agent/types";
 
@@ -294,6 +294,72 @@ if (naturalMonthlyReport?.periodQuery?.type !== "period") {
 assert.equal(naturalMonthlyReport.periodQuery.range, "this_month");
 assert.equal(naturalMonthlyReport.periodQuery.format, "report");
 
+const saoPauloReferenceNow = new Date("2026-05-28T15:00:00Z");
+
+const explicitAprilReport = classifyDeterministically("relatorio do mes de abril", idleState);
+assert.equal(explicitAprilReport?.action, "quick_period_query");
+assert.equal(explicitAprilReport?.periodQuery?.type, "period");
+if (explicitAprilReport?.periodQuery?.type !== "period") {
+  throw new Error("Expected explicit April report period query.");
+}
+assert.equal(explicitAprilReport.periodQuery.range, "explicit_month");
+assert.equal(explicitAprilReport.periodQuery.month, 4);
+assert.equal(explicitAprilReport.periodQuery.format, "report");
+assert.deepEqual(resolveQuickPeriodRange(explicitAprilReport.periodQuery, saoPauloReferenceNow), {
+  end: "2026-04-30",
+  label: "em abril de 2026",
+  prefix: "Em abril de 2026",
+  start: "2026-04-01",
+});
+
+const explicitApril2026Report = classifyDeterministically("relatorio de abril de 2026", idleState);
+assert.equal(explicitApril2026Report?.action, "quick_period_query");
+assert.equal(explicitApril2026Report?.periodQuery?.type, "period");
+if (explicitApril2026Report?.periodQuery?.type !== "period") {
+  throw new Error("Expected explicit April 2026 report period query.");
+}
+assert.equal(explicitApril2026Report.periodQuery.range, "explicit_month");
+assert.equal(explicitApril2026Report.periodQuery.month, 4);
+assert.equal(explicitApril2026Report.periodQuery.year, 2026);
+assert.equal(explicitApril2026Report.periodQuery.format, "report");
+
+const thisMonthReport = classifyDeterministically("relatorio desse mes", idleState);
+assert.equal(thisMonthReport?.action, "quick_period_query");
+assert.equal(thisMonthReport?.periodQuery?.type, "period");
+if (thisMonthReport?.periodQuery?.type !== "period") {
+  throw new Error("Expected this month report period query.");
+}
+assert.equal(thisMonthReport.periodQuery.range, "this_month");
+assert.deepEqual(resolveQuickPeriodRange(thisMonthReport.periodQuery, saoPauloReferenceNow), {
+  end: "2026-05-31",
+  label: "em maio de 2026",
+  prefix: "Em maio de 2026",
+  start: "2026-05-01",
+});
+
+const lastMonthReport = classifyDeterministically("relatorio do mes passado", idleState);
+assert.equal(lastMonthReport?.action, "quick_period_query");
+assert.equal(lastMonthReport?.periodQuery?.type, "period");
+if (lastMonthReport?.periodQuery?.type !== "period") {
+  throw new Error("Expected last month report period query.");
+}
+assert.equal(lastMonthReport.periodQuery.range, "last_month");
+assert.deepEqual(resolveQuickPeriodRange(lastMonthReport.periodQuery, saoPauloReferenceNow), {
+  end: "2026-04-30",
+  label: "em abril de 2026",
+  prefix: "Em abril de 2026",
+  start: "2026-04-01",
+});
+
+const requestedMonthlyReport = classifyDeterministically("me faca um relatorio mensal", idleState);
+assert.equal(requestedMonthlyReport?.action, "quick_period_query");
+assert.equal(requestedMonthlyReport?.periodQuery?.type, "period");
+if (requestedMonthlyReport?.periodQuery?.type !== "period") {
+  throw new Error("Expected requested monthly report period query.");
+}
+assert.equal(requestedMonthlyReport.periodQuery.range, "this_month");
+assert.equal(requestedMonthlyReport.periodQuery.format, "report");
+
 const reportReply = buildQuickPeriodReply(
   { format: "report", metric: "summary", range: "today", type: "period" },
   { end: "2026-05-27", label: "hoje", prefix: "Hoje", start: "2026-05-27" },
@@ -306,6 +372,14 @@ assert.match(reportReply, /Relatorio hoje/);
 assert.match(reportReply, /Entradas: R\$\s*500,00 \(1\)/);
 assert.match(reportReply, /Despesas: R\$\s*120,00 \(1\)/);
 assert.match(reportReply, /Maior despesa: R\$\s*120,00 com internet/);
+
+const emptyExplicitMonthReportReply = buildQuickPeriodReply(
+  { format: "report", metric: "summary", month: 4, range: "explicit_month", type: "period", year: 2026 },
+  { end: "2026-04-30", label: "em abril de 2026", prefix: "Em abril de 2026", start: "2026-04-01" },
+  [],
+);
+assert.match(emptyExplicitMonthReportReply, /Relatorio de abril de 2026/);
+assert.match(emptyExplicitMonthReportReply, /Nao encontrei movimentacoes em abril de 2026/);
 
 const interruption = classifyDeterministically("pera, antes disso, como tá meu mês?", pendingExpenseState);
 assert.equal(interruption?.kind, "interruption");
