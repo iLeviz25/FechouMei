@@ -346,27 +346,31 @@ function buildPeriodReportReply(
   if (rows.length === 0) {
     return [
       title,
-      `Periodo: ${formatRangeDates(range)}`,
       "",
-      `Nao encontrei movimentacoes ${range.label}.`,
-      "Quando voce registrar entradas e despesas, eu consigo montar o resumo por aqui.",
+      `Período: ${formatRangeDates(range)}`,
+      "",
+      `Não encontrei movimentações ${range.label}.`,
+      "Quando você registrar entradas e despesas, eu monto o resumo por aqui.",
     ].join("\n");
   }
 
   return [
     title,
-    `Periodo: ${formatRangeDates(range)}`,
     "",
-    `Entradas: ${toCurrency(totals.income)} (${incomeCount})`,
-    `Despesas: ${toCurrency(totals.expense)} (${expenseCount})`,
-    `Resultado: ${toCurrency(balance)}`,
-    `Movimentacoes: ${rows.length}`,
+    `Período: ${formatRangeDates(range)}`,
     "",
-    topIncome ? `Maior entrada: ${formatMovementHighlight(topIncome, "entrada")}` : "Maior entrada: nenhuma entrada no periodo.",
-    topExpense ? `Maior despesa: ${formatMovementHighlight(topExpense, "despesa")}` : "Maior despesa: nenhuma despesa no periodo.",
-    topExpenseCategory ? `Categoria com mais despesas: ${topExpenseCategory.category} (${toCurrency(topExpenseCategory.total)})` : null,
-    `Resumo: ${getPeriodBalanceSummary(balance)}`,
-  ].filter(Boolean).join("\n");
+    `✅ Entradas: ${toCurrency(totals.income)} (${incomeCount})`,
+    `🔻 Despesas: ${toCurrency(totals.expense)} (${expenseCount})`,
+    `💰 Resultado: ${toCurrency(balance)}`,
+    "",
+    `Movimentações registradas: ${rows.length}`,
+    "",
+    topIncome ? `Maior entrada: ${formatMovementHighlight(topIncome)}` : null,
+    topExpense ? `Maior despesa: ${formatMovementHighlight(topExpense)}` : null,
+    topExpenseCategory ? `Categoria com mais despesas: ${formatDisplayText(topExpenseCategory.category)} (${toCurrency(topExpenseCategory.total)})` : null,
+    "",
+    `Resumo: ${getPeriodBalanceSummary(range, balance)}`,
+  ].filter((line): line is string => line !== null).join("\n");
 }
 
 function parseExplicitMonthRange(normalized: string): Omit<Extract<AgentQuickPeriodQuery, { type: "period" }>, "metric" | "type"> | null {
@@ -467,29 +471,79 @@ const portugueseMonths = [
 
 function getPeriodReportTitle(range: ResolvedRange) {
   if (range.label.startsWith("em ")) {
-    return `Relatorio de ${range.label.slice(3)}`;
+    return `📊 Relatório de ${range.label.slice(3)}`;
   }
 
-  return `Relatorio ${range.label}`;
+  return `📊 Relatório ${range.label}`;
 }
 
-function getPeriodBalanceSummary(balance: number) {
+function getPeriodBalanceSummary(range: ResolvedRange, balance: number) {
+  const subject = getPeriodSummarySubject(range);
+
   if (balance > 0) {
-    return `o periodo ficou positivo em ${toCurrency(balance)}.`;
+    return `${subject} fechou positivo em ${toCurrency(balance)}.`;
   }
 
   if (balance < 0) {
-    return `as despesas passaram das entradas em ${toCurrency(Math.abs(balance))}.`;
+    return `${subject} fechou negativo em ${toCurrency(Math.abs(balance))}.`;
   }
 
-  return "entradas e despesas ficaram empatadas no periodo.";
+  return `${subject} fechou no zero a zero.`;
 }
 
-function formatMovementHighlight(row: MovementRow, type: MovementRow["type"]) {
-  const connector = type === "entrada" ? "de" : "com";
-  const description = row.description?.trim() || "sem descricao";
+function getPeriodSummarySubject(range: ResolvedRange) {
+  if (!range.label.startsWith("em ")) {
+    return range.label;
+  }
 
-  return `${toCurrency(row.amount)} ${connector} ${description}, em ${formatDate(row.occurred_on)}`;
+  const [month] = range.label.slice(3).split(" de ");
+  return month || "o período";
+}
+
+function formatMovementHighlight(row: MovementRow) {
+  const description = formatDisplayText(row.description, "Sem descrição");
+
+  return `${toCurrency(row.amount)} — ${description}`;
+}
+
+function formatDisplayText(value?: string | null, fallback = "Outros") {
+  const trimmed = value?.trim().replace(/\s+/g, " ") || fallback;
+  const sentence = shouldSentenceCase(trimmed)
+    ? trimmed.toLocaleLowerCase("pt-BR")
+    : trimmed;
+
+  return capitalizeFirstLetter(restoreCommonPortugueseAccents(sentence));
+}
+
+function shouldSentenceCase(value: string) {
+  return /[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ]/.test(value) && value === value.toLocaleUpperCase("pt-BR");
+}
+
+function capitalizeFirstLetter(value: string) {
+  return value.replace(/^(\p{Letter})/u, (letter) => letter.toLocaleUpperCase("pt-BR"));
+}
+
+function restoreCommonPortugueseAccents(value: string) {
+  return value
+    .replace(/\btransferencia\b/g, "transferência")
+    .replace(/\bmovimentacao\b/g, "movimentação")
+    .replace(/\bmovimentacoes\b/g, "movimentações")
+    .replace(/\bdescricao\b/g, "descrição")
+    .replace(/\bservico\b/g, "serviço")
+    .replace(/\bservicos\b/g, "serviços")
+    .replace(/\bmanutencao\b/g, "manutenção")
+    .replace(/\balimentacao\b/g, "alimentação")
+    .replace(/\bassessoria\b/g, "assessoria")
+    .replace(/\bcomissao\b/g, "comissão")
+    .replace(/\bcartao\b/g, "cartão")
+    .replace(/\bcredito\b/g, "crédito")
+    .replace(/\bdebito\b/g, "débito")
+    .replace(/\beletronico\b/g, "eletrônico")
+    .replace(/\bcombustivel\b/g, "combustível")
+    .replace(/\bpublicidade\b/g, "publicidade")
+    .replace(/\bpropaganda\b/g, "propaganda")
+    .replace(/\bcontabil\b/g, "contábil")
+    .replace(/\baluguel\b/g, "aluguel");
 }
 
 function formatRangeDates(range: Pick<ResolvedRange, "end" | "start">) {

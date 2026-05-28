@@ -409,18 +409,39 @@ const reportReply = buildQuickPeriodReply(
     { amount: 120, category: "Internet", description: "internet", occurred_on: "2026-05-27", type: "despesa" },
   ],
 );
-assert.match(reportReply, /Relatorio hoje/);
-assert.match(reportReply, /Entradas: R\$\s*500,00 \(1\)/);
-assert.match(reportReply, /Despesas: R\$\s*120,00 \(1\)/);
-assert.match(reportReply, /Maior despesa: R\$\s*120,00 com internet/);
+assert.match(reportReply, /📊 Relatório hoje/);
+assert.match(reportReply, /Período: 27\/05\/2026/);
+assert.match(reportReply, /✅ Entradas: R\$\s*500,00 \(1\)/);
+assert.match(reportReply, /🔻 Despesas: R\$\s*120,00 \(1\)/);
+assert.match(reportReply, /💰 Resultado: R\$\s*380,00/);
+assert.match(reportReply, /Movimentações registradas: 2/);
+assert.match(reportReply, /Maior entrada: R\$\s*500,00 — Cliente Ana/);
+assert.match(reportReply, /Maior despesa: R\$\s*120,00 — Internet/);
+
+const prettyExplicitMonthReportReply = buildQuickPeriodReply(
+  { format: "report", metric: "summary", month: 4, range: "explicit_month", type: "period", year: 2026 },
+  { end: "2026-04-30", label: "em abril de 2026", prefix: "Em abril de 2026", start: "2026-04-01" },
+  [
+    { amount: 5000, category: "AJUSTE", description: "SALDO INICIAL", occurred_on: "2026-04-01", type: "entrada" },
+    { amount: 1000, category: "CLIENTES", description: "CLIENTE ANA", occurred_on: "2026-04-10", type: "entrada" },
+    { amount: 2200, category: "ALUGUEL", description: "TRANSFERENCIA ENVIADA PRESTADOR", occurred_on: "2026-04-17", type: "despesa" },
+    { amount: 1400, category: "ALUGUEL", description: "ALUGUEL SALA COMERCIAL", occurred_on: "2026-04-22", type: "despesa" },
+  ],
+);
+assert.match(prettyExplicitMonthReportReply, /📊 Relatório de abril de 2026/);
+assert.match(prettyExplicitMonthReportReply, /Período: 01\/04\/2026 a 30\/04\/2026/);
+assert.match(prettyExplicitMonthReportReply, /Maior entrada: R\$\s*5\.000,00 — Saldo inicial/);
+assert.match(prettyExplicitMonthReportReply, /Maior despesa: R\$\s*2\.200,00 — Transferência enviada prestador/);
+assert.match(prettyExplicitMonthReportReply, /Categoria com mais despesas: Aluguel \(R\$\s*3\.600,00\)/);
+assert.match(prettyExplicitMonthReportReply, /Resumo: abril fechou positivo em R\$\s*2\.400,00\./);
 
 const emptyExplicitMonthReportReply = buildQuickPeriodReply(
   { format: "report", metric: "summary", month: 4, range: "explicit_month", type: "period", year: 2026 },
   { end: "2026-04-30", label: "em abril de 2026", prefix: "Em abril de 2026", start: "2026-04-01" },
   [],
 );
-assert.match(emptyExplicitMonthReportReply, /Relatorio de abril de 2026/);
-assert.match(emptyExplicitMonthReportReply, /Nao encontrei movimentacoes em abril de 2026/);
+assert.match(emptyExplicitMonthReportReply, /📊 Relatório de abril de 2026/);
+assert.match(emptyExplicitMonthReportReply, /Não encontrei movimentações em abril de 2026/);
 
 const interruption = classifyDeterministically("pera, antes disso, como tá meu mês?", pendingExpenseState);
 assert.equal(interruption?.kind, "interruption");
@@ -448,9 +469,9 @@ async function runConversationChecks() {
   ]) {
     const result = await runWhatsAppTextTurn(fakeContext, message);
 
-    assert.match(result.reply, new RegExp(`Relatorio de abril de ${reportYear}`), message);
-    assert.match(result.reply, new RegExp(`Periodo: 01/04/${reportYear} a 30/04/${reportYear}`), message);
-    assert.doesNotMatch(result.reply, new RegExp(`Relatorio de maio de ${reportYear}`), message);
+    assert.match(result.reply, new RegExp(`Relatório de abril de ${reportYear}`), message);
+    assert.match(result.reply, new RegExp(`Período: 01/04/${reportYear} a 30/04/${reportYear}`), message);
+    assert.doesNotMatch(result.reply, new RegExp(`Relatório de maio de ${reportYear}`), message);
   }
 
   const profitResult = await runWhatsAppTextTurn(fakeContext, "Quanto lucrei em abril?");
