@@ -17,7 +17,10 @@ type ResolvedRange = {
 };
 
 export function parseQuickPeriodQuery(normalized: string): AgentQuickPeriodQuery | null {
-  if (!isQuickPeriodQuestion(normalized)) {
+  const reportFormat = isPeriodReportQuestion(normalized);
+  const range = parsePeriodRange(normalized);
+
+  if (!isQuickPeriodQuestion(normalized) && !(range && reportFormat)) {
     return null;
   }
 
@@ -27,10 +30,9 @@ export function parseQuickPeriodQuery(normalized: string): AgentQuickPeriodQuery
     return weeklyExtreme;
   }
 
-  const reportFormat = isPeriodReportQuestion(normalized);
-  const range = parsePeriodRange(normalized) ?? (reportFormat ? { range: "this_month" as const } : null);
+  const resolvedRange = range ?? (reportFormat ? { range: "this_month" as const } : null);
 
-  if (!range) {
+  if (!resolvedRange) {
     return null;
   }
 
@@ -41,7 +43,7 @@ export function parseQuickPeriodQuery(normalized: string): AgentQuickPeriodQuery
   }
 
   return {
-    ...range,
+    ...resolvedRange,
     format: reportFormat ? "report" : undefined,
     metric,
     type: "period",

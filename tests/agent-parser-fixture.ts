@@ -366,6 +366,7 @@ for (const message of [
   "Me faça um relatório de abril",
   "Relatório do mês de abril",
   "Quero meu relatório de abril",
+  "Meu relatório de abril",
 ]) {
   const report = classifyDeterministically(message, idleState);
   assert.equal(report?.action, "quick_period_query", message);
@@ -443,6 +444,7 @@ async function runConversationChecks() {
     "Me faça um relatório de abril",
     "Relatório do mês de abril",
     "Quero meu relatório de abril",
+    "Meu relatório de abril",
   ]) {
     const result = await runWhatsAppTextTurn(fakeContext, message);
 
