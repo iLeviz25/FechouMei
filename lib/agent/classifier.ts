@@ -20,6 +20,7 @@ import {
 } from "@/lib/agent/transaction-parser";
 import { parseQuickPeriodQuery } from "@/lib/agent/period-queries";
 import { parseSpecificMovementQuery } from "@/lib/agent/movement-queries";
+import { formatDisplayTextForWhatsApp } from "@/lib/agent/replies";
 import { normalizeSpokenAgentMessage } from "@/lib/agent/spoken-text";
 import { detectConfirmation, parseAmountFromText, toCurrency } from "@/lib/agent/utils";
 
@@ -847,7 +848,7 @@ function getConversationalReply(normalized: string) {
   }
 
   if (/(me salvou|salvou demais|voce me ajudou|você me ajudou)/.test(plain)) {
-    return "Boa! Fico feliz em ajudar. Quando quiser, é só me mandar as entradas e gastos do seu jeito.";
+    return "Boa! Fico feliz em ajudar. Quando quiser, é só me mandar as entradas e despesas do seu jeito.";
   }
 
   if (/(nao entendi nada|não entendi nada|confuso|confusa|to perdido|tô perdido|estou perdido|aff|que saco)/.test(plain)) {
@@ -867,15 +868,15 @@ function getConversationalReply(normalized: string) {
   }
 
   if (/(quem ganhou|placar|jogo ontem|resultado do jogo|futebol|campeonato)/.test(plain)) {
-    return "Essa eu não consigo acompanhar por aqui. Mas se quiser saber como ficou seu mês, seus gastos ou suas obrigações, eu te ajudo rapidinho.";
+    return "Essa eu não consigo acompanhar por aqui. Mas posso te ajudar com seu mês, suas despesas ou suas obrigações.";
   }
 
   if (/(sentido da vida|qual a vida|universo)/.test(plain)) {
-    return "Essa é grande demais para mim. No FechouMEI eu resolvo melhor entradas, gastos, resumo do mês e obrigações.";
+    return "Essa é grande demais para mim. No FechouMEI eu resolvo melhor entradas, despesas, resumo do mês e obrigações.";
   }
 
   if (plain === "voce" || plain === "vc" || /(voce|vc).*(ai|aqui|online|por aqui)/.test(plain)) {
-    return "Tô sim. Me manda o que você quer registrar ou consultar.";
+    return "Tô sim. Me manda o que você quer registrar, consultar ou conferir no FechouMEI.";
   }
 
   if (/^bom dia\b/.test(normalized)) {
@@ -891,7 +892,7 @@ function getConversationalReply(normalized: string) {
   }
 
   if (/^(oi|ola|ol.|e ai|e a.)\b/.test(normalized)) {
-    return "Oi! Me manda o que você precisa registrar ou consultar.";
+    return "Oi! Sou a Helena. Me diga se quer registrar algo, consultar seu mês ou ver um relatório.";
   }
 
   if (/^(oi|ola|olá|e ai|e aí|bom dia|boa tarde|boa noite)\b/.test(normalized)) {
@@ -907,7 +908,7 @@ function getConversationalReply(normalized: string) {
   }
 
   if (/(obrigad|valeu|show|boa)/.test(normalized)) {
-    return "Boa! Quando quiser, é só me mandar as entradas e gastos do seu jeito.";
+    return "Boa! Quando quiser, é só me mandar as entradas e despesas do seu jeito.";
   }
 
   return null;
@@ -922,8 +923,8 @@ function getCategoryCatalogReply(normalized: string) {
     return null;
   }
 
-  const categories = getOfficialMovementCategories().map((category) => category.toLocaleUpperCase("pt-BR"));
-  return `As categorias do app são: ${categories.join(", ")}. Use OUTRO só quando não encaixar em nenhuma delas.`;
+  const categories = getOfficialMovementCategories().map((category) => formatDisplayTextForWhatsApp(category));
+  return `As categorias do app são: ${categories.join(", ")}. Use Outro só quando não encaixar em nenhuma delas.`;
 }
 
 function isCapabilitiesQuestion(normalized: string) {

@@ -36,13 +36,13 @@ const defaultRuntimeSettings: AgentRuntimeSettings = {
 };
 
 const helenaDisabledReply =
-  "A Helena esta temporariamente indisponivel. Tente novamente em instantes.";
+  "A Helena está temporariamente indisponível.\nPode tentar novamente em instantes?";
 const maintenanceReply =
-  "A Helena esta em manutencao rapida agora. Tente novamente em instantes.";
+  "A Helena está em manutenção rápida agora.\nPode tentar novamente em instantes?";
 const whatsappDisabledReply =
-  "O canal WhatsApp da Helena esta temporariamente indisponivel. Voce ainda pode usar a Helena dentro do app.";
+  "O WhatsApp da Helena está temporariamente indisponível.\nVocê ainda pode usar a Helena dentro do app.";
 const dailyLimitReply =
-  "Voce atingiu o limite diario de mensagens da Helena. Tente novamente amanha.";
+  "Você atingiu o limite diário de mensagens da Helena.\nPode tentar novamente amanhã.";
 
 export async function getAgentRuntimeSettings(
   supabase: SupabaseClient<Database>,

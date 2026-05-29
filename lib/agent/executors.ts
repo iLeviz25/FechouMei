@@ -20,6 +20,7 @@ import {
   toCurrency,
   toDateInputValue,
 } from "@/lib/agent/utils";
+import { formatDisplayTextForWhatsApp } from "@/lib/agent/replies";
 import {
   buildOccurredAtFromDateInput,
   normalizeMovementCategory,
@@ -210,7 +211,7 @@ export async function executeTransactionDeletion(
   revalidatePath("/app/fechamento-mensal");
   revalidatePath("/app/movimentacoes");
 
-  return `Pronto, excluí a movimentação: ${formatMovementForDeletion(target)}.`;
+  return `Pronto, excluí esta movimentação:\n${formatMovementForDeletion(target)}.`;
 }
 
 export function formatMovementForDeletion(target: AgentDeleteTarget) {
@@ -219,13 +220,13 @@ export function formatMovementForDeletion(target: AgentDeleteTarget) {
   const dateLabel = formatDateLabel(target.occurred_on);
   const datePart = dateLabel === "hoje" ? "hoje" : `em ${dateLabel}`;
 
-  return `${typeLabel} de ${toCurrency(target.amount)} ${connector} ${target.description}, ${datePart}`;
+  return `${typeLabel} de ${toCurrency(target.amount)} ${connector} ${formatDisplayTextForWhatsApp(target.description, "Sem descrição")}, ${datePart}`;
 }
 
 export function formatMovementForReply(target: AgentDeleteTarget) {
   const typeLabel = target.type === "entrada" ? "entrada" : "despesa";
   const connector = target.type === "entrada" ? "de" : "com";
-  return `${typeLabel} de ${toCurrency(target.amount)} ${connector} ${target.description}, ${formatDateLabel(target.occurred_on)}`;
+  return `${typeLabel} de ${toCurrency(target.amount)} ${connector} ${formatDisplayTextForWhatsApp(target.description, "Sem descrição")}, ${formatDateLabel(target.occurred_on)}`;
 }
 
 export async function getLatestTransactionReply(
@@ -238,7 +239,7 @@ export async function getLatestTransactionReply(
     return getMissingLatestMovementReply(target);
   }
 
-  return `Sua última ${getTargetLabel(target, movement.type)} foi: ${formatMovementForReply(movement)}.`;
+  return `Sua última ${getTargetLabel(target, movement.type)} foi:\n${formatMovementForReply(movement)}.`;
 }
 
 type SpecificMovementRow = AgentDeleteTarget & {
@@ -382,7 +383,7 @@ function getTransactionEditSuccessReply(
   }
 
   if (changedFields.length === 1 && edit.description) {
-    return `Pronto, troquei a descrição da sua ${targetLabel} para ${updated.description}.`;
+    return `Pronto, troquei a descrição da sua ${targetLabel} para ${formatDisplayTextForWhatsApp(updated.description, "Sem descrição")}.`;
   }
 
   if (changedFields.length === 1 && edit.category) {
@@ -436,7 +437,7 @@ function getEditTargetLabel(targetKind: TransactionTargetKind) {
 }
 
 function formatCategoryForReply(category: string) {
-  return category.trim().toLowerCase();
+  return formatDisplayTextForWhatsApp(category);
 }
 
 function formatEditedFieldsForReply(edit: AgentTransactionEditDraft) {
@@ -501,10 +502,10 @@ export async function getReminderPreferencesStatus(context: AgentExecutionContex
   const active = reminderKeys.filter((key) => preferences[key]);
 
   if (active.length === 0) {
-    return "Seus lembretes estão desativados. Eles ficam salvos como preferência, mas ainda não enviam notificações externas.";
+    return "Seus lembretes estão desativados no app. Quando quiser, posso ativar essa preferência por aqui.";
   }
 
-  return `Lembretes ativos: ${active.map((key) => reminderLabels[key]).join(", ")}. Ainda não há envio externo nesta etapa.`;
+  return `Lembretes ativos no app: ${active.map((key) => reminderLabels[key]).join(", ")}.`;
 }
 
 export async function executeReminderPreferencesUpdate(
@@ -544,7 +545,7 @@ export async function executeReminderPreferencesUpdate(
   revalidatePath("/app/obrigacoes");
 
   return update.enabled
-    ? "Pronto, ativei seus lembretes no app. Ainda não há envio externo nesta etapa."
+    ? "Pronto, ativei seus lembretes no app."
     : "Pronto, desativei seus lembretes.";
 }
 
@@ -570,7 +571,7 @@ export async function executeInitialBalanceUpdate(context: AgentExecutionContext
   revalidatePath("/app/movimentacoes");
   revalidatePath("/app/configuracoes");
 
-  return `Pronto, ajustei seu saldo atual para ${toCurrency(normalizedAmount)}. Isso não entrou como receita nem afeta o limite do MEI.`;
+  return `Pronto, ajustei seu saldo atual para ${toCurrency(normalizedAmount)}.\nIsso não entrou como receita e não afeta o limite do MEI.`;
 }
 
 export async function executeReadAction(context: AgentExecutionContext, actionId: AgentActionId) {
@@ -761,7 +762,13 @@ async function getMonthlySummary({ supabase, userId }: AgentExecutionContext) {
   const totals = summarizeMovements(data ?? []);
   const balance = totals.income - totals.expense;
 
-  return `Em ${month.label}: entradas ${toCurrency(totals.income)}, despesas ${toCurrency(totals.expense)} e resultado do mês ${toCurrency(balance)}.`;
+  return [
+    `Resumo de ${month.label}:`,
+    "",
+    `Entradas: ${toCurrency(totals.income)}`,
+    `Despesas: ${toCurrency(totals.expense)}`,
+    `Resultado do mês: ${toCurrency(balance)}`,
+  ].join("\n");
 }
 
 async function getDashboardOverview(context: AgentExecutionContext) {
@@ -811,7 +818,15 @@ async function getDashboardOverview(context: AgentExecutionContext) {
   const monthBalance = totals.monthlyIncome - totals.monthlyExpense;
   const cashBalance = getCashBalance(initialBalance, allResult.data ?? []);
 
-  return `Visão geral: ${toCurrency(totals.monthlyIncome)} em entradas do mês, ${toCurrency(totals.monthlyExpense)} em despesas do mês, resultado do mês ${toCurrency(monthBalance)}, saldo atual ${toCurrency(cashBalance)} e faturamento anual ${toCurrency(totals.annualIncome)}.`;
+  return [
+    "Visão geral do FechouMEI:",
+    "",
+    `Entradas do mês: ${toCurrency(totals.monthlyIncome)}`,
+    `Despesas do mês: ${toCurrency(totals.monthlyExpense)}`,
+    `Resultado do mês: ${toCurrency(monthBalance)}`,
+    `Saldo atual: ${toCurrency(cashBalance)}`,
+    `Faturamento anual: ${toCurrency(totals.annualIncome)}`,
+  ].join("\n");
 }
 
 async function getMeiLimit({ supabase, userId }: AgentExecutionContext) {
@@ -832,7 +847,11 @@ async function getMeiLimit({ supabase, userId }: AgentExecutionContext) {
   const remaining = Math.max(MEI_ANNUAL_LIMIT - annualIncome, 0);
   const usedPercent = Math.min((annualIncome / MEI_ANNUAL_LIMIT) * 100, 100);
 
-  return `Você usou ${usedPercent.toFixed(1).replace(".", ",")}% do limite do MEI: ${toCurrency(annualIncome)} no ano e ${toCurrency(remaining)} restantes.`;
+  return [
+    `Você usou ${usedPercent.toFixed(1).replace(".", ",")}% do limite anual do MEI.`,
+    `Faturamento no ano: ${toCurrency(annualIncome)}`,
+    `Ainda disponível: ${toCurrency(remaining)}`,
+  ].join("\n");
 }
 
 async function getObligationsStatus({ supabase, userId }: AgentExecutionContext) {
@@ -856,7 +875,11 @@ async function getObligationsStatus({ supabase, userId }: AgentExecutionContext)
     return "Suas obrigações do mês estão marcadas como concluídas.";
   }
 
-  return `Pendências principais: ${pending.slice(0, 4).join(", ")}${pending.length > 4 ? "..." : "."}`;
+  return [
+    "Pendências principais deste mês:",
+    ...pending.slice(0, 4).map((label) => `• ${label}`),
+    pending.length > 4 ? "• Mais itens pendentes no app." : null,
+  ].filter((line): line is string => Boolean(line)).join("\n");
 }
 
 async function getRecentTransactions({ supabase, userId }: AgentExecutionContext) {
@@ -876,17 +899,32 @@ async function getRecentTransactions({ supabase, userId }: AgentExecutionContext
     return "Você ainda não tem movimentações registradas.";
   }
 
-  const items = data.map((movement) => {
+  const items = data.map((movement, index) => {
     const typeLabel = movement.type === "entrada" ? "entrada" : "despesa";
     const connector = movement.type === "entrada" ? "de" : "com";
-    return `${typeLabel} de ${toCurrency(movement.amount)} ${connector} ${movement.description}`;
+    return `${index + 1}. ${typeLabel} de ${toCurrency(movement.amount)} ${connector} ${formatDisplayTextForWhatsApp(movement.description, "Sem descrição")}`;
   });
 
-  return `Seus últimos registros foram: ${items.join("; ")}.`;
+  return ["Seus últimos registros:", ...items].join("\n");
 }
 
 function getMovementRegistrationReply(draft: Required<AgentMovementDraft>) {
-  return `Pronto. Registrei ${formatSavedMovementSummary(draft)}.`;
+  const description = formatDisplayTextForWhatsApp(draft.description, "Sem descrição");
+  const dateLabel = formatDateLabel(draft.occurred_on);
+
+  if (draft.type === "entrada") {
+    return [
+      `Pronto, registrei essa entrada de ${toCurrency(draft.amount)}.`,
+      `Descrição: ${description}`,
+      `Data: ${dateLabel}`,
+    ].join("\n");
+  }
+
+  return [
+    `Pronto, registrei essa despesa de ${toCurrency(draft.amount)} com ${description}.`,
+    `Data: ${dateLabel}`,
+    "Ela já entrou no controle deste mês.",
+  ].join("\n");
 }
 
 function getMovementBatchRegistrationReply(movements: AgentDeleteTarget[]) {
@@ -896,16 +934,16 @@ function getMovementBatchRegistrationReply(movements: AgentDeleteTarget[]) {
 
   const items = movements.map((movement, index) => `${index + 1}. ${formatSavedMovementSummary(movement)}`);
 
-  return `Pronto. Registrei ${movements.length} movimentações:\n${items.join("\n")}`;
+  return `Pronto, registrei ${movements.length} movimentações:\n${items.join("\n")}`;
 }
 
 function formatSavedMovementSummary(movement: Pick<AgentDeleteTarget, "amount" | "description" | "occurred_on" | "type">) {
-  const typeLabel = movement.type === "entrada" ? "uma entrada" : "uma despesa";
+  const typeLabel = movement.type === "entrada" ? "entrada" : "despesa";
   const connector = movement.type === "entrada" ? "de" : "com";
   const dateLabel = formatDateLabel(movement.occurred_on);
   const date = dateLabel === "hoje" ? "" : ` com data de ${dateLabel}`;
 
-  return `${typeLabel} de ${toCurrency(movement.amount)} ${connector} ${movement.description}${date}`;
+  return `${typeLabel} de ${toCurrency(movement.amount)} ${connector} ${formatDisplayTextForWhatsApp(movement.description, "Sem descrição")}${date}`;
 }
 
 async function getOrCreateReminderPreferences(context: AgentExecutionContext) {
@@ -991,17 +1029,17 @@ function getSpecificMovementReply(query: AgentSpecificMovementQuery, movement: S
   }
 
   const connector = movement.type === "entrada" ? "de" : "com";
-  return `${descriptor} foi ${toCurrency(movement.amount)} ${connector} ${movement.description}, em ${formatDateLabel(movement.occurred_on)}.`;
+  return `${descriptor} foi ${toCurrency(movement.amount)} ${connector} ${formatDisplayTextForWhatsApp(movement.description, "Sem descrição")}, em ${formatDateLabel(movement.occurred_on)}.`;
 }
 
 function getSpecificMovementListReply(query: AgentSpecificMovementQuery, rows: SpecificMovementRow[]) {
   const label = getQueryTargetLabel(query);
   const items = rows.map((row, index) => {
     const connector = row.type === "entrada" ? "de" : "com";
-    return `${index + 1}. ${toCurrency(row.amount)} ${connector} ${row.description}, ${formatDateLabel(row.occurred_on)}`;
+    return `${index + 1}. ${toCurrency(row.amount)} ${connector} ${formatDisplayTextForWhatsApp(row.description, "Sem descrição")}, ${formatDateLabel(row.occurred_on)}`;
   });
 
-  return `Encontrei estas ${label}: ${items.join("; ")}.`;
+  return [`Encontrei estas ${label}:`, ...items].join("\n");
 }
 
 function getSpecificMovementNotFoundReply(query: AgentSpecificMovementQuery) {
@@ -1042,7 +1080,7 @@ function getQueryFilterLabel(query: AgentSpecificMovementQuery) {
   }
 
   if (query.category) {
-    return ` de ${query.category.toLocaleUpperCase("pt-BR")}`;
+    return ` de ${formatDisplayTextForWhatsApp(query.category)}`;
   }
 
   if (query.month) {

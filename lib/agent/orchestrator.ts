@@ -72,6 +72,12 @@ import {
   toCurrency,
   toDateInputValue,
 } from "@/lib/agent/utils";
+import {
+  formatDisplayTextForWhatsApp,
+  helenaBasicFallbackReply,
+  helenaEmptyMessageReply,
+  helenaInstabilityReply,
+} from "@/lib/agent/replies";
 
 type RunAgentTurnInput = {
   channel?: AgentConversationChannel;
@@ -95,7 +101,7 @@ type CompoundExpenseHandling =
 
 type SplitOrCombinedChoice = "combined" | "split";
 
-const agentInstabilityReply = "Tive uma instabilidade agora para entender sua mensagem. Pode tentar de novo em instantes?";
+const agentInstabilityReply = helenaInstabilityReply;
 
 export async function runAgentTurn({ channel = "playground", message, state }: RunAgentTurnInput): Promise<AgentTurnResult> {
   const trimmedMessage = message.trim();
@@ -103,7 +109,7 @@ export async function runAgentTurn({ channel = "playground", message, state }: R
 
   if (!trimmedMessage) {
     return {
-      reply: "Me diga o que você quer fazer no FechouMEI.",
+      reply: helenaEmptyMessageReply,
       state: currentState,
     };
   }
@@ -229,7 +235,7 @@ export async function runAgentTurnForContext({
 
   if (!trimmedMessage) {
     return {
-      reply: "Me diga o que você quer fazer no FechouMEI.",
+      reply: helenaEmptyMessageReply,
       state: currentState,
     };
   }
@@ -390,7 +396,7 @@ async function handleDeterministicClassification({
   if (result.kind === "cancelation") {
     return {
       actionTrace: getCancellationTrace(currentState),
-      reply: currentState.status === "idle" ? "Tudo bem. Não havia nada pendente." : "Combinado, cancelei o rascunho pendente.",
+      reply: currentState.status === "idle" ? "Tudo bem. Não havia nada pendente." : "Combinado, cancelei o rascunho que estava pendente.",
       state: emptyAgentState(),
     };
   }
@@ -398,7 +404,7 @@ async function handleDeterministicClassification({
   if (result.kind === "confirmation") {
     if (currentState.expectedResponseKind === "choose_split_or_combined") {
       return {
-        reply: "Me diga se quer lançar junto ou separado.",
+        reply: "Me diga se quer lançar tudo junto ou separar os registros.",
         state: currentState,
       };
     }
@@ -482,7 +488,7 @@ async function handleDeterministicClassification({
   if (result.action === "delete_transaction") {
     if (currentState.status !== "idle") {
       return {
-        reply: "Você já tem um rascunho pendente. Cancele o rascunho antes de excluir uma movimentação.",
+        reply: "Você já tem um rascunho pendente. Cancele ou salve esse rascunho antes de excluir uma movimentação.",
         state: currentState,
       };
     }
@@ -503,7 +509,7 @@ async function handleDeterministicClassification({
         actionTrace: makeActionTrace("mark_obligation", "collecting", {
           summary: "Coletando qual obrigação marcar.",
         }),
-        reply: "Qual obrigação você quer marcar: DAS, entradas, despesas, fechamento ou comprovantes?",
+        reply: "Qual obrigação você quer marcar como concluída: DAS, entradas, despesas, fechamento ou comprovantes?",
         state: makeAgentState({
           pendingAction: "mark_obligation",
           status: "collecting",
@@ -526,7 +532,7 @@ async function handleDeterministicClassification({
       return makeWriteFailureResult({
         action: "mark_obligation",
         error,
-        reply: "Não consegui marcar essa obrigação agora. Tente novamente em instantes.",
+        reply: "Não consegui marcar essa obrigação agora.\nPode tentar novamente em instantes?",
         summary: "Falha ao marcar obrigação.",
       });
     }
@@ -568,7 +574,7 @@ async function handleDeterministicClassification({
       return makeWriteFailureResult({
         action: "update_reminder_preferences",
         error,
-        reply: "Não consegui atualizar seus lembretes agora. Tente novamente em instantes.",
+        reply: "Não consegui atualizar seus lembretes agora.\nPode tentar novamente em instantes?",
         summary: "Falha ao atualizar preferências de lembrete.",
       });
     }
@@ -738,7 +744,7 @@ async function handleCorrectionTurn({
     }
 
     return {
-      reply: "Não tenho um rascunho para corrigir agora. Me diga o que você quer registrar ou consultar.",
+      reply: "Não tenho um rascunho para corrigir agora.\nMe diga o que você quer registrar ou consultar.",
       state: currentState,
     };
   }
@@ -747,7 +753,7 @@ async function handleCorrectionTurn({
 
   if (Object.keys(correction).length === 0) {
     return {
-      reply: "O que você quer corrigir no rascunho: valor, descrição ou categoria?",
+      reply: "O que você quer corrigir no rascunho: valor, descrição, categoria ou data?",
       state: currentState,
     };
   }
@@ -809,14 +815,14 @@ async function handleModelInterpretation({
 
   if (interpretation.kind === "greeting") {
     return {
-      reply: "Oi! Me manda o que você precisa registrar ou consultar.",
+      reply: "Oi! Sou a Helena. Me diga se quer registrar algo, consultar seu mês ou ver um relatório.",
       state: currentState,
     };
   }
 
   if (interpretation.kind === "small_talk") {
     return {
-      reply: "Tô por aqui. Meu foco é te ajudar com registros, consultas e rotina do MEI.",
+      reply: "Tô por aqui. Posso te ajudar com registros, relatórios e rotina do MEI.",
       state: currentState,
     };
   }
@@ -839,7 +845,7 @@ async function handleModelInterpretation({
 
   if (interpretation.action === "unknown" || interpretation.confidence === "low") {
     return {
-      reply: "Não peguei direitinho. Você pode me pedir para registrar entrada ou despesa, ver resumo do mês, limite do MEI, pendências ou últimos registros.",
+      reply: helenaBasicFallbackReply,
       state: currentState,
     };
   }
@@ -863,7 +869,7 @@ async function handleModelInterpretation({
   if (interpretation.action === "delete_transaction") {
     if (currentState.status !== "idle") {
       return {
-        reply: "Você já tem um rascunho pendente. Cancele o rascunho antes de excluir uma movimentação.",
+        reply: "Você já tem um rascunho pendente. Cancele ou salve esse rascunho antes de excluir uma movimentação.",
         state: currentState,
       };
     }
@@ -876,7 +882,7 @@ async function handleModelInterpretation({
       actionTrace: makeActionTrace("mark_obligation", "collecting", {
         summary: "Coletando qual obrigação marcar.",
       }),
-      reply: "Qual obrigação você quer marcar: DAS, entradas, despesas, fechamento ou comprovantes?",
+        reply: "Qual obrigação você quer marcar como concluída: DAS, entradas, despesas, fechamento ou comprovantes?",
       state: makeAgentState({
         pendingAction: "mark_obligation",
         status: "collecting",
@@ -909,7 +915,7 @@ async function handleModelInterpretation({
 
   if (interpretation.action === "register_movements_batch") {
     return {
-      reply: "Me mande as entradas e despesas com valor e descrição para eu preparar uma confirmação única.",
+      reply: "Pode me mandar as entradas e despesas com valor e descrição. Eu preparo tudo para você confirmar antes de salvar.",
       state: currentState,
     };
   }
@@ -1002,7 +1008,7 @@ async function handleConfirmationTurn({
         action: "delete_transaction",
         confirmation: "confirmed",
         error,
-        reply: "Não consegui excluir essa movimentação agora. Tente novamente em instantes.",
+        reply: "Não consegui excluir essa movimentação agora.\nPode tentar novamente em instantes?",
         state,
         summary: "Falha ao excluir a movimentação pendente.",
       });
@@ -1074,7 +1080,7 @@ async function handleConfirmationTurn({
       action: state.pendingAction,
       confirmation: "confirmed",
       error,
-      reply: "Não consegui salvar essa movimentação agora. Tente novamente em instantes.",
+      reply: "Não consegui salvar essa movimentação agora.\nPode tentar novamente em instantes?",
       state,
       summary: `Falha ao registrar ${type}.`,
     });
@@ -1167,7 +1173,7 @@ async function handleCollectingTurn({
         return makeWriteFailureResult({
           action: "mark_obligation",
           error,
-          reply: "Não consegui marcar essa obrigação agora. Tente novamente em instantes.",
+          reply: "Não consegui marcar essa obrigação agora.\nPode tentar novamente em instantes?",
           state,
           summary: "Falha ao marcar obrigação.",
         });
@@ -1202,7 +1208,7 @@ async function handleCollectingTurn({
         return makeWriteFailureResult({
           action: "update_reminder_preferences",
           error,
-          reply: "Não consegui atualizar seus lembretes agora. Tente novamente em instantes.",
+          reply: "Não consegui atualizar seus lembretes agora.\nPode tentar novamente em instantes?",
           state,
           summary: "Falha ao atualizar preferências de lembrete.",
         });
@@ -1745,12 +1751,13 @@ function getCorrectionFeedbackReply({
 
 function getTypeCorrectionConfirmationLead(type: MovementType, draft: AgentMovementDraft) {
   const connector = type === "entrada" ? getIncomeCorrectionConnector(draft.description ?? "") : "com";
+  const description = formatDisplayTextForWhatsApp(draft.description, "sem descrição");
 
   if (type === "entrada") {
-    return `Boa, corrigi para entrada de ${toCurrency(draft.amount ?? 0)} ${connector} ${draft.description}.`;
+    return `Boa, corrigi para entrada de ${toCurrency(draft.amount ?? 0)} ${connector} ${description}.`;
   }
 
-  return `Entendi, mudei para despesa de ${toCurrency(draft.amount ?? 0)} ${connector} ${draft.description}.`;
+  return `Entendi, mudei para despesa de ${toCurrency(draft.amount ?? 0)} ${connector} ${description}.`;
 }
 
 function getIncomeCorrectionConnector(description: string) {
@@ -1775,11 +1782,11 @@ function getCorrectionFeedbackLead(correction: Partial<AgentMovementDraft>) {
   }
 
   if (correction.description) {
-    return `Corrigi a descrição para ${correction.description}.`;
+    return `Corrigi a descrição para ${formatDisplayTextForWhatsApp(correction.description)}.`;
   }
 
   if (correction.category) {
-    return `Corrigi a categoria para ${correction.category}.`;
+    return `Corrigi a categoria para ${formatDisplayTextForWhatsApp(correction.category)}.`;
   }
 
   return null;
@@ -1798,7 +1805,7 @@ function getCorrectionFollowUp(
   if (missingFields.includes("description")) {
     return type === "entrada"
       ? "Agora me diz: essa entrada foi de quê?"
-      : "Esse gasto foi com o quê?";
+      : "Essa despesa foi com o quê?";
   }
 
   if (missingFields.includes("category")) {
@@ -1846,22 +1853,23 @@ function getMovementBatchConfirmationReply(batch: AgentMovementDraft[]) {
   }
 
   const items = batch.map((draft, index) => `${index + 1}. ${formatMovementDraftSummary(draft)}`);
-  return `Beleza, preparei assim:\n${items.join("\n")}\nPosso salvar?`;
+  return `Beleza, preparei assim:\n${items.join("\n")}\nPosso salvar tudo?`;
 }
 
 function getSingleMovementConfirmationReply(draft: AgentMovementDraft) {
-  return `Anotado: ${formatMovementDraftSummary(draft)}. Posso salvar?`;
+  return `Entendi: ${formatMovementDraftSummary(draft)}.\nPosso salvar?`;
 }
 
 function formatMovementDraftSummary(draft: AgentMovementDraft) {
-  const typeLabel = draft.type === "entrada" ? "entrada" : "gasto";
+  const typeLabel = draft.type === "entrada" ? "entrada" : "despesa";
   const connector = draft.type === "entrada" ? "de" : "com";
+  const description = formatDisplayTextForWhatsApp(draft.description, "sem descrição");
   const dateLabel = draft.occurred_on ? formatDateLabel(draft.occurred_on) : "hoje";
   const date = dateLabel !== "hoje"
     ? ` com data de ${dateLabel}`
     : "";
 
-  return `${typeLabel} de ${toCurrency(draft.amount ?? 0)} ${connector} ${draft.description}${date}`;
+  return `${typeLabel} de ${toCurrency(draft.amount ?? 0)} ${connector} ${description}${date}`;
 }
 
 function buildCompoundExpenseHandling({
@@ -2428,7 +2436,7 @@ function appendResumeHint(reply: string, state: AgentConversationState) {
 }
 
 function getAgentInstabilityReply(state: AgentConversationState) {
-  return `${agentInstabilityReply}${state.status !== "idle" ? " Seu rascunho continua salvo." : ""}`;
+  return `${agentInstabilityReply}${state.status !== "idle" ? "\nSeu rascunho continua salvo." : ""}`;
 }
 
 function formatPendingMovementDraftResume(state: AgentConversationState) {
@@ -2438,8 +2446,8 @@ function formatPendingMovementDraftResume(state: AgentConversationState) {
   const amount = draft.amount ? ` de ${toCurrency(draft.amount)}` : "";
   const description = draft.description
     ? isIncome
-      ? ` de ${draft.description}`
-      : ` com ${draft.description}`
+      ? ` de ${formatDisplayTextForWhatsApp(draft.description)}`
+      : ` com ${formatDisplayTextForWhatsApp(draft.description)}`
     : "";
 
   return `${typeLabel}${amount}${description}`;

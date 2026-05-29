@@ -44,7 +44,7 @@ const defaultQueueTtlSeconds = 120;
 const defaultLockTtlSeconds = 90;
 
 export const agentTurnQueueBusyReply =
-  "Ainda estou processando sua mensagem anterior. Tente novamente em alguns segundos.";
+  "Ainda estou processando sua mensagem anterior.\nPode tentar de novo em alguns segundos?";
 
 export async function runQueuedAgentTurn<T>({
   context,

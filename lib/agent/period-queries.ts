@@ -1,4 +1,5 @@
 import type { AgentQuickPeriodQuery } from "@/lib/agent/types";
+import { formatDisplayTextForWhatsApp } from "@/lib/agent/replies";
 import { toCurrency, toDateInputValue } from "@/lib/agent/utils";
 
 type MovementRow = {
@@ -350,7 +351,7 @@ function buildPeriodReportReply(
       `Período: ${formatRangeDates(range)}`,
       "",
       `Não encontrei movimentações ${range.label}.`,
-      "Quando você registrar entradas e despesas, eu monto o resumo por aqui.",
+      "Assim que você registrar entradas ou despesas nesse período, eu monto o resumo por aqui.",
     ].join("\n");
   }
 
@@ -367,7 +368,7 @@ function buildPeriodReportReply(
     "",
     topIncome ? `Maior entrada: ${formatMovementHighlight(topIncome)}` : null,
     topExpense ? `Maior despesa: ${formatMovementHighlight(topExpense)}` : null,
-    topExpenseCategory ? `Categoria com mais despesas: ${formatDisplayText(topExpenseCategory.category)} (${toCurrency(topExpenseCategory.total)})` : null,
+    topExpenseCategory ? `Categoria com mais despesas: ${formatDisplayTextForWhatsApp(topExpenseCategory.category)} (${toCurrency(topExpenseCategory.total)})` : null,
     "",
     `Resumo: ${getPeriodBalanceSummary(range, balance)}`,
   ].filter((line): line is string => line !== null).join("\n");
@@ -501,49 +502,9 @@ function getPeriodSummarySubject(range: ResolvedRange) {
 }
 
 function formatMovementHighlight(row: MovementRow) {
-  const description = formatDisplayText(row.description, "Sem descrição");
+  const description = formatDisplayTextForWhatsApp(row.description, "Sem descrição");
 
   return `${toCurrency(row.amount)} — ${description}`;
-}
-
-function formatDisplayText(value?: string | null, fallback = "Outros") {
-  const trimmed = value?.trim().replace(/\s+/g, " ") || fallback;
-  const sentence = shouldSentenceCase(trimmed)
-    ? trimmed.toLocaleLowerCase("pt-BR")
-    : trimmed;
-
-  return capitalizeFirstLetter(restoreCommonPortugueseAccents(sentence));
-}
-
-function shouldSentenceCase(value: string) {
-  return /[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ]/.test(value) && value === value.toLocaleUpperCase("pt-BR");
-}
-
-function capitalizeFirstLetter(value: string) {
-  return value.replace(/^(\p{Letter})/u, (letter) => letter.toLocaleUpperCase("pt-BR"));
-}
-
-function restoreCommonPortugueseAccents(value: string) {
-  return value
-    .replace(/\btransferencia\b/g, "transferência")
-    .replace(/\bmovimentacao\b/g, "movimentação")
-    .replace(/\bmovimentacoes\b/g, "movimentações")
-    .replace(/\bdescricao\b/g, "descrição")
-    .replace(/\bservico\b/g, "serviço")
-    .replace(/\bservicos\b/g, "serviços")
-    .replace(/\bmanutencao\b/g, "manutenção")
-    .replace(/\balimentacao\b/g, "alimentação")
-    .replace(/\bassessoria\b/g, "assessoria")
-    .replace(/\bcomissao\b/g, "comissão")
-    .replace(/\bcartao\b/g, "cartão")
-    .replace(/\bcredito\b/g, "crédito")
-    .replace(/\bdebito\b/g, "débito")
-    .replace(/\beletronico\b/g, "eletrônico")
-    .replace(/\bcombustivel\b/g, "combustível")
-    .replace(/\bpublicidade\b/g, "publicidade")
-    .replace(/\bpropaganda\b/g, "propaganda")
-    .replace(/\bcontabil\b/g, "contábil")
-    .replace(/\baluguel\b/g, "aluguel");
 }
 
 function formatRangeDates(range: Pick<ResolvedRange, "end" | "start">) {

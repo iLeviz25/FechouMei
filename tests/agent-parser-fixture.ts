@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { classifyDeterministically, inferCorrectionFields } from "../lib/agent/classifier";
+import { getAgentCapabilitiesReply } from "../lib/agent/capabilities";
 import { runAgentTurnForContext } from "../lib/agent/orchestrator";
 import { buildQuickPeriodReply, resolveQuickPeriodRange } from "../lib/agent/period-queries";
 import { parseTransactionMessage, parseTransactionMessages } from "../lib/agent/transaction-parser";
@@ -245,6 +246,8 @@ assert.match(classifyDeterministically("você tá aí?", idleState)?.reply ?? ""
 assert.equal(classifyDeterministically("me ajuda aqui rapidão", idleState)?.kind, "capabilities");
 assert.equal(classifyDeterministically("o que você faz?", idleState)?.kind, "capabilities");
 assert.equal(classifyDeterministically("como uso isso?", idleState)?.kind, "capabilities");
+assert.match(getAgentCapabilitiesReply(idleState), /Eu posso te ajudar a cuidar do seu MEI/);
+assert.match(getAgentCapabilitiesReply(idleState), /registrar entradas e despesas/);
 assert.match(classifyDeterministically("isso aqui tá confuso", idleState)?.reply ?? "", /Poxa/);
 assert.match(classifyDeterministically("não quero preencher nada, só resolve pra mim", idleState)?.reply ?? "", /Fechado/);
 assert.match(classifyDeterministically("tô com pressa", idleState)?.reply ?? "", /direta/);
@@ -483,7 +486,7 @@ async function runConversationChecks() {
     message: "gastei 80 no mercado",
   });
 
-  assert.match(firstExpense.reply, /Anotado: gasto de R\$\s*80,00 com mercado\. Posso salvar\?/);
+  assert.match(firstExpense.reply, /Entendi: despesa de R\$\s*80,00 com Mercado\.\nPosso salvar\?/);
 
   const decimalSnackExpense = await runAgentTurnForContext({
     channel: "whatsapp",
@@ -495,7 +498,7 @@ async function runConversationChecks() {
   assert.equal(decimalSnackExpense.state.draft?.amount, 33.39);
   assert.equal(normalizeDescription(decimalSnackExpense.state.draft?.description ?? ""), "lanche");
   assert.equal(normalizeDescription(decimalSnackExpense.state.draft?.category ?? ""), "alimentacao");
-  assert.match(decimalSnackExpense.reply, /Anotado: gasto de R\$\s*33,39 com lanche\. Posso salvar\?/);
+  assert.match(decimalSnackExpense.reply, /Entendi: despesa de R\$\s*33,39 com Lanche\.\nPosso salvar\?/);
 
   const decimalFoodExpense = await runAgentTurnForContext({
     channel: "whatsapp",
@@ -507,7 +510,7 @@ async function runConversationChecks() {
   assert.equal(decimalFoodExpense.state.draft?.amount, 33.39);
   assert.equal(normalizeDescription(decimalFoodExpense.state.draft?.description ?? ""), "comida");
   assert.equal(normalizeDescription(decimalFoodExpense.state.draft?.category ?? ""), "alimentacao");
-  assert.match(decimalFoodExpense.reply, /Anotado: gasto de R\$\s*33,39 com comida\. Posso salvar\?/);
+  assert.match(decimalFoodExpense.reply, /Entendi: despesa de R\$\s*33,39 com Comida\.\nPosso salvar\?/);
 
   const cancelPendingExpense = await runAgentTurnForContext({
     channel: "whatsapp",
@@ -517,7 +520,7 @@ async function runConversationChecks() {
   });
 
   assert.equal(cancelPendingExpense.state.status, "idle");
-  assert.match(cancelPendingExpense.reply, /cancelei o rascunho pendente/);
+  assert.match(cancelPendingExpense.reply, /cancelei o rascunho que estava pendente/);
 
   const cancelPendingBatch = await runAgentTurnForContext({
     channel: "whatsapp",
@@ -541,7 +544,7 @@ async function runConversationChecks() {
   });
 
   assert.equal(cancelPendingBatch.state.status, "idle");
-  assert.match(cancelPendingBatch.reply, /cancelei o rascunho pendente/);
+  assert.match(cancelPendingBatch.reply, /cancelei o rascunho que estava pendente/);
 
   const transcribedDecimalExpense = await runAgentTurnForContext({
     channel: "whatsapp",
@@ -553,7 +556,7 @@ async function runConversationChecks() {
   assert.equal(transcribedDecimalExpense.state.draft?.amount, 33.39);
   assert.equal(normalizeDescription(transcribedDecimalExpense.state.draft?.description ?? ""), "lanche");
   assert.equal(normalizeDescription(transcribedDecimalExpense.state.draft?.category ?? ""), "alimentacao");
-  assert.match(transcribedDecimalExpense.reply, /Anotado: gasto de R\$\s*33,39 com lanche\. Posso salvar\?/);
+  assert.match(transcribedDecimalExpense.reply, /Entendi: despesa de R\$\s*33,39 com Lanche\.\nPosso salvar\?/);
 
   const amountCorrection = await runAgentTurnForContext({
     context: fakeContext,
@@ -587,7 +590,7 @@ async function runConversationChecks() {
   assert.equal(expenseToIncome.state.draft?.amount, 200);
   assert.equal(normalizeDescription(expenseToIncome.state.draft?.description ?? ""), "jantar qa helena");
   assertCleanCorrectionDescription(expenseToIncome.state.draft?.description);
-  assert.match(expenseToIncome.reply, /Boa, corrigi para entrada de R\$\s*200,00 no jantar QA Helena\. Posso salvar\?/);
+  assert.match(expenseToIncome.reply, /Boa, corrigi para entrada de R\$\s*200,00 no Jantar QA Helena\. Posso salvar\?/);
 
   const incomeWrites = await confirmWithCapturedWrites(expenseToIncome.state);
   assert.equal(incomeWrites[0]?.payload.type, "entrada");
@@ -610,7 +613,7 @@ async function runConversationChecks() {
   assert.equal(incomeToExpense.state.draft?.amount, 90);
   assert.equal(normalizeDescription(incomeToExpense.state.draft?.description ?? ""), "mercado qa helena");
   assertCleanCorrectionDescription(incomeToExpense.state.draft?.description);
-  assert.match(incomeToExpense.reply, /Entendi, mudei para despesa de R\$\s*90,00 com mercado QA Helena\. Posso salvar\?/);
+  assert.match(incomeToExpense.reply, /Entendi, mudei para despesa de R\$\s*90,00 com Mercado QA Helena\. Posso salvar\?/);
 
   const expenseWrites = await confirmWithCapturedWrites(incomeToExpense.state);
   assert.equal(expenseWrites[0]?.payload.type, "despesa");
@@ -623,8 +626,8 @@ async function runConversationChecks() {
     state: firstExpense.state,
   });
 
-  assert.match(interruptionReply.reply, /entradas/);
-  assert.match(interruptionReply.reply, /Sobre aquele gasto de R\$\s*80,00 com mercado, quer que eu salve ou deixo pra depois\?/);
+  assert.match(interruptionReply.reply, /Entradas/);
+  assert.match(interruptionReply.reply, /Sobre aquele gasto de R\$\s*80,00 com Mercado, quer que eu salve ou deixo pra depois\?/);
 
   const dateCorrection = await runAgentTurnForContext({
     context: fakeContext,

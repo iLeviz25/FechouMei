@@ -129,7 +129,7 @@ export function getMissingFieldsQuestion(type: MovementType, missingFields: Move
     }
 
     if (missingFields[0] === "description") {
-      return type === "entrada" ? "De onde veio essa entrada?" : "Qual foi a despesa?";
+      return type === "entrada" ? "De onde veio essa entrada?" : "Essa despesa foi com o quê?";
     }
 
     if (missingFields[0] === "category") {
@@ -142,10 +142,10 @@ export function getMissingFieldsQuestion(type: MovementType, missingFields: Move
   }
 
   if (missingLabels.length === 1) {
-    return `Preciso só ${missingLabels[0]} para registrar ${label}.`;
+    return `Faltou só ${missingLabels[0]} para registrar ${label}.`;
   }
 
-  return `Preciso ${missingLabels.slice(0, -1).join(", ")} e ${missingLabels.at(-1)} para registrar ${label}.`;
+  return `Faltaram ${missingLabels.slice(0, -1).join(", ")} e ${missingLabels.at(-1)} para registrar ${label}.`;
 }
 
 export function getMovementConfirmationMessage(draft: AgentMovementDraft) {

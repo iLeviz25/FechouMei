@@ -3,8 +3,20 @@ import type { AgentConversationState } from "@/lib/agent/types";
 export function getAgentCapabilitiesReply(state?: AgentConversationState) {
   const pendingHint =
     state && state.status !== "idle"
-      ? " Seu rascunho continua salvo; quando quiser, a gente retoma."
+      ? "\n\nSeu rascunho continua salvo; quando quiser, a gente retoma."
       : "";
 
-  return "Claro. Voce pode me pedir 3 coisas principais: registrar entrada/despesa, consultar seu mes ou gerar relatorio diario, semanal e mensal. Me manda do seu jeito que eu organizo." + pendingHint;
+  return [
+    "Eu posso te ajudar a cuidar do seu MEI direto por aqui 😊",
+    "",
+    "Consigo te ajudar com:",
+    "• registrar entradas e despesas;",
+    "• consultar movimentações;",
+    "• gerar relatórios do mês;",
+    "• ver como está seu resultado;",
+    "• acompanhar obrigações;",
+    "• tirar dúvidas simples sobre como usar o FechouMEI.",
+    "",
+    "Me diga o que você quer fazer agora.",
+  ].join("\n") + pendingHint;
 }

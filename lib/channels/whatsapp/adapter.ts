@@ -1,4 +1,8 @@
 import { runAgentTurnForContext } from "@/lib/agent/orchestrator";
+import {
+  helenaAudioFallbackReply,
+  helenaProcessingErrorReply,
+} from "@/lib/agent/replies";
 import { getAgentRuntimeSettings } from "@/lib/agent/runtime-settings";
 import {
   AudioTranscriptionError,
@@ -61,8 +65,8 @@ import {
   helenaFileAccessBlockedReply,
 } from "@/lib/subscription/access";
 
-const genericFallbackReply = "Tive uma instabilidade agora para processar isso. Tente novamente em instantes.";
-const audioFallbackReply = "Tive uma instabilidade para entender esse audio agora. Pode repetir o audio ou me mandar em texto?";
+const genericFallbackReply = helenaProcessingErrorReply;
+const audioFallbackReply = helenaAudioFallbackReply;
 const audioTranscriptionCooldownMs = 45000;
 const whatsappAudioTypingInitialDelayMs = 1500;
 const whatsappTypingPresenceDelayMs = 4000;
@@ -448,10 +452,10 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
         ? "agent_disabled"
         : "whatsapp_disabled";
     const reply = runtimeSettings.maintenanceMode
-      ? "A Helena esta em manutencao rapida agora. Tente novamente em instantes."
+      ? "A Helena está em manutenção rápida agora.\nPode tentar novamente em instantes?"
       : !runtimeSettings.helenaEnabled
-        ? "A Helena esta temporariamente indisponivel. Tente novamente em instantes."
-        : "O canal WhatsApp da Helena esta temporariamente indisponivel. Voce ainda pode usar a Helena dentro do app.";
+        ? "A Helena está temporariamente indisponível.\nPode tentar novamente em instantes?"
+        : "O WhatsApp da Helena está temporariamente indisponível.\nVocê ainda pode usar a Helena dentro do app.";
 
     await replyAndFinishWhatsAppTurn({
       config,
@@ -690,8 +694,8 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
     } catch (error) {
       const unsupported = error instanceof WhatsAppUnsupportedDocumentError;
       const reply = unsupported
-        ? "Por enquanto eu consigo importar apenas arquivos CSV ou XLSX. Envie uma planilha nesses formatos para eu preparar a revisao."
-        : "Recebi seu arquivo, mas nao consegui preparar a revisao agora. Tente enviar novamente em instantes.";
+        ? "Por enquanto eu consigo importar apenas arquivos CSV ou XLSX. Envie uma planilha nesses formatos para eu preparar a revisão."
+        : "Recebi seu arquivo, mas não consegui preparar a revisão agora.\nPode tentar enviar novamente em instantes?";
 
       console.warn("[FECHOUMEI_WHATSAPP_IMPORT_FILE_WARNING]", {
         error: summarizeError(error),
@@ -1354,7 +1358,7 @@ async function handleWhatsAppExportTextIntent({
   if (intent.kind === "unsupported_pdf") {
     return {
       reason: "whatsapp_export_pdf_requested",
-      reply: "Por enquanto consigo enviar CSV pelo WhatsApp. O PDF ainda precisa ser gerado pelo app em Relatorios.",
+      reply: "Por enquanto consigo enviar CSV pelo WhatsApp. O PDF ainda precisa ser gerado pelo app em Relatórios.",
       status: "processed",
       summary: "Usuario solicitou exportacao em PDF pelo WhatsApp; formato ainda nao suportado.",
     };
@@ -1363,7 +1367,7 @@ async function handleWhatsAppExportTextIntent({
   if (intent.kind === "unsupported_xlsx") {
     return {
       reason: "whatsapp_export_xlsx_requested",
-      reply: "Por enquanto envio CSV pelo WhatsApp. Voce pode abrir esse arquivo no Excel ou Google Sheets.",
+      reply: "Por enquanto envio CSV pelo WhatsApp. Você pode abrir esse arquivo no Excel ou Google Sheets.",
       status: "processed",
       summary: "Usuario solicitou exportacao em XLSX pelo WhatsApp; formato ainda nao suportado.",
     };
@@ -1382,7 +1386,7 @@ async function handleWhatsAppExportTextIntent({
     if (exportResult.movements.length === 0) {
       return {
         reason: "whatsapp_export_empty",
-        reply: `Nao encontrei movimentacoes${filterLabel} em ${periodLabel} para exportar.`,
+        reply: `Não encontrei movimentações${filterLabel} em ${periodLabel} para exportar.`,
         status: "processed",
         summary: "Pedido de exportacao pelo WhatsApp sem movimentacoes no periodo.",
       };
@@ -1401,8 +1405,8 @@ async function handleWhatsAppExportTextIntent({
       reason: "whatsapp_export_csv_sent",
       reply: [
         "Pronto.",
-        `Enviei o CSV com ${exportResult.movements.length} movimentacao${exportResult.movements.length === 1 ? "" : "es"}${filterLabel} de ${periodLabel}.`,
-        intent.defaultedToCurrentMonth ? "Usei o mes atual como periodo padrao." : null,
+        `Enviei o CSV com ${exportResult.movements.length} movimentação${exportResult.movements.length === 1 ? "" : "es"}${filterLabel} de ${periodLabel}.`,
+        intent.defaultedToCurrentMonth ? "Usei o mês atual como período padrão." : null,
       ].filter(Boolean).join("\n"),
       status: "processed",
       summary: `CSV de movimentacoes exportado pelo WhatsApp (${exportResult.movements.length} linhas).`,
@@ -1466,7 +1470,7 @@ async function handleWhatsAppImportTextIntent({
   if (intent === "request_file") {
     return {
       reason: "whatsapp_import_file_requested",
-      reply: "Claro. Me envie um arquivo CSV ou XLSX com suas movimentacoes que eu preparo a importacao para voce revisar ou confirmar.",
+      reply: "Claro. Me envie um arquivo CSV ou XLSX com suas movimentações que eu preparo a importação para você revisar ou confirmar.",
       status: "processed",
       summary: "Usuario solicitou importacao pelo WhatsApp sem anexar arquivo.",
     };
@@ -1560,31 +1564,31 @@ function buildImportSessionReply(
 
   if (summary.importableCount === 0 && duplicateCount > 0) {
     return [
-      "Esse arquivo parece ja ter sido importado antes.",
-      `Encontrei ${duplicateCount} movimentacao${duplicateCount === 1 ? "" : "es"}, mas todas parecem ja existir no FechouMEI.`,
-      "Nao importei novamente para evitar duplicidade.",
-      reviewUrl ? `Se quiser conferir a revisao, acesse:\n${reviewUrl}` : null,
+      "Esse arquivo parece já ter sido importado antes.",
+      `Encontrei ${duplicateCount} movimentação${duplicateCount === 1 ? "" : "es"}, mas todas parecem já existir no FechouMEI.`,
+      "Não importei novamente para evitar duplicidade.",
+      reviewUrl ? `Se quiser conferir a revisão, acesse:\n${reviewUrl}` : null,
     ].filter(Boolean).join("\n\n");
   }
 
   if (summary.importableCount === 0) {
     return [
-      "Nao consegui encontrar movimentacoes validas nesse arquivo.",
-      "Confira se ele tem data, descricao e valor.",
-      reviewUrl && summary.totalRows > 0 ? `Voce pode revisar os detalhes aqui:\n${reviewUrl}` : null,
+      "Não consegui encontrar movimentações válidas nesse arquivo.",
+      "Confira se ele tem data, descrição e valor.",
+      reviewUrl && summary.totalRows > 0 ? `Você pode revisar os detalhes aqui:\n${reviewUrl}` : null,
     ].filter(Boolean).join("\n\n");
   }
 
   if (summary.errorCount > 0) {
     return [
-      "Recebi sua planilha, mas algumas linhas precisam de atencao.",
+      "Recebi sua planilha, mas algumas linhas precisam de atenção.",
       "",
       "Encontrei:",
-      `- ${newCount} movimentacao${newCount === 1 ? "" : "es"} nova${newCount === 1 ? "" : "s"}`,
+      `- ${newCount} movimentação${newCount === 1 ? "" : "es"} nova${newCount === 1 ? "" : "s"}`,
       `- ${summary.incomeCount} entrada${summary.incomeCount === 1 ? "" : "s"} - ${formatCurrency(summary.incomeAmount)}`,
       `- ${summary.expenseCount} despesa${summary.expenseCount === 1 ? "" : "s"} - ${formatCurrency(summary.expenseAmount)}`,
       `- ${summary.errorCount} com erro`,
-      `- ${duplicateCount} possivel${duplicateCount === 1 ? "" : "is"} duplicada${duplicateCount === 1 ? "" : "s"}`,
+      `- ${duplicateCount} possível${duplicateCount === 1 ? "" : "is"} duplicada${duplicateCount === 1 ? "" : "s"}`,
       "",
       reviewUrl
         ? `Para evitar importar errado, revise no app:\n${reviewUrl}`
@@ -1597,8 +1601,8 @@ function buildImportSessionReply(
       "Recebi sua planilha.",
       "",
       "Encontrei:",
-      `- ${newCount} movimentacao${newCount === 1 ? "" : "es"} nova${newCount === 1 ? "" : "s"}`,
-      `- ${duplicateCount} possivel${duplicateCount === 1 ? "" : "is"} duplicada${duplicateCount === 1 ? "" : "s"}`,
+      `- ${newCount} movimentação${newCount === 1 ? "" : "es"} nova${newCount === 1 ? "" : "s"}`,
+      `- ${duplicateCount} possível${duplicateCount === 1 ? "" : "is"} duplicada${duplicateCount === 1 ? "" : "s"}`,
       `- ${summary.incomeCount} entrada${summary.incomeCount === 1 ? "" : "s"} - ${formatCurrency(summary.incomeAmount)}`,
       `- ${summary.expenseCount} despesa${summary.expenseCount === 1 ? "" : "s"} - ${formatCurrency(summary.expenseAmount)}`,
       "",
@@ -1610,11 +1614,11 @@ function buildImportSessionReply(
   return [
     "Recebi sua planilha.",
     "",
-    `Encontrei ${summary.importableCount} movimentacao${summary.importableCount === 1 ? "" : "es"}:`,
+    `Encontrei ${summary.importableCount} movimentação${summary.importableCount === 1 ? "" : "es"}:`,
     `- ${summary.incomeCount} entrada${summary.incomeCount === 1 ? "" : "s"} - ${formatCurrency(summary.incomeAmount)}`,
     `- ${summary.expenseCount} despesa${summary.expenseCount === 1 ? "" : "s"} - ${formatCurrency(summary.expenseAmount)}`,
     `- ${summary.errorCount} com erro`,
-    `- ${duplicateCount} possivel${duplicateCount === 1 ? "" : "is"} duplicada${duplicateCount === 1 ? "" : "s"}`,
+    `- ${duplicateCount} possível${duplicateCount === 1 ? "" : "is"} duplicada${duplicateCount === 1 ? "" : "s"}`,
     "",
     "Para salvar direto no FechouMEI, responda: confirmar.",
     "Se preferir revisar linha por linha, abra o app em Importar dados.",
@@ -1651,14 +1655,14 @@ function buildWhatsAppImportConfirmationReply(result: {
 
   return [
     "Pronto.",
-    `Importei ${result.importedCount} movimentacao${result.importedCount === 1 ? "" : "es"} no FechouMEI:`,
+    `Importei ${result.importedCount} movimentação${result.importedCount === 1 ? "" : "es"} no FechouMEI:`,
     `- ${result.importedIncomeCount ?? 0} entrada${result.importedIncomeCount === 1 ? "" : "s"} - ${formatCurrency(result.importedIncomeAmount ?? 0)}`,
     `- ${result.importedExpenseCount ?? 0} despesa${result.importedExpenseCount === 1 ? "" : "s"} - ${formatCurrency(result.importedExpenseAmount ?? 0)}`,
     result.skippedDuplicateCount && result.skippedDuplicateCount > 0
       ? `- ${result.skippedDuplicateCount} duplicada${result.skippedDuplicateCount === 1 ? "" : "s"} ignorada${result.skippedDuplicateCount === 1 ? "" : "s"}`
       : null,
     "",
-    "Voce pode conferir em Movimentacoes.",
+    "Você pode conferir em Movimentações.",
   ].filter(Boolean).join("\n");
 }
 
