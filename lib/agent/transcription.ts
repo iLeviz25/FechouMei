@@ -23,6 +23,7 @@ export type AudioTranscriptionStage =
   | "transcription_primary_attempt_finished"
   | "transcription_fallback_attempt_started"
   | "transcription_fallback_attempt_finished"
+  | "transcription_configuration_checked"
   | "transcription_attempt_started"
   | "transcription_attempt_finished"
   | "transcription_attempt_aborted_timeout"
@@ -119,6 +120,19 @@ export async function transcribeAudioWithGemini({
   const credentials = getGeminiTranscriptionCredentials();
   const transcriptionModels = getGeminiTranscriptionModels();
   const totalBudgetMs = getTranscriptionTotalBudgetMs();
+  await emitTranscriptionStage(onStage, {
+    attempt: 0,
+    apiKeySource: credentials.source,
+    model: transcriptionModels.primary,
+    stage: "transcription_configuration_checked",
+    summary: [
+      `apiKeyPresent=${Boolean(credentials.apiKey)}`,
+      `fallbackModelPresent=${Boolean(transcriptionModels.fallback)}`,
+      `fallbackModel=${transcriptionModels.fallback ?? "none"}`,
+      `inlineMaxBytes=${getInlineAudioMaxBytes()}`,
+      `totalBudgetMs=${totalBudgetMs}`,
+    ].join("; "),
+  });
 
   if (!credentials.apiKey) {
     throw new AudioTranscriptionError("Faltando GEMINI_TRANSCRIPTION_API_KEY ou GEMINI_API_KEY no servidor.", {
@@ -985,7 +999,7 @@ function getNextTranscriptionAttemptPlan({
     ? getFallbackModelDelayMs(error)
     : getTranscriptionBackoffMs(attempt, error);
 
-  if (error.status === 429 && !canUseFallbackModel) {
+  if (error.status === 429 && !canUseFallbackModel && error.stage === "generate_content_failed") {
     return {
       nextAttemptKind,
       nextModel,

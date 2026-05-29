@@ -43,6 +43,20 @@ export type DownloadedWhatsAppAudio = {
   mimeType: string;
 };
 
+export type WhatsAppAudioDownloadDebugEvent = {
+  metadata?: Record<string, number | string | boolean | null>;
+  stage:
+    | "validation_started"
+    | "validation_finished"
+    | "inline_base64_detected"
+    | "inline_base64_decoded"
+    | "evolution_base64_request_started"
+    | "evolution_base64_request_finished"
+    | "evolution_base64_found"
+    | "evolution_base64_missing"
+    | "evolution_base64_decoded";
+};
+
 export type DownloadedWhatsAppDocument = {
   buffer: Buffer;
   fileName: string;
@@ -53,22 +67,50 @@ export type DownloadedWhatsAppDocument = {
 export async function downloadWhatsAppAudio({
   audio,
   config,
+  onDebug,
 }: {
   audio: WhatsAppAudioMessage;
   config: WhatsAppChannelConfig;
+  onDebug?: (event: WhatsAppAudioDownloadDebugEvent) => Promise<void> | void;
 }): Promise<DownloadedWhatsAppAudio> {
+  await emitAudioDownloadDebug(onDebug, {
+    metadata: {
+      hasBase64: Boolean(audio.base64),
+      hasDownloadPayload: Boolean(audio.downloadPayload),
+      mimeType: audio.mimeType ?? null,
+      seconds: audio.seconds ?? null,
+      sizeBytes: audio.sizeBytes ?? null,
+    },
+    stage: "validation_started",
+  });
   validateWhatsAppAudio(audio);
+  await emitAudioDownloadDebug(onDebug, { stage: "validation_finished" });
 
   if (audio.base64) {
+    await emitAudioDownloadDebug(onDebug, {
+      metadata: {
+        base64Length: audio.base64.length,
+      },
+      stage: "inline_base64_detected",
+    });
     const buffer = decodeBase64Audio(audio.base64);
     validateDownloadedAudioSize(buffer);
+    const mimeType = normalizeAudioMimeType(audio.mimeType);
+    await emitAudioDownloadDebug(onDebug, {
+      metadata: {
+        bytes: buffer.length,
+        mimeType,
+      },
+      stage: "inline_base64_decoded",
+    });
 
     return {
       buffer,
-      mimeType: normalizeAudioMimeType(audio.mimeType),
+      mimeType,
     };
   }
 
+  await emitAudioDownloadDebug(onDebug, { stage: "evolution_base64_request_started" });
   const response = await fetch(`${config.evolutionApiUrl}/chat/getBase64FromMediaMessage/${config.instanceName}`, {
     body: JSON.stringify({
       convertToMp4: false,
@@ -82,6 +124,13 @@ export async function downloadWhatsAppAudio({
     method: "POST",
     signal: AbortSignal.timeout(getAudioMediaDownloadTimeoutMs()),
   });
+  await emitAudioDownloadDebug(onDebug, {
+    metadata: {
+      ok: response.ok,
+      status: response.status,
+    },
+    stage: "evolution_base64_request_finished",
+  });
 
   if (!response.ok) {
     const errorText = await safeReadText(response);
@@ -92,15 +141,30 @@ export async function downloadWhatsAppAudio({
   const base64 = findBase64Payload(payload);
 
   if (!base64) {
+    await emitAudioDownloadDebug(onDebug, { stage: "evolution_base64_missing" });
     throw new WhatsAppMediaDownloadError("Evolution nao retornou base64 do audio.");
   }
+  await emitAudioDownloadDebug(onDebug, {
+    metadata: {
+      base64Length: base64.length,
+    },
+    stage: "evolution_base64_found",
+  });
 
   const buffer = decodeBase64Audio(base64);
   validateDownloadedAudioSize(buffer);
+  const mimeType = normalizeAudioMimeType(audio.mimeType ?? findMimeTypePayload(payload));
+  await emitAudioDownloadDebug(onDebug, {
+    metadata: {
+      bytes: buffer.length,
+      mimeType,
+    },
+    stage: "evolution_base64_decoded",
+  });
 
   return {
     buffer,
-    mimeType: normalizeAudioMimeType(audio.mimeType ?? findMimeTypePayload(payload)),
+    mimeType,
   };
 }
 
@@ -314,5 +378,16 @@ async function safeReadText(response: Response) {
     return (await response.text()).slice(0, 240);
   } catch {
     return "sem resposta textual";
+  }
+}
+
+async function emitAudioDownloadDebug(
+  onDebug: ((event: WhatsAppAudioDownloadDebugEvent) => Promise<void> | void) | undefined,
+  event: WhatsAppAudioDownloadDebugEvent,
+) {
+  try {
+    await onDebug?.(event);
+  } catch (error) {
+    console.error("WhatsApp audio download debug hook failed", error);
   }
 }

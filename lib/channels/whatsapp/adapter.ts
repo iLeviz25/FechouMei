@@ -27,6 +27,7 @@ import {
   WhatsAppUnsupportedDocumentError,
   downloadWhatsAppDocument,
   downloadWhatsAppAudio,
+  type WhatsAppAudioDownloadDebugEvent,
 } from "@/lib/channels/whatsapp/media";
 import {
   createInboundWhatsAppEvent,
@@ -85,6 +86,15 @@ type WhatsAppAudioPipelineStage =
   | "audio_cooldown_wait_finished"
   | "media_download_started"
   | "media_download_failed"
+  | "media_validation_started"
+  | "media_validation_finished"
+  | "media_inline_base64_detected"
+  | "media_inline_base64_decoded"
+  | "media_evolution_base64_request_started"
+  | "media_evolution_base64_request_finished"
+  | "media_evolution_base64_found"
+  | "media_evolution_base64_missing"
+  | "media_evolution_base64_decoded"
   | "media_decoded"
   | AudioTranscriptionStage
   | "audio_normalization"
@@ -361,6 +371,21 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
     hasAudio: Boolean(normalized.audio),
     hasDocument: Boolean(normalized.document),
   });
+
+  if (normalized.audio || /audio/i.test(normalized.messageType ?? "")) {
+    console.info("[FECHOUMEI_AUDIO_WEBHOOK_NORMALIZED]", {
+      externalMessageId,
+      event: normalized.event,
+      hasAudio: Boolean(normalized.audio),
+      hasAudioBase64: Boolean(normalized.audio?.base64),
+      hasAudioDownloadPayload: Boolean(normalized.audio?.downloadPayload),
+      messageType: normalized.messageType,
+      mimeType: normalized.audio?.mimeType ?? null,
+      provider: getEvolutionProviderName(),
+      seconds: normalized.audio?.seconds ?? null,
+      sizeBytes: normalized.audio?.sizeBytes ?? null,
+    });
+  }
 
   let presenceController: WhatsAppPresenceController | null = null;
 
@@ -841,6 +866,20 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
       const downloadedAudio = await downloadWhatsAppAudio({
         audio: normalized.audio,
         config,
+        onDebug: (event) => {
+          const stage = mapAudioDownloadDebugStage(event.stage);
+          audioStage = stage;
+
+          void logInboundStage({
+            externalMessageId,
+            instance: normalized.instance,
+            messageText: agentInputText,
+            metadata: formatAudioDownloadDebugMetadata(event),
+            remoteId: normalized.remoteJid,
+            stage,
+            userId: resolvedUserId,
+          });
+        },
       });
       downloadedAudioSummary = `mime=${downloadedAudio.mimeType}; bytes=${downloadedAudio.buffer.length}`;
 
@@ -1319,6 +1358,8 @@ function getInboundReceivedSummary(normalized: ReturnType<typeof normalizeEvolut
     normalized.audio.mimeType ? `mime=${normalized.audio.mimeType}` : null,
     typeof normalized.audio.seconds === "number" ? `duracao=${normalized.audio.seconds}s` : null,
     typeof normalized.audio.sizeBytes === "number" ? `tamanho=${normalized.audio.sizeBytes}` : null,
+    `base64=${normalized.audio.base64 ? "sim" : "nao"}`,
+    `downloadPayload=${normalized.audio.downloadPayload ? "sim" : "nao"}`,
   ].filter(Boolean);
 
   return `Evento inbound de audio recebido pelo canal local do WhatsApp${metadata.length > 0 ? ` (${metadata.join(", ")})` : ""}.`;
@@ -2185,6 +2226,41 @@ function formatTranscriptionStageMetadata(event: AudioTranscriptionStageEvent) {
   ].filter(Boolean).join("; ");
 }
 
+function mapAudioDownloadDebugStage(stage: WhatsAppAudioDownloadDebugEvent["stage"]): WhatsAppAudioPipelineStage {
+  switch (stage) {
+    case "validation_started":
+      return "media_validation_started";
+    case "validation_finished":
+      return "media_validation_finished";
+    case "inline_base64_detected":
+      return "media_inline_base64_detected";
+    case "inline_base64_decoded":
+      return "media_inline_base64_decoded";
+    case "evolution_base64_request_started":
+      return "media_evolution_base64_request_started";
+    case "evolution_base64_request_finished":
+      return "media_evolution_base64_request_finished";
+    case "evolution_base64_found":
+      return "media_evolution_base64_found";
+    case "evolution_base64_missing":
+      return "media_evolution_base64_missing";
+    case "evolution_base64_decoded":
+      return "media_evolution_base64_decoded";
+  }
+}
+
+function formatAudioDownloadDebugMetadata(event: WhatsAppAudioDownloadDebugEvent) {
+  const metadata = event.metadata;
+
+  if (!metadata) {
+    return null;
+  }
+
+  return Object.entries(metadata)
+    .map(([key, value]) => `${key}=${value ?? "null"}`)
+    .join("; ");
+}
+
 function markTranscriptionLatencyStage(trace: WhatsAppLatencyTrace, event: AudioTranscriptionStageEvent) {
   trace.mark(event.stage, {
     attempt: event.attempt,
@@ -2221,7 +2297,7 @@ async function logInboundStage({
 }) {
   const safeMetadata = sanitizeWhatsAppStageLogText(metadata);
   const summary = `stage=${stage}${safeMetadata ? ` | ${safeMetadata}` : ""}`;
-  console.info("WhatsApp audio pipeline stage", {
+  console.info("[FECHOUMEI_AUDIO_STAGE]", {
     conversationId,
     externalMessageId,
     metadata: safeMetadata,
@@ -2229,7 +2305,7 @@ async function logInboundStage({
     stage,
   });
 
-  if (process.env.FECHOUMEI_WHATSAPP_AUDIO_STAGE_DB_LOGS !== "1") {
+  if (process.env.FECHOUMEI_WHATSAPP_AUDIO_STAGE_DB_LOGS === "0") {
     return;
   }
 

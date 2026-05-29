@@ -12,7 +12,7 @@
     "test:agent-parser": "node scripts/check-agent-parser.mjs",
     "test:whatsapp-import-file": "node scripts/simulate-whatsapp-import-file.mjs",
     "test:whatsapp-message": "node scripts/simulate-whatsapp-import-file.mjs",
-    "test:whatsapp-audio": "node tests/whatsapp-audio.test.mjs"
+    "test:whatsapp-audio": "node scripts/check-whatsapp-audio.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
