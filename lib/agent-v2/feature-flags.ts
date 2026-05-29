@@ -15,11 +15,23 @@ export type AgentV2WhatsAppRouteDecision = {
     | "enabled";
 };
 
+export type AgentV2FeatureFlagSnapshot = {
+  allowAll: boolean;
+  allowlistConfigured: boolean;
+  enabled: boolean;
+  numberAllowlistConfigured: boolean;
+  numberAllowlisted: boolean;
+  userAllowlistConfigured: boolean;
+  userAllowlisted: boolean;
+};
+
 export function shouldUseAgentV2ForWhatsApp(input: {
   remoteNumber?: string | null;
   userId: string;
 }) {
-  return isAgentV2FeatureEnabled() && isAgentV2Allowlisted(input);
+  const snapshot = getAgentV2FeatureFlagSnapshot(input);
+
+  return snapshot.enabled && (snapshot.allowAll || snapshot.userAllowlisted || snapshot.numberAllowlisted);
 }
 
 export function getAgentV2WhatsAppRouteDecision(input: {
@@ -29,11 +41,13 @@ export function getAgentV2WhatsAppRouteDecision(input: {
   state?: AgentConversationState | null;
   userId: string;
 }): AgentV2WhatsAppRouteDecision {
-  if (!isAgentV2FeatureEnabled()) {
+  const snapshot = getAgentV2FeatureFlagSnapshot(input);
+
+  if (!snapshot.enabled) {
     return { enabled: false, reason: "feature_disabled" };
   }
 
-  if (!isAgentV2Allowlisted(input)) {
+  if (!snapshot.allowAll && !snapshot.userAllowlisted && !snapshot.numberAllowlisted) {
     return { enabled: false, reason: "not_allowlisted" };
   }
 
@@ -52,36 +66,35 @@ export function getAgentV2WhatsAppRouteDecision(input: {
   return { enabled: true, reason: "enabled" };
 }
 
-function isAgentV2FeatureEnabled() {
-  return isTruthyFlag(process.env.HELENA_V2_ENABLED);
-}
-
-function isAgentV2Allowlisted({
+export function getAgentV2FeatureFlagSnapshot({
   remoteNumber,
   userId,
 }: {
   remoteNumber?: string | null;
-  userId: string;
-}) {
-  if (isTruthyFlag(process.env.HELENA_V2_ALLOW_ALL)) {
-    return true;
-  }
-
+  userId?: string | null;
+} = {}): AgentV2FeatureFlagSnapshot {
+  const enabled = isAgentV2FeatureEnabled();
+  const allowAll = isTruthyFlag(process.env.HELENA_V2_ALLOW_ALL);
   const userIds = parseAllowlist(process.env.HELENA_V2_USER_IDS);
-
-  if (userIds.has(userId.trim().toLowerCase())) {
-    return true;
-  }
-
-  const normalizedRemoteNumber = normalizePhoneNumber(remoteNumber);
-
-  if (!normalizedRemoteNumber) {
-    return false;
-  }
-
   const numbers = parseAllowlist(process.env.HELENA_V2_WHATSAPP_NUMBERS, normalizePhoneNumber);
+  const normalizedUserId = userId?.trim().toLowerCase() ?? "";
+  const normalizedRemoteNumber = normalizePhoneNumber(remoteNumber);
+  const userAllowlisted = Boolean(normalizedUserId && userIds.has(normalizedUserId));
+  const numberAllowlisted = Boolean(normalizedRemoteNumber && numbers.has(normalizedRemoteNumber));
 
-  return numbers.has(normalizedRemoteNumber);
+  return {
+    allowAll,
+    allowlistConfigured: allowAll || userIds.size > 0 || numbers.size > 0,
+    enabled,
+    numberAllowlistConfigured: numbers.size > 0,
+    numberAllowlisted,
+    userAllowlistConfigured: userIds.size > 0,
+    userAllowlisted,
+  };
+}
+
+function isAgentV2FeatureEnabled() {
+  return isTruthyFlag(process.env.HELENA_V2_ENABLED);
 }
 
 function parseAllowlist(

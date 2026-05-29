@@ -1,5 +1,8 @@
 import { runAgentTurnForContext } from "@/lib/agent/orchestrator";
-import { getAgentV2WhatsAppRouteDecision } from "@/lib/agent-v2/feature-flags";
+import {
+  getAgentV2FeatureFlagSnapshot,
+  getAgentV2WhatsAppRouteDecision,
+} from "@/lib/agent-v2/feature-flags";
 import { runAgentV2TurnForContext } from "@/lib/agent-v2/orchestrator";
 import {
   helenaAudioFallbackReply,
@@ -1158,18 +1161,28 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
           };
         }
 
-        const agentV2Route = getAgentV2WhatsAppRouteDecision({
+        const agentV2Input = {
           message: agentInputText,
           remoteNumber,
           source: audioWasTranscribed ? "audio_transcript" : "text",
           state: snapshot.state,
           userId: resolvedUserId,
-        });
+        } as const;
+        const agentV2Route = getAgentV2WhatsAppRouteDecision(agentV2Input);
+        const agentV2Flags = getAgentV2FeatureFlagSnapshot(agentV2Input);
 
         console.info("[HELENA_V2_ROUTE]", {
+          allowAll: agentV2Flags.allowAll,
+          allowlistConfigured: agentV2Flags.allowlistConfigured,
+          channel: "whatsapp",
           enabled: agentV2Route.enabled,
+          globalEnabled: agentV2Flags.enabled,
+          numberAllowlisted: agentV2Flags.numberAllowlisted,
           reason: agentV2Route.reason,
           source: audioWasTranscribed ? "audio_transcript" : "text",
+          stateStatus: snapshot.state.status,
+          userAllowlisted: agentV2Flags.userAllowlisted,
+          userRef: maskUserId(resolvedUserId),
         });
 
         trace.mark("action_execution_started", {
@@ -2171,6 +2184,17 @@ function maskWhatsAppRemoteId(remoteId?: string | null) {
   const maskedNumber = lastDigits ? `***${lastDigits}` : "***";
 
   return suffix ? `${maskedNumber}@${suffix}` : maskedNumber;
+}
+
+function maskUserId(userId?: string | null) {
+  if (!userId) {
+    return null;
+  }
+
+  const compact = userId.replace(/-/g, "");
+  return compact.length <= 8
+    ? "***"
+    : `${compact.slice(0, 4)}***${compact.slice(-4)}`;
 }
 
 function maskAudioCooldownKey(key: string) {
