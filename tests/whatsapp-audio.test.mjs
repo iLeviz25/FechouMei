@@ -445,6 +445,87 @@ test("transcricao usa tentativa extra com modelo fallback em erro 429 no generat
   }
 });
 
+test("transcricao usa fallback padrao quando fallback configurado repete modelo primario", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalApiKey = process.env.GEMINI_API_KEY;
+  const originalRetryBase = process.env.GEMINI_TRANSCRIPTION_RETRY_BASE_MS;
+  const originalTranscriptionModel = process.env.GEMINI_TRANSCRIPTION_MODEL;
+  const originalFallbackModel = process.env.GEMINI_TRANSCRIPTION_FALLBACK_MODEL;
+  const stages = [];
+  const generateModels = [];
+  let generateAttempts = 0;
+  process.env.GEMINI_API_KEY = "gemini-test-key";
+  process.env.GEMINI_TRANSCRIPTION_RETRY_BASE_MS = "0";
+  process.env.GEMINI_TRANSCRIPTION_MODEL = "";
+  process.env.GEMINI_TRANSCRIPTION_FALLBACK_MODEL = "gemini-2.5-flash";
+
+  try {
+    globalThis.fetch = async (url) => {
+      const requestUrl = String(url);
+
+      if (requestUrl.includes("/upload/v1beta/files")) {
+        return new Response(null, {
+          headers: {
+            "x-goog-upload-url": `http://upload.test/file-${generateAttempts + 1}`,
+          },
+          status: 200,
+        });
+      }
+
+      if (requestUrl.startsWith("http://upload.test/file")) {
+        return Response.json({
+          file: {
+            mimeType: "audio/ogg",
+            name: `files/audio-test-${generateAttempts + 1}`,
+            state: "ACTIVE",
+            uri: `gemini://files/audio-test-${generateAttempts + 1}`,
+          },
+        });
+      }
+
+      if (requestUrl.includes(":generateContent")) {
+        generateAttempts += 1;
+        generateModels.push(requestUrl.match(/\/models\/([^:]+):generateContent/)?.[1] ?? "unknown");
+
+        if (generateAttempts === 1) {
+          return Response.json({ error: { message: "high demand" } }, { status: 503 });
+        }
+
+        return Response.json({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: "entrou 300 pix cliente joão" }],
+              },
+            },
+          ],
+        });
+      }
+
+      return new Response(null, { status: 200 });
+    };
+
+    const text = await transcribeAudioWithGemini({
+      audio: Buffer.from("audio fake"),
+      mimeType: "audio/ogg",
+      onStage: (event) => {
+        stages.push(event);
+      },
+    });
+
+    assert.equal(text, "entrou 300 pix cliente joão");
+    assert.deepEqual(generateModels, ["gemini-2.5-flash", "gemini-2.5-flash-lite"]);
+    assert.equal(stages.some((event) => event.stage === "fallback_started" && event.model === "gemini-2.5-flash-lite"), true);
+    assert.equal(stages.some((event) => event.stage === "transcription_succeeded" && event.model === "gemini-2.5-flash-lite"), true);
+  } finally {
+    globalThis.fetch = originalFetch;
+    process.env.GEMINI_API_KEY = originalApiKey;
+    process.env.GEMINI_TRANSCRIPTION_RETRY_BASE_MS = originalRetryBase;
+    process.env.GEMINI_TRANSCRIPTION_MODEL = originalTranscriptionModel;
+    process.env.GEMINI_TRANSCRIPTION_FALLBACK_MODEL = originalFallbackModel;
+  }
+});
+
 test("timeout na transcricao registra stage amigavel", async () => {
   const originalFetch = globalThis.fetch;
   const originalApiKey = process.env.GEMINI_API_KEY;

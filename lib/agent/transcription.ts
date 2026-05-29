@@ -1,4 +1,5 @@
 const defaultTranscriptionModel = "gemini-2.5-flash";
+const defaultTranscriptionFallbackModel = "gemini-2.5-flash-lite";
 const defaultUploadTimeoutMs = 8000;
 const defaultPollingRequestTimeoutMs = 5000;
 const defaultFileProcessingTimeoutMs = 10000;
@@ -628,10 +629,15 @@ function getGeminiTranscriptionCredentials() {
 
 function getGeminiTranscriptionModels() {
   const primary = process.env.GEMINI_TRANSCRIPTION_MODEL?.trim() || defaultTranscriptionModel;
-  const fallback = process.env.GEMINI_TRANSCRIPTION_FALLBACK_MODEL?.trim();
+  const configuredFallback = process.env.GEMINI_TRANSCRIPTION_FALLBACK_MODEL?.trim();
+  const fallback = configuredFallback && configuredFallback !== primary
+    ? configuredFallback
+    : defaultTranscriptionFallbackModel !== primary
+      ? defaultTranscriptionFallbackModel
+      : null;
 
   return {
-    fallback: fallback && fallback !== primary ? fallback : null,
+    fallback,
     primary,
   };
 }
@@ -1031,7 +1037,7 @@ function getNextTranscriptionAttemptPlan({
 }
 
 function isFallbackModelEligible(error: AudioTranscriptionError) {
-  return error.timedOut || error.status === 429 || error.transient;
+  return !error.timedOut && (error.status === 429 || error.transient);
 }
 
 function getFallbackModelDelayMs(error: AudioTranscriptionError) {
