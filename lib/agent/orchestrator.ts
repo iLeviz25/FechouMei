@@ -42,6 +42,7 @@ import {
   cleanDescriptionUsingResolvedCategory,
   cleanTransactionDescription,
   inferCategoryFromDescription,
+  normalizeText,
   parseTransactionMessage,
 } from "@/lib/agent/transaction-parser";
 import type {
@@ -74,6 +75,7 @@ import {
 } from "@/lib/agent/utils";
 import {
   formatDisplayTextForWhatsApp,
+  getHelenaProductQuestionReply,
   helenaBasicFallbackReply,
   helenaEmptyMessageReply,
   helenaInstabilityReply,
@@ -724,6 +726,22 @@ async function handleCorrectionTurn({
     currentState.pendingAction !== "register_expense"
   ) {
     if (currentState.status === "idle" && (currentState.lastWrites?.length || currentState.lastWrite)) {
+      const productQuestionReply = getHelenaProductQuestionReply(message);
+
+      if (productQuestionReply) {
+        return {
+          reply: productQuestionReply,
+          state: currentState,
+        };
+      }
+
+      if (!isExplicitRecentWriteCorrectionMessage(message)) {
+        return {
+          reply: helenaBasicFallbackReply,
+          state: currentState,
+        };
+      }
+
       const correction = inferTransactionEditCorrection(message);
       const targetContext = pickRecentWriteForCorrection(currentState, message, correction);
 
@@ -808,7 +826,7 @@ async function handleModelInterpretation({
 }): Promise<AgentTurnResult> {
   if (interpretation.kind === "capabilities" || interpretation.kind === "product_question") {
     return {
-      reply: getAgentCapabilitiesReply(currentState),
+      reply: getHelenaProductQuestionReply(message) ?? getAgentCapabilitiesReply(currentState),
       state: currentState,
     };
   }
@@ -2134,6 +2152,28 @@ function normalizeComparableText(value: string) {
 
 function isCorrectionLikeMessage(message: string) {
   return Object.keys(inferCorrectionFields(message)).length > 0;
+}
+
+function isExplicitRecentWriteCorrectionMessage(message: string) {
+  const normalized = normalizeText(message);
+
+  if (getHelenaProductQuestionReply(message)) {
+    return false;
+  }
+
+  if (/^(nao|não)\s+entendi\b/.test(normalized) || /\b(me explica|explique|explica|o que e|que e|como funciona)\b/.test(normalized)) {
+    return false;
+  }
+
+  if (/\b(ultima|ultimo|última|último|movimentacao|movimentações|movimentação|registro|lancamento|lançamento|entrada|despesa)\b/.test(normalized)) {
+    return true;
+  }
+
+  if (/\b(descricao|descrição|categoria|valor|data|dia|origem|nome)\b/.test(normalized)) {
+    return true;
+  }
+
+  return /^(na verdade|corrige|corrigir|corrija|muda|mude|troca|troque|altera|altere|edita|edite|era|quis dizer|quero mudar|nao,?\s+era|não,?\s+era)\b/.test(normalized);
 }
 
 async function handleTransactionEditTurn({

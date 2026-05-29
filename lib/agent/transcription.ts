@@ -1,11 +1,11 @@
 const defaultTranscriptionModel = "gemini-2.5-flash";
-const defaultUploadTimeoutMs = 4500;
-const defaultPollingRequestTimeoutMs = 2500;
-const defaultFileProcessingTimeoutMs = 5000;
-const defaultPrimaryGenerateContentTimeoutMs = 5500;
-const defaultFallbackGenerateContentTimeoutMs = 6500;
-const defaultTranscriptionTotalBudgetMs = 14000;
-const minimumRetryBudgetMs = 3000;
+const defaultUploadTimeoutMs = 8000;
+const defaultPollingRequestTimeoutMs = 5000;
+const defaultFileProcessingTimeoutMs = 10000;
+const defaultPrimaryGenerateContentTimeoutMs = 18000;
+const defaultFallbackGenerateContentTimeoutMs = 18000;
+const defaultTranscriptionTotalBudgetMs = 34000;
+const minimumRetryBudgetMs = 5000;
 const filePollingAttempts = 8;
 const defaultFilePollingIntervalMs = 1000;
 const maxTranscriptionAttempts = 2;
@@ -13,7 +13,7 @@ const defaultRetryBaseDelayMs = 300;
 const generateContentRateLimitRetryBaseDelayMs = 1200;
 const retryJitterMs = 150;
 const generateContentRateLimitJitterMs = 500;
-const defaultInlineAudioMaxBytes = 2 * 1024 * 1024;
+const defaultInlineAudioMaxBytes = 0;
 
 export type AudioTranscriptionStage =
   | "primary_timeout"
@@ -820,7 +820,8 @@ async function requestGeminiTranscription({
   const payload = (await safeReadJson(response, "generate_content_failed")) as GeminiGenerateContentResponse;
 
   if (!response.ok) {
-    throw new AudioTranscriptionError(`Gemini falhou ao transcrever audio: ${response.status}`, {
+    const providerMessage = payload.error?.message?.replace(/\s+/g, " ").slice(0, 120);
+    throw new AudioTranscriptionError(`Gemini falhou ao transcrever audio: ${response.status}${providerMessage ? ` - ${providerMessage}` : ""}`, {
       stage: "generate_content_failed",
       status: response.status,
       transient: isTransientStatus(response.status),

@@ -811,6 +811,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
 
   if (normalized.audio) {
     const audioPipelineStartedAt = Date.now();
+    let downloadedAudioSummary: string | null = null;
 
     try {
       void logInboundStage({
@@ -841,6 +842,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
         audio: normalized.audio,
         config,
       });
+      downloadedAudioSummary = `mime=${downloadedAudio.mimeType}; bytes=${downloadedAudio.buffer.length}`;
 
       audioStage = "media_decoded";
       trace.mark("media_download_finished", {
@@ -935,7 +937,9 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
 
       console.error("[FECHOUMEI_AUDIO_FINAL_FAILURE]", {
         cooldownActiveMs: getAudioCooldownWaitMs(cooldownKey),
+        downloadedAudio: downloadedAudioSummary,
         globalCooldownActiveMs: getAudioCooldownWaitMs(globalAudioTranscriptionCooldownKey),
+        inboundAudio: getAudioMetadataSummary(normalized.audio),
         error: summarizeError(error),
         messageId: normalized.externalMessageId,
         provider: getEvolutionProviderName(),

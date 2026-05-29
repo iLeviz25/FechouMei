@@ -20,7 +20,7 @@ import {
 } from "@/lib/agent/transaction-parser";
 import { parseQuickPeriodQuery } from "@/lib/agent/period-queries";
 import { parseSpecificMovementQuery } from "@/lib/agent/movement-queries";
-import { formatDisplayTextForWhatsApp } from "@/lib/agent/replies";
+import { formatDisplayTextForWhatsApp, getHelenaProductQuestionReply } from "@/lib/agent/replies";
 import { normalizeSpokenAgentMessage } from "@/lib/agent/spoken-text";
 import { detectConfirmation, parseAmountFromText, toCurrency } from "@/lib/agent/utils";
 
@@ -192,6 +192,15 @@ export function classifyDeterministically(
     return {
       kind: "unsupported_or_unknown",
       reply: "Qual valor você quer usar como saldo atual?",
+    };
+  }
+
+  const productQuestionReply = getHelenaProductQuestionReply(message) ?? getHelenaProductQuestionReply(spokenMessage);
+
+  if (productQuestionReply) {
+    return {
+      kind: "product_question",
+      reply: appendPendingContext(productQuestionReply, state),
     };
   }
 

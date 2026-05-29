@@ -3,6 +3,7 @@ import { classifyDeterministically, inferCorrectionFields } from "../lib/agent/c
 import { getAgentCapabilitiesReply } from "../lib/agent/capabilities";
 import { runAgentTurnForContext } from "../lib/agent/orchestrator";
 import { buildQuickPeriodReply, resolveQuickPeriodRange } from "../lib/agent/period-queries";
+import { getHelenaProductQuestionReply } from "../lib/agent/replies";
 import { parseTransactionMessage, parseTransactionMessages } from "../lib/agent/transaction-parser";
 import { normalizeEvolutionWebhookPayload } from "../lib/channels/whatsapp/evolution";
 import type { MovementField, MovementType } from "../lib/agent/types";
@@ -248,6 +249,10 @@ assert.equal(classifyDeterministically("o que você faz?", idleState)?.kind, "ca
 assert.equal(classifyDeterministically("como uso isso?", idleState)?.kind, "capabilities");
 assert.match(getAgentCapabilitiesReply(idleState), /Eu posso te ajudar a cuidar do seu MEI/);
 assert.match(getAgentCapabilitiesReply(idleState), /registrar entradas e despesas/);
+
+assert.match(getHelenaProductQuestionReply("não entendi o fechamento mensal") ?? "", /fechamento mensal/);
+assert.match(getHelenaProductQuestionReply("me explica o fechamento mensal") ?? "", /resultado/);
+assert.match(getHelenaProductQuestionReply("o que é fechamento mensal?") ?? "", /encerrar o mês/);
 assert.match(classifyDeterministically("isso aqui tá confuso", idleState)?.reply ?? "", /Poxa/);
 assert.match(classifyDeterministically("não quero preencher nada, só resolve pra mim", idleState)?.reply ?? "", /Fechado/);
 assert.match(classifyDeterministically("tô com pressa", idleState)?.reply ?? "", /direta/);
@@ -558,6 +563,17 @@ async function runConversationChecks() {
   assert.equal(normalizeDescription(transcribedDecimalExpense.state.draft?.category ?? ""), "alimentacao");
   assert.match(transcribedDecimalExpense.reply, /Entendi: despesa de R\$\s*33,39 com Lanche\.\nPosso salvar\?/);
 
+  const transcribedIncome = await runAgentTurnForContext({
+    channel: "whatsapp",
+    context: fakeContext,
+    message: "entrou 300 pix cliente joão",
+  });
+
+  assert.equal(transcribedIncome.state.pendingAction, "register_income");
+  assert.equal(transcribedIncome.state.draft?.amount, 300);
+  assert.match(normalizeDescription(transcribedIncome.state.draft?.description ?? ""), /(pix|joao)/);
+  assert.match(transcribedIncome.reply, /Entendi: entrada de R\$\s*300,00/);
+
   const amountCorrection = await runAgentTurnForContext({
     context: fakeContext,
     message: "não, era 90",
@@ -656,6 +672,90 @@ async function runConversationChecks() {
 
   assert.equal(tomorrowCorrection.state.draft?.occurred_on, addDaysInput(1));
   assert.match(tomorrowCorrection.reply, /Fechado, coloquei com data de \d{2}\/\d{2}\/\d{4}\. Posso salvar assim\?/);
+
+  const incomeToSave = await runAgentTurnForContext({
+    channel: "whatsapp",
+    context: fakeContext,
+    message: "entrou 300 pix cliente joão",
+  });
+
+  const savedIncomeState = {
+    lastWrite: {
+      action: "register_income" as const,
+      target: {
+        amount: incomeToSave.state.draft?.amount ?? 300,
+        category: incomeToSave.state.draft?.category ?? "Venda",
+        description: incomeToSave.state.draft?.description ?? "pix cliente joão",
+        id: "fake-income-id",
+        occurred_on: incomeToSave.state.draft?.occurred_on ?? "2026-05-27",
+        type: "entrada" as const,
+      },
+      targetKind: "latest_income" as const,
+      updatedAt: new Date().toISOString(),
+    },
+    lastWrites: [] as any[],
+    status: "idle" as const,
+    updatedAt: new Date().toISOString(),
+  };
+  savedIncomeState.lastWrites = [savedIncomeState.lastWrite];
+
+  const closingQuestionAfterSave = await runAgentTurnForContext({
+    channel: "whatsapp",
+    context: fakeContext,
+    message: "não entendi o fechamento mensal",
+    state: savedIncomeState,
+  });
+
+  assert.match(closingQuestionAfterSave.reply, /fechamento mensal/);
+  assert.match(closingQuestionAfterSave.reply, /quanto entrou, quanto saiu/);
+  assert.doesNotMatch(closingQuestionAfterSave.reply, /troquei a descrição/i);
+  assert.equal(closingQuestionAfterSave.state.lastWrite?.target.description, savedIncomeState.lastWrite.target.description);
+
+  for (const message of [
+    "me explica o fechamento mensal",
+    "o que é fechamento mensal?",
+    "não entendi o relatório",
+    "não entendi como ver meu lucro",
+  ]) {
+    const explanation = await runAgentTurnForContext({
+      channel: "whatsapp",
+      context: fakeContext,
+      message,
+      state: savedIncomeState,
+    });
+
+    assert.doesNotMatch(explanation.reply, /troquei a descrição/i, message);
+    assert.doesNotMatch(explanation.reply, /atualizei/i, message);
+  }
+
+  for (const message of ["me explica o fechamento mensal", "o que é fechamento mensal?"]) {
+    const explanation = await runAgentTurnForContext({
+      channel: "whatsapp",
+      context: fakeContext,
+      message,
+      state: savedIncomeState,
+    });
+
+    assert.match(explanation.reply, /fechamento mensal/, message);
+    assert.doesNotMatch(explanation.reply, /troquei a descrição/i, message);
+  }
+
+  const editWrites: FakeWrite[] = [];
+  const originalConsoleError = console.error;
+  console.error = () => {};
+
+  try {
+    await runAgentTurnForContext({
+      channel: "whatsapp",
+      context: makeFakeContext(editWrites),
+      message: "muda a descrição da última entrada para pix cliente joão",
+      state: savedIncomeState,
+    });
+  } finally {
+    console.error = originalConsoleError;
+  }
+
+  assert.equal(normalizeDescription(editWrites.at(-1)?.payload.description ?? ""), "pix cliente joao");
 }
 
 type FakeWrite = {
@@ -723,8 +823,8 @@ function makeFakeContext(writes: FakeWrite[] = []) {
       from: (table: string) => makeFakeQuery(
         table === "movimentacoes"
           ? [
-              { amount: 200, occurred_on: "2026-04-27", type: "entrada" },
-              { amount: 80, occurred_on: "2026-04-27", type: "despesa" },
+              { amount: 200, category: "Venda", created_at: "2026-04-27T12:00:00Z", description: "cliente antigo", id: "fake-income-id", occurred_on: "2026-04-27", type: "entrada" },
+              { amount: 80, category: "Alimentação", created_at: "2026-04-27T11:00:00Z", description: "mercado", id: "fake-expense-id", occurred_on: "2026-04-27", type: "despesa" },
             ]
           : [],
         table,
@@ -758,6 +858,16 @@ function makeFakeQuery(data: unknown[], table: string, writes: FakeWrite[]) {
     select: () => query,
     single: async () => ({ data: Array.isArray(result.data) ? result.data[0] : result.data, error: null }),
     then: (resolve: (value: typeof result) => void) => resolve(result),
+    update: (payload: any) => {
+      const base = Array.isArray(result.data) ? result.data[0] ?? {} : result.data ?? {};
+      const updated = { ...base, ...payload };
+      writes.push({ payload, table });
+      result = {
+        data: updated,
+        error: null,
+      };
+      return query;
+    },
   };
 
   return query;
