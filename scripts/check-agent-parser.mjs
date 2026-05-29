@@ -36,7 +36,7 @@ await writeFile(
         target: "ES2022",
         types: ["node"],
       },
-      include: ["../tests/agent-parser-fixture.ts", "../lib/agent/**/*.ts"],
+      include: ["../tests/agent-parser-fixture.ts", "../lib/agent/**/*.ts", "../lib/agent-v2/**/*.ts"],
     },
     null,
     2,

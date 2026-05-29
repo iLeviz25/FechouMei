@@ -1,4 +1,6 @@
 import { runAgentTurnForContext } from "@/lib/agent/orchestrator";
+import { getAgentV2WhatsAppRouteDecision } from "@/lib/agent-v2/feature-flags";
+import { runAgentV2TurnForContext } from "@/lib/agent-v2/orchestrator";
 import {
   helenaAudioFallbackReply,
   helenaProcessingErrorReply,
@@ -1156,22 +1158,45 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
           };
         }
 
+        const agentV2Route = getAgentV2WhatsAppRouteDecision({
+          message: agentInputText,
+          remoteNumber,
+          source: audioWasTranscribed ? "audio_transcript" : "text",
+          state: snapshot.state,
+          userId: resolvedUserId,
+        });
+
+        console.info("[HELENA_V2_ROUTE]", {
+          enabled: agentV2Route.enabled,
+          reason: agentV2Route.reason,
+          source: audioWasTranscribed ? "audio_transcript" : "text",
+        });
+
         trace.mark("action_execution_started", {
+          agentVersion: agentV2Route.enabled ? "v2" : "v1",
           conversationId,
         });
-        const result = await runAgentTurnForContext({
-          channel: "whatsapp",
-          context: executionContext,
-          message: agentInputText,
-          runtimeSettings,
-          state: snapshot.state,
-        });
+        const result = agentV2Route.enabled
+          ? await runAgentV2TurnForContext({
+              channel: "whatsapp",
+              context: executionContext,
+              message: agentInputText,
+              state: snapshot.state,
+            })
+          : await runAgentTurnForContext({
+              channel: "whatsapp",
+              context: executionContext,
+              message: agentInputText,
+              runtimeSettings,
+              state: snapshot.state,
+            });
         trace.mark("action_execution_finished", {
+          agentVersion: agentV2Route.enabled ? "v2" : "v1",
           replyCharacters: result.reply.length,
         });
 
         trace.mark("response_build_started", {
-          source: "agent_result",
+          source: agentV2Route.enabled ? "agent_v2_result" : "agent_result",
         });
         agentReply = result.reply;
         trace.mark("response_build_finished", {

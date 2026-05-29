@@ -5,6 +5,8 @@ import { runAgentTurnForContext } from "../lib/agent/orchestrator";
 import { buildQuickPeriodReply, resolveQuickPeriodRange } from "../lib/agent/period-queries";
 import { getHelenaProductQuestionReply } from "../lib/agent/replies";
 import { parseTransactionMessage, parseTransactionMessages } from "../lib/agent/transaction-parser";
+import { getAgentV2WhatsAppRouteDecision, shouldUseAgentV2ForWhatsApp } from "../lib/agent-v2/feature-flags";
+import { runAgentV2TurnForContext } from "../lib/agent-v2/orchestrator";
 import { normalizeEvolutionWebhookPayload } from "../lib/channels/whatsapp/evolution";
 import type { MovementField, MovementType } from "../lib/agent/types";
 
@@ -468,6 +470,8 @@ async function runConversationChecks() {
   const fakeContext = makeFakeContext();
   const reportYear = getCurrentSaoPauloYearForTest();
 
+  await runAgentV2Checks();
+
   for (const message of [
     "Me faça um relatório do mês de abril",
     "Me faça um relatório de abril",
@@ -756,6 +760,153 @@ async function runConversationChecks() {
   }
 
   assert.equal(normalizeDescription(editWrites.at(-1)?.payload.description ?? ""), "pix cliente joao");
+}
+
+async function runAgentV2Checks() {
+  const originalEnabled = process.env.HELENA_V2_ENABLED;
+  const originalAllowAll = process.env.HELENA_V2_ALLOW_ALL;
+  const originalUserIds = process.env.HELENA_V2_USER_IDS;
+  const originalNumbers = process.env.HELENA_V2_WHATSAPP_NUMBERS;
+  const originalGeminiEnabled = process.env.HELENA_V2_GEMINI_ENABLED;
+
+  try {
+    process.env.HELENA_V2_ENABLED = "";
+    process.env.HELENA_V2_ALLOW_ALL = "";
+    process.env.HELENA_V2_USER_IDS = "test-user";
+    process.env.HELENA_V2_WHATSAPP_NUMBERS = "5511999999999";
+
+    assert.equal(shouldUseAgentV2ForWhatsApp({ remoteNumber: "5511999999999", userId: "test-user" }), false);
+    assert.deepEqual(
+      getAgentV2WhatsAppRouteDecision({
+        message: "oi",
+        remoteNumber: "5511999999999",
+        source: "text",
+        state: idleState,
+        userId: "test-user",
+      }),
+      { enabled: false, reason: "feature_disabled" },
+    );
+
+    process.env.HELENA_V2_ENABLED = "true";
+
+    assert.equal(shouldUseAgentV2ForWhatsApp({ remoteNumber: "5511999999999", userId: "test-user" }), true);
+    assert.equal(shouldUseAgentV2ForWhatsApp({ remoteNumber: "5511888888888", userId: "other-user" }), false);
+    assert.deepEqual(
+      getAgentV2WhatsAppRouteDecision({
+        message: "oi",
+        remoteNumber: "5511888888888",
+        source: "text",
+        state: idleState,
+        userId: "other-user",
+      }),
+      { enabled: false, reason: "not_allowlisted" },
+    );
+    assert.deepEqual(
+      getAgentV2WhatsAppRouteDecision({
+        message: "oi",
+        remoteNumber: "5511999999999",
+        source: "text",
+        state: idleState,
+        userId: "test-user",
+      }),
+      { enabled: true, reason: "enabled" },
+    );
+    assert.deepEqual(
+      getAgentV2WhatsAppRouteDecision({
+        message: "oi",
+        remoteNumber: "5511999999999",
+        source: "audio_transcript",
+        state: idleState,
+        userId: "test-user",
+      }),
+      { enabled: false, reason: "audio_not_supported" },
+    );
+    assert.deepEqual(
+      getAgentV2WhatsAppRouteDecision({
+        message: "sim",
+        remoteNumber: "5511999999999",
+        source: "text",
+        state: pendingExpenseState,
+        userId: "test-user",
+      }),
+      { enabled: false, reason: "pending_state_v1" },
+    );
+    assert.deepEqual(
+      getAgentV2WhatsAppRouteDecision({
+        message: "me faça um relatório de abril",
+        remoteNumber: "5511999999999",
+        source: "text",
+        state: idleState,
+        userId: "test-user",
+      }),
+      { enabled: false, reason: "read_action_v1" },
+    );
+
+    process.env.HELENA_V2_GEMINI_ENABLED = "false";
+
+    const greeting = await runAgentV2TurnForContext({
+      context: makeFakeContext(),
+      message: "oi",
+      state: idleState,
+    });
+    assert.match(greeting.reply, /Helena/);
+    assert.match(greeting.reply, /FechouMEI/);
+
+    const capabilities = await runAgentV2TurnForContext({
+      context: makeFakeContext(),
+      message: "o que você faz?",
+      state: idleState,
+    });
+    assert.match(capabilities.reply, /versão de teste/);
+    assert.match(capabilities.reply, /entradas, despesas, lucro, relatórios/);
+
+    const closing = await runAgentV2TurnForContext({
+      context: makeFakeContext(),
+      message: "não entendi o fechamento mensal",
+      state: idleState,
+    });
+    assert.match(closing.reply, /fechamento mensal/);
+    assert.match(closing.reply, /quanto entrou/);
+
+    const profit = await runAgentV2TurnForContext({
+      context: makeFakeContext(),
+      message: "como vejo meu lucro?",
+      state: idleState,
+    });
+    assert.match(profit.reply, /entradas e despesas/);
+    assert.doesNotMatch(profit.reply, /R\$/);
+
+    const registerIncomeHelp = await runAgentV2TurnForContext({
+      context: makeFakeContext(),
+      message: "como eu registro uma entrada?",
+      state: idleState,
+    });
+    assert.match(registerIncomeHelp.reply, /valor/);
+    assert.match(registerIncomeHelp.reply, /ainda não salvo/);
+
+    const outOfScope = await runAgentV2TurnForContext({
+      context: makeFakeContext(),
+      message: "quem ganhou o jogo ontem?",
+      state: idleState,
+    });
+    assert.match(outOfScope.reply, /foge/);
+    assert.match(outOfScope.reply, /FechouMEI/);
+
+    const writes: FakeWrite[] = [];
+    const writeBlocked = await runAgentV2TurnForContext({
+      context: makeFakeContext(writes),
+      message: "entrou 300 pix cliente joão",
+      state: idleState,
+    });
+    assert.match(writeBlocked.reply, /não vou salvar movimentações/);
+    assert.equal(writes.length, 0);
+  } finally {
+    process.env.HELENA_V2_ENABLED = originalEnabled;
+    process.env.HELENA_V2_ALLOW_ALL = originalAllowAll;
+    process.env.HELENA_V2_USER_IDS = originalUserIds;
+    process.env.HELENA_V2_WHATSAPP_NUMBERS = originalNumbers;
+    process.env.HELENA_V2_GEMINI_ENABLED = originalGeminiEnabled;
+  }
 }
 
 type FakeWrite = {
