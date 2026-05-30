@@ -839,7 +839,7 @@ async function runAgentV2Checks() {
         state: idleState,
         userId: "test-user",
       }),
-      { enabled: false, reason: "read_action_v1" },
+      { enabled: true, reason: "enabled" },
     );
 
     process.env.HELENA_V2_GEMINI_ENABLED = "false";
@@ -891,6 +891,94 @@ async function runAgentV2Checks() {
     });
     assert.match(outOfScope.reply, /foge/);
     assert.match(outOfScope.reply, /FechouMEI/);
+
+    const reportYear = getCurrentSaoPauloYearForTest();
+    const v2ReportMessages = [
+      "relatório de abril",
+      "me faça um relatório do mês de abril",
+    ];
+
+    for (const message of v2ReportMessages) {
+      const report = await runAgentV2TurnForContext({
+        context: makeFakeContext(),
+        message,
+        state: idleState,
+      });
+
+      assert.match(report.reply, new RegExp(`Relatório de abril de ${reportYear}`), message);
+      assert.match(report.reply, new RegExp(`Período: 01/04/${reportYear} a 30/04/${reportYear}`), message);
+      assert.match(report.reply, /Entradas: R\$\s*200,00/);
+      assert.match(report.reply, /Despesas: R\$\s*80,00/);
+    }
+
+    const lastMonthReport = await runAgentV2TurnForContext({
+      context: makeFakeContext(),
+      message: "relatório do mês passado",
+      state: idleState,
+    });
+    assert.match(lastMonthReport.reply, new RegExp(`Relatório de abril de ${reportYear}`));
+    assert.match(lastMonthReport.reply, new RegExp(`Período: 01/04/${reportYear} a 30/04/${reportYear}`));
+
+    const lastMonthProfit = await runAgentV2TurnForContext({
+      context: makeFakeContext(),
+      message: "quanto lucrei mês passado?",
+      state: idleState,
+    });
+    assert.match(lastMonthProfit.reply, new RegExp(`Em abril de ${reportYear}`));
+    assert.match(lastMonthProfit.reply, /saldo ficou em R\$\s*120,00/);
+
+    const aprilBalance = await runAgentV2TurnForContext({
+      context: makeFakeContext(),
+      message: "quanto sobrou em abril?",
+      state: idleState,
+    });
+    assert.match(aprilBalance.reply, new RegExp(`Em abril de ${reportYear}`));
+    assert.match(aprilBalance.reply, /saldo ficou em R\$\s*120,00/);
+
+    const currentMonthIncome = await runAgentV2TurnForContext({
+      context: makeFakeContext(),
+      message: "quanto entrou esse mês?",
+      state: idleState,
+    });
+    assert.match(currentMonthIncome.reply, /entraram R\$\s*500,00/);
+
+    const currentMonthExpense = await runAgentV2TurnForContext({
+      context: makeFakeContext(),
+      message: "quanto saiu esse mês?",
+      state: idleState,
+    });
+    assert.match(currentMonthExpense.reply, /saíram R\$\s*100,00/);
+
+    const latestMovements = await runAgentV2TurnForContext({
+      context: makeFakeContext(),
+      message: "quais foram minhas últimas movimentações?",
+      state: idleState,
+    });
+    assert.match(latestMovements.reply, /Encontrei estas movimentações/);
+    assert.match(latestMovements.reply, /cliente maio/i);
+
+    const latestExpenses = await runAgentV2TurnForContext({
+      context: makeFakeContext(),
+      message: "mostra minhas últimas despesas",
+      state: idleState,
+    });
+    assert.match(latestExpenses.reply, /Encontrei estas despesas/);
+    assert.match(latestExpenses.reply, /internet maio/i);
+    assert.doesNotMatch(latestExpenses.reply, /cliente maio/i);
+
+    const emptyReport = await runAgentV2TurnForContext({
+      context: makeFakeContext([], []),
+      message: "relatório de abril",
+      state: idleState,
+    });
+    assert.match(emptyReport.reply, new RegExp(`Não encontrei movimentações em abril de ${reportYear}`));
+
+    const obligations = await runAgentV2TurnForContext({
+      context: makeFakeContext(),
+      message: "tenho alguma obrigação pendente?",
+      state: idleState,
+    });
+    assert.match(obligations.reply, /Pendências principais deste mês|obrigações do mês/);
 
     const writes: FakeWrite[] = [];
     const writeBlocked = await runAgentV2TurnForContext({
@@ -968,16 +1056,11 @@ function getCurrentSaoPauloYearForTest() {
   return Number(parts.find((part) => part.type === "year")?.value ?? new Date().getFullYear());
 }
 
-function makeFakeContext(writes: FakeWrite[] = []) {
+function makeFakeContext(writes: FakeWrite[] = [], movements: unknown[] = getDefaultFakeMovements()) {
   return {
     supabase: {
       from: (table: string) => makeFakeQuery(
-        table === "movimentacoes"
-          ? [
-              { amount: 200, category: "Venda", created_at: "2026-04-27T12:00:00Z", description: "cliente antigo", id: "fake-income-id", occurred_on: "2026-04-27", type: "entrada" },
-              { amount: 80, category: "Alimentação", created_at: "2026-04-27T11:00:00Z", description: "mercado", id: "fake-expense-id", occurred_on: "2026-04-27", type: "despesa" },
-            ]
-          : [],
+        table === "movimentacoes" ? movements : [],
         table,
         writes,
       ),
@@ -987,11 +1070,37 @@ function makeFakeContext(writes: FakeWrite[] = []) {
   } as any;
 }
 
+function getDefaultFakeMovements() {
+  return [
+    { amount: 500, category: "Venda", created_at: "2026-05-10T12:00:00Z", description: "cliente maio", id: "fake-may-income-id", occurred_on: "2026-05-10", type: "entrada", user_id: "test-user" },
+    { amount: 100, category: "Internet", created_at: "2026-05-08T12:00:00Z", description: "internet maio", id: "fake-may-expense-id", occurred_on: "2026-05-08", type: "despesa", user_id: "test-user" },
+    { amount: 200, category: "Venda", created_at: "2026-04-27T12:00:00Z", description: "cliente antigo", id: "fake-income-id", occurred_on: "2026-04-27", type: "entrada", user_id: "test-user" },
+    { amount: 80, category: "Alimentação", created_at: "2026-04-27T11:00:00Z", description: "mercado", id: "fake-expense-id", occurred_on: "2026-04-27", type: "despesa", user_id: "test-user" },
+  ];
+}
+
 function makeFakeQuery(data: unknown[], table: string, writes: FakeWrite[]) {
-  let result = { data: data as unknown, error: null };
+  let result = { data: Array.isArray(data) ? [...data] as unknown[] : data as unknown, error: null };
+
+  const updateResult = (nextData: unknown) => {
+    result = { data: nextData, error: null };
+  };
+
+  const filterRows = (predicate: (row: Record<string, any>) => boolean) => {
+    if (Array.isArray(result.data)) {
+      updateResult(result.data.filter((row) => predicate(row as Record<string, any>)));
+    }
+  };
+
   const query = {
-    eq: () => query,
-    gte: () => query,
+    eq: (field: string, value: unknown) => {
+      filterRows((row) => row[field] === value);
+      return query;
+    },
+    gte: (field: string, value: unknown) => {
+      filterRows((row) => String(row[field] ?? "") >= String(value));
+      return query;
+    },
     insert: (payload: any) => {
       writes.push({ payload, table });
       result = {
@@ -1002,10 +1111,38 @@ function makeFakeQuery(data: unknown[], table: string, writes: FakeWrite[]) {
       };
       return query;
     },
-    lte: () => query,
-    limit: () => query,
+    ilike: (field: string, pattern: string) => {
+      const needle = pattern.replace(/[%_]/g, "").toLocaleLowerCase("pt-BR");
+      filterRows((row) => String(row[field] ?? "").toLocaleLowerCase("pt-BR").includes(needle));
+      return query;
+    },
+    lte: (field: string, value: unknown) => {
+      filterRows((row) => String(row[field] ?? "") <= String(value));
+      return query;
+    },
+    limit: (count: number) => {
+      if (Array.isArray(result.data)) {
+        updateResult(result.data.slice(0, count));
+      }
+      return query;
+    },
     maybeSingle: async () => ({ data: Array.isArray(result.data) ? result.data[0] ?? null : result.data, error: null }),
-    order: () => query,
+    order: (field: string, options: { ascending?: boolean } = {}) => {
+      if (Array.isArray(result.data)) {
+        const ascending = options.ascending ?? true;
+        updateResult([...result.data].sort((left: any, right: any) => {
+          const leftValue = left[field] ?? "";
+          const rightValue = right[field] ?? "";
+
+          if (leftValue === rightValue) {
+            return 0;
+          }
+
+          return (leftValue > rightValue ? 1 : -1) * (ascending ? 1 : -1);
+        }));
+      }
+      return query;
+    },
     select: () => query,
     single: async () => ({ data: Array.isArray(result.data) ? result.data[0] : result.data, error: null }),
     then: (resolve: (value: typeof result) => void) => resolve(result),

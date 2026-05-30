@@ -15,6 +15,7 @@ import {
   trimAgentV2Reply,
 } from "@/lib/agent-v2/guardrails";
 import { buildAgentV2SystemPrompt } from "@/lib/agent-v2/system-prompt";
+import { executeAgentV2ReadTool } from "@/lib/agent-v2/tools";
 import { emptyAgentState } from "@/lib/agent/utils";
 
 type RunAgentV2TurnInput = {
@@ -35,8 +36,6 @@ export async function runAgentV2TurnForContext({
   message,
   state,
 }: RunAgentV2TurnInput): Promise<AgentTurnResult> {
-  void context;
-
   const trimmedMessage = message.trim();
   const currentState = state ?? emptyAgentState();
 
@@ -68,6 +67,16 @@ export async function runAgentV2TurnForContext({
       reply: scopeRefusal,
       state: currentState,
     };
+  }
+
+  const readToolResult = await executeAgentV2ReadTool({
+    context,
+    message: trimmedMessage,
+    state: currentState,
+  });
+
+  if (readToolResult) {
+    return readToolResult;
   }
 
   const normalized = normalizeKnowledgeText(trimmedMessage);

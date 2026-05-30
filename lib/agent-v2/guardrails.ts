@@ -1,5 +1,6 @@
 import type { AgentConversationState } from "@/lib/agent/types";
 import { normalizeKnowledgeText } from "@/lib/agent-v2/product-knowledge";
+import { isAgentV2SupportedReadIntent } from "@/lib/agent-v2/tool-schemas";
 
 const actualReadPatterns = [
   /\b(me\s+faz|faca|faça|manda|gerar?|gera|quero)\s+(um\s+)?relatorio\b/,
@@ -34,7 +35,7 @@ export type AgentV2RouteSource = "audio_transcript" | "text";
 
 export function shouldAgentV2HandleTextMessage(message: string) {
   if (isAgentV2ActualReadIntent(message)) {
-    return false;
+    return isAgentV2SupportedReadIntent(message);
   }
 
   return true;
