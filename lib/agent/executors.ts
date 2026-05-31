@@ -77,6 +77,24 @@ type BalanceProfileRow = {
   initial_balance: number | string | null;
 };
 
+function revalidateAgentAppPaths(paths: string[]) {
+  for (const path of paths) {
+    try {
+      revalidatePath(path);
+    } catch (error) {
+      if (isMissingRevalidationContextError(error)) {
+        continue;
+      }
+
+      throw error;
+    }
+  }
+}
+
+function isMissingRevalidationContextError(error: unknown) {
+  return error instanceof Error && /static generation store missing in revalidatePath/i.test(error.message);
+}
+
 export async function executeMovementRegistration(
   context: AgentExecutionContext,
   draft: Required<AgentMovementDraft>,
@@ -99,9 +117,11 @@ export async function executeMovementRegistration(
     throw new Error(error.message);
   }
 
-  revalidatePath("/app/dashboard");
-  revalidatePath("/app/fechamento-mensal");
-  revalidatePath("/app/movimentacoes");
+  revalidateAgentAppPaths([
+    "/app/dashboard",
+    "/app/fechamento-mensal",
+    "/app/movimentacoes",
+  ]);
 
   return {
     movement: data,
@@ -136,9 +156,11 @@ export async function executeMovementBatchRegistration(
     throw new Error("Nem todas as movimentações foram confirmadas pelo banco.");
   }
 
-  revalidatePath("/app/dashboard");
-  revalidatePath("/app/fechamento-mensal");
-  revalidatePath("/app/movimentacoes");
+  revalidateAgentAppPaths([
+    "/app/dashboard",
+    "/app/fechamento-mensal",
+    "/app/movimentacoes",
+  ]);
 
   return {
     movements: data,
@@ -207,9 +229,11 @@ export async function executeTransactionDeletion(
     throw new Error(error.message);
   }
 
-  revalidatePath("/app/dashboard");
-  revalidatePath("/app/fechamento-mensal");
-  revalidatePath("/app/movimentacoes");
+  revalidateAgentAppPaths([
+    "/app/dashboard",
+    "/app/fechamento-mensal",
+    "/app/movimentacoes",
+  ]);
 
   return `Pronto, excluí esta movimentação:\n${formatMovementForDeletion(target)}.`;
 }
@@ -359,9 +383,11 @@ export async function executeTransactionEdit(
 
   assertTransactionEditPersisted(data, update);
 
-  revalidatePath("/app/dashboard");
-  revalidatePath("/app/fechamento-mensal");
-  revalidatePath("/app/movimentacoes");
+  revalidateAgentAppPaths([
+    "/app/dashboard",
+    "/app/fechamento-mensal",
+    "/app/movimentacoes",
+  ]);
 
   return {
     movement: data,
@@ -492,7 +518,7 @@ export async function executeMarkObligation(context: AgentExecutionContext, item
     throw new Error(error.message);
   }
 
-  revalidatePath("/app/obrigacoes");
+  revalidateAgentAppPaths(["/app/obrigacoes"]);
 
   return `Pronto, marquei como concluída: ${label}.`;
 }
@@ -542,7 +568,7 @@ export async function executeReminderPreferencesUpdate(
     throw new Error(error.message);
   }
 
-  revalidatePath("/app/obrigacoes");
+  revalidateAgentAppPaths(["/app/obrigacoes"]);
 
   return update.enabled
     ? "Pronto, ativei seus lembretes no app."
@@ -566,10 +592,12 @@ export async function executeInitialBalanceUpdate(context: AgentExecutionContext
     throw new Error(error.message);
   }
 
-  revalidatePath("/app/dashboard");
-  revalidatePath("/app/fechamento-mensal");
-  revalidatePath("/app/movimentacoes");
-  revalidatePath("/app/configuracoes");
+  revalidateAgentAppPaths([
+    "/app/dashboard",
+    "/app/fechamento-mensal",
+    "/app/movimentacoes",
+    "/app/configuracoes",
+  ]);
 
   return `Pronto, ajustei seu saldo atual para ${toCurrency(normalizedAmount)}.\nIsso não entrou como receita e não afeta o limite do MEI.`;
 }

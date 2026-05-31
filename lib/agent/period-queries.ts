@@ -209,10 +209,10 @@ export function buildQuickPeriodReply(query: Extract<AgentQuickPeriodQuery, { ty
   }
 
   if (query.metric === "balance") {
-    return `${range.prefix} entraram ${toCurrency(totals.income)}, saíram ${toCurrency(totals.expense)} e o saldo ficou em ${toCurrency(balance)}.`;
+    return `${range.prefix} entraram ${toCurrency(totals.income)}, saíram ${toCurrency(totals.expense)} e o resultado ficou em ${toCurrency(balance)}.`;
   }
 
-  return `${range.prefix}: entradas ${toCurrency(totals.income)}, despesas ${toCurrency(totals.expense)} e saldo ${toCurrency(balance)}.`;
+  return `${range.prefix}: entradas ${toCurrency(totals.income)}, despesas ${toCurrency(totals.expense)} e resultado ${toCurrency(balance)}.`;
 }
 
 export function buildWeeklyExtremeReply(query: Extract<AgentQuickPeriodQuery, { type: "weekly_extreme" }>, weeks: ResolvedRange[], rows: MovementRow[]) {

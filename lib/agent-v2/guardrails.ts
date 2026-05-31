@@ -21,6 +21,8 @@ const writePatterns = [
   /\b(gastei|paguei|comprei|saiu)\b.*\d/,
   /\b(registra|registre|registrar|lanca|lança|lance|adiciona|adicionar|salva|salvar)\b.*\b(entrada|despesa|gasto|recebimento|movimentacao|movimentação)\b/,
   /\b(entrada|despesa)\b.*\b(de|no valor de)?\s*r?\$?\s*\d/,
+  /\b(exclui|excluir|apaga|apagar|deleta|deletar|remove|remover)\b.*\b(movimentacao|movimentação|registro|entrada|despesa|ultima|última)\b/,
+  /\b(edita|editar|muda|mude|troca|troque|corrige|corrigir|altera|alterar)\b.*\b(movimentacao|movimentação|registro|entrada|despesa|descricao|descrição|categoria|valor|data)\b/,
 ];
 
 const dangerousFiscalPatterns = [
@@ -55,10 +57,17 @@ export function canAgentV2HandleTurn({
   }
 
   if (state && state.status !== "idle") {
-    return false;
+    return isAgentV2SupportedPendingMovementState(state);
   }
 
   return shouldAgentV2HandleTextMessage(message);
+}
+
+export function isAgentV2SupportedPendingMovementState(state?: AgentConversationState | null) {
+  return (
+    state?.status !== "idle" &&
+    (state?.pendingAction === "register_income" || state?.pendingAction === "register_expense")
+  );
 }
 
 export function isAgentV2WriteIntent(message: string) {
@@ -107,9 +116,9 @@ export function getAgentV2ScopeRefusal(message: string) {
 
 export function getAgentV2WriteBlockedReply() {
   return [
-    "Consigo te ajudar com esse tipo de registro, mas nesta versão de teste da Helena v2 ainda não vou salvar movimentações por aqui.",
+    "Consigo te ajudar com registros de entrada e despesa, sempre pedindo confirmação antes de salvar.",
     "",
-    "Por segurança, ações que gravam dados continuam fora da v2 nesta fase.",
+    "Edição e exclusão continuam fora da v2 por enquanto, por segurança.",
   ].join("\n");
 }
 

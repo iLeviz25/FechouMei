@@ -16,6 +16,7 @@ import {
 } from "@/lib/agent-v2/guardrails";
 import { buildAgentV2SystemPrompt } from "@/lib/agent-v2/system-prompt";
 import { executeAgentV2ReadTool } from "@/lib/agent-v2/tools";
+import { executeAgentV2WriteTool } from "@/lib/agent-v2/write-tools";
 import { emptyAgentState } from "@/lib/agent/utils";
 
 type RunAgentV2TurnInput = {
@@ -46,20 +47,6 @@ export async function runAgentV2TurnForContext({
     };
   }
 
-  if (currentState.status !== "idle") {
-    return {
-      reply: "Temos um rascunho pendente. Vou manter esse fluxo no modo seguro atual para não misturar as coisas.",
-      state: currentState,
-    };
-  }
-
-  if (isAgentV2WriteIntent(trimmedMessage)) {
-    return {
-      reply: getAgentV2WriteBlockedReply(),
-      state: currentState,
-    };
-  }
-
   const scopeRefusal = getAgentV2ScopeRefusal(trimmedMessage);
 
   if (scopeRefusal) {
@@ -77,6 +64,30 @@ export async function runAgentV2TurnForContext({
 
   if (readToolResult) {
     return readToolResult;
+  }
+
+  const writeToolResult = await executeAgentV2WriteTool({
+    context,
+    message: trimmedMessage,
+    state: currentState,
+  });
+
+  if (writeToolResult) {
+    return writeToolResult;
+  }
+
+  if (currentState.status !== "idle") {
+    return {
+      reply: "Temos um rascunho pendente. Responda 'sim' para salvar, 'cancelar' para descartar ou me mande uma correção curta.",
+      state: currentState,
+    };
+  }
+
+  if (isAgentV2WriteIntent(trimmedMessage)) {
+    return {
+      reply: getAgentV2WriteBlockedReply(),
+      state: currentState,
+    };
   }
 
   const normalized = normalizeKnowledgeText(trimmedMessage);

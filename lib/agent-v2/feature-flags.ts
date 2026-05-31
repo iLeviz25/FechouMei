@@ -55,12 +55,13 @@ export function getAgentV2WhatsAppRouteDecision(input: {
     return { enabled: false, reason: "audio_not_supported" };
   }
 
-  if (input.state && input.state.status !== "idle") {
-    return { enabled: false, reason: "pending_state_v1" };
-  }
+  const canHandle = canAgentV2HandleTurn(input);
 
-  if (!canAgentV2HandleTurn(input)) {
-    return { enabled: false, reason: "read_action_v1" };
+  if (!canHandle) {
+    return {
+      enabled: false,
+      reason: input.state && input.state.status !== "idle" ? "pending_state_v1" : "read_action_v1",
+    };
   }
 
   return { enabled: true, reason: "enabled" };

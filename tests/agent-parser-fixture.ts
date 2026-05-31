@@ -829,7 +829,17 @@ async function runAgentV2Checks() {
         state: pendingExpenseState,
         userId: "test-user",
       }),
-      { enabled: false, reason: "pending_state_v1" },
+      { enabled: true, reason: "enabled" },
+    );
+    assert.deepEqual(
+      getAgentV2WhatsAppRouteDecision({
+        message: "entrou 300 pix cliente joão",
+        remoteNumber: "5511888888888",
+        source: "text",
+        state: idleState,
+        userId: "other-user",
+      }),
+      { enabled: false, reason: "not_allowlisted" },
     );
     assert.deepEqual(
       getAgentV2WhatsAppRouteDecision({
@@ -882,7 +892,7 @@ async function runAgentV2Checks() {
       state: idleState,
     });
     assert.match(registerIncomeHelp.reply, /valor/);
-    assert.match(registerIncomeHelp.reply, /ainda não salvo/);
+    assert.match(registerIncomeHelp.reply, /confirmação|confirmar/);
 
     const outOfScope = await runAgentV2TurnForContext({
       context: makeFakeContext(),
@@ -925,7 +935,7 @@ async function runAgentV2Checks() {
       state: idleState,
     });
     assert.match(lastMonthProfit.reply, new RegExp(`Em abril de ${reportYear}`));
-    assert.match(lastMonthProfit.reply, /saldo ficou em R\$\s*120,00/);
+    assert.match(lastMonthProfit.reply, /resultado ficou em R\$\s*120,00/);
 
     const aprilBalance = await runAgentV2TurnForContext({
       context: makeFakeContext(),
@@ -933,7 +943,7 @@ async function runAgentV2Checks() {
       state: idleState,
     });
     assert.match(aprilBalance.reply, new RegExp(`Em abril de ${reportYear}`));
-    assert.match(aprilBalance.reply, /saldo ficou em R\$\s*120,00/);
+    assert.match(aprilBalance.reply, /resultado ficou em R\$\s*120,00/);
 
     const currentMonthIncome = await runAgentV2TurnForContext({
       context: makeFakeContext(),
@@ -981,13 +991,94 @@ async function runAgentV2Checks() {
     assert.match(obligations.reply, /Pendências principais deste mês|obrigações do mês/);
 
     const writes: FakeWrite[] = [];
-    const writeBlocked = await runAgentV2TurnForContext({
+    const incomeDraft = await runAgentV2TurnForContext({
       context: makeFakeContext(writes),
       message: "entrou 300 pix cliente joão",
       state: idleState,
     });
-    assert.match(writeBlocked.reply, /não vou salvar movimentações/);
+    assert.equal(incomeDraft.state.pendingAction, "register_income");
+    assert.equal(incomeDraft.state.status, "awaiting_confirmation");
+    assert.equal(incomeDraft.state.draft?.amount, 300);
+    assert.match(incomeDraft.reply, /entrada de R\$\s*300,00/);
+    assert.match(incomeDraft.reply, /Posso salvar\?/);
     assert.equal(writes.length, 0);
+
+    const pendingDoubt = await runAgentV2TurnForContext({
+      context: makeFakeContext(writes),
+      message: "não entendi o fechamento mensal",
+      state: incomeDraft.state,
+    });
+    assert.match(pendingDoubt.reply, /fechamento mensal/);
+    assert.equal(pendingDoubt.state.pendingAction, "register_income");
+    assert.equal(writes.length, 0);
+
+    const confirmedIncome = await runAgentV2TurnForContext({
+      context: makeFakeContext(writes),
+      message: "sim",
+      state: incomeDraft.state,
+    });
+    assert.match(confirmedIncome.reply, /Pronto, registrei essa entrada de R\$\s*300,00/);
+    assert.equal(confirmedIncome.state.status, "idle");
+    assert.equal(writes.length, 1);
+    assert.equal(writes[0]?.table, "movimentacoes");
+    assert.equal(writes[0]?.payload.type, "entrada");
+    assert.equal(writes[0]?.payload.amount, 300);
+
+    const draftCases = [
+      { amount: 50, message: "gastei 50 gasolina", pendingAction: "register_expense", reply: /despesa de R\$\s*50,00/i },
+      { amount: 120, message: "paguei 120 internet", pendingAction: "register_expense", reply: /despesa de R\$\s*120,00/i },
+      { amount: 500, message: "recebi 500 de venda", pendingAction: "register_income", reply: /entrada de R\$\s*500,00/i },
+    ] as const;
+
+    for (const draftCase of draftCases) {
+      const caseWrites: FakeWrite[] = [];
+      const draft = await runAgentV2TurnForContext({
+        context: makeFakeContext(caseWrites),
+        message: draftCase.message,
+        state: idleState,
+      });
+
+      assert.equal(draft.state.pendingAction, draftCase.pendingAction, draftCase.message);
+      assert.equal(draft.state.status, "awaiting_confirmation", draftCase.message);
+      assert.equal(draft.state.draft?.amount, draftCase.amount, draftCase.message);
+      assert.match(draft.reply, draftCase.reply, draftCase.message);
+      assert.equal(caseWrites.length, 0, draftCase.message);
+    }
+
+    const cancelWrites: FakeWrite[] = [];
+    const cancelDraft = await runAgentV2TurnForContext({
+      context: makeFakeContext(cancelWrites),
+      message: "gastei 50 gasolina",
+      state: idleState,
+    });
+    const cancelled = await runAgentV2TurnForContext({
+      context: makeFakeContext(cancelWrites),
+      message: "cancela",
+      state: cancelDraft.state,
+    });
+    assert.match(cancelled.reply, /não salvei|cancelei o rascunho/i);
+    assert.equal(cancelled.state.status, "idle");
+    assert.equal(cancelWrites.length, 0);
+
+    const missingDescription = await runAgentV2TurnForContext({
+      context: makeFakeContext(),
+      message: "gastei 80",
+      state: idleState,
+    });
+    assert.equal(missingDescription.state.pendingAction, "register_expense");
+    assert.equal(missingDescription.state.status, "collecting");
+    assert.deepEqual(missingDescription.state.missingFields, ["description"]);
+    assert.match(missingDescription.reply, /foi com o quê|foi com o que|gasto de R\$\s*80,00/i);
+
+    const missingAmount = await runAgentV2TurnForContext({
+      context: makeFakeContext(),
+      message: "entrou dinheiro",
+      state: idleState,
+    });
+    assert.equal(missingAmount.state.pendingAction, "register_income");
+    assert.equal(missingAmount.state.status, "collecting");
+    assert.deepEqual(missingAmount.state.missingFields, ["amount"]);
+    assert.match(missingAmount.reply, /valor/i);
   } finally {
     process.env.HELENA_V2_ENABLED = originalEnabled;
     process.env.HELENA_V2_ALLOW_ALL = originalAllowAll;
