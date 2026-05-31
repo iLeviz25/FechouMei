@@ -66,7 +66,13 @@ export function canAgentV2HandleTurn({
 export function isAgentV2SupportedPendingMovementState(state?: AgentConversationState | null) {
   return (
     state?.status !== "idle" &&
-    (state?.pendingAction === "register_income" || state?.pendingAction === "register_expense")
+    (
+      state?.pendingAction === "register_income" ||
+      state?.pendingAction === "register_expense" ||
+      state?.pendingAction === "register_movements_batch" ||
+      state?.pendingAction === "edit_transaction" ||
+      state?.pendingAction === "delete_transaction"
+    )
   );
 }
 
@@ -116,9 +122,9 @@ export function getAgentV2ScopeRefusal(message: string) {
 
 export function getAgentV2WriteBlockedReply() {
   return [
-    "Consigo te ajudar com registros de entrada e despesa, sempre pedindo confirmação antes de salvar.",
+    "Consigo te ajudar com registros simples de entrada e despesa direto por aqui.",
     "",
-    "Edição e exclusão continuam fora da v2 por enquanto, por segurança.",
+    "Quando for algo sensível, como lote, edição ou exclusão, eu peço confirmação antes.",
   ].join("\n");
 }
 

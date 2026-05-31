@@ -748,12 +748,26 @@ async function runConversationChecks() {
   const originalConsoleError = console.error;
   console.error = () => {};
 
+  let editConfirmation: Awaited<ReturnType<typeof runAgentTurnForContext>>;
+
   try {
-    await runAgentTurnForContext({
+    editConfirmation = await runAgentTurnForContext({
       channel: "whatsapp",
       context: makeFakeContext(editWrites),
       message: "muda a descrição da última entrada para pix cliente joão",
       state: savedIncomeState,
+    });
+
+    assert.equal(editConfirmation.state.pendingAction, "edit_transaction");
+    assert.equal(editConfirmation.state.status, "awaiting_confirmation");
+    assert.match(editConfirmation.reply, /Posso salvar essa alteração\?/);
+    assert.equal(editWrites.length, 0);
+
+    await runAgentTurnForContext({
+      channel: "whatsapp",
+      context: makeFakeContext(editWrites),
+      message: "sim",
+      state: editConfirmation.state,
     });
   } finally {
     console.error = originalConsoleError;
@@ -892,7 +906,7 @@ async function runAgentV2Checks() {
       state: idleState,
     });
     assert.match(registerIncomeHelp.reply, /valor/);
-    assert.match(registerIncomeHelp.reply, /confirmação|confirmar/);
+    assert.match(registerIncomeHelp.reply, /salvo direto|pergunto antes/);
 
     const outOfScope = await runAgentV2TurnForContext({
       context: makeFakeContext(),
@@ -991,34 +1005,13 @@ async function runAgentV2Checks() {
     assert.match(obligations.reply, /Pendências principais deste mês|obrigações do mês/);
 
     const writes: FakeWrite[] = [];
-    const incomeDraft = await runAgentV2TurnForContext({
+    const incomeSaved = await runAgentV2TurnForContext({
       context: makeFakeContext(writes),
       message: "entrou 300 pix cliente joão",
       state: idleState,
     });
-    assert.equal(incomeDraft.state.pendingAction, "register_income");
-    assert.equal(incomeDraft.state.status, "awaiting_confirmation");
-    assert.equal(incomeDraft.state.draft?.amount, 300);
-    assert.match(incomeDraft.reply, /entrada de R\$\s*300,00/);
-    assert.match(incomeDraft.reply, /Posso salvar\?/);
-    assert.equal(writes.length, 0);
-
-    const pendingDoubt = await runAgentV2TurnForContext({
-      context: makeFakeContext(writes),
-      message: "não entendi o fechamento mensal",
-      state: incomeDraft.state,
-    });
-    assert.match(pendingDoubt.reply, /fechamento mensal/);
-    assert.equal(pendingDoubt.state.pendingAction, "register_income");
-    assert.equal(writes.length, 0);
-
-    const confirmedIncome = await runAgentV2TurnForContext({
-      context: makeFakeContext(writes),
-      message: "sim",
-      state: incomeDraft.state,
-    });
-    assert.match(confirmedIncome.reply, /Pronto, registrei essa entrada de R\$\s*300,00/);
-    assert.equal(confirmedIncome.state.status, "idle");
+    assert.match(incomeSaved.reply, /Pronto, registrei essa entrada de R\$\s*300,00/);
+    assert.equal(incomeSaved.state.status, "idle");
     assert.equal(writes.length, 1);
     assert.equal(writes[0]?.table, "movimentacoes");
     assert.equal(writes[0]?.payload.type, "entrada");
@@ -1038,17 +1031,17 @@ async function runAgentV2Checks() {
         state: idleState,
       });
 
-      assert.equal(draft.state.pendingAction, draftCase.pendingAction, draftCase.message);
-      assert.equal(draft.state.status, "awaiting_confirmation", draftCase.message);
-      assert.equal(draft.state.draft?.amount, draftCase.amount, draftCase.message);
+      assert.equal(draft.state.status, "idle", draftCase.message);
       assert.match(draft.reply, draftCase.reply, draftCase.message);
-      assert.equal(caseWrites.length, 0, draftCase.message);
+      assert.equal(caseWrites.length, 1, draftCase.message);
+      assert.equal(caseWrites[0]?.payload.amount, draftCase.amount, draftCase.message);
+      assert.equal(caseWrites[0]?.payload.type, draftCase.pendingAction === "register_income" ? "entrada" : "despesa", draftCase.message);
     }
 
     const cancelWrites: FakeWrite[] = [];
     const cancelDraft = await runAgentV2TurnForContext({
       context: makeFakeContext(cancelWrites),
-      message: "gastei 50 gasolina",
+      message: "gastei 80",
       state: idleState,
     });
     const cancelled = await runAgentV2TurnForContext({
@@ -1079,6 +1072,67 @@ async function runAgentV2Checks() {
     assert.equal(missingAmount.state.status, "collecting");
     assert.deepEqual(missingAmount.state.missingFields, ["amount"]);
     assert.match(missingAmount.reply, /valor/i);
+    assert.notEqual(normalizeDescription(missingAmount.state.draft?.description ?? ""), "dinheiro");
+
+    const amountForGenericIncome = await runAgentV2TurnForContext({
+      context: makeFakeContext(),
+      message: "120",
+      state: missingAmount.state,
+    });
+    assert.equal(amountForGenericIncome.state.pendingAction, "register_income");
+    assert.equal(amountForGenericIncome.state.status, "collecting");
+    assert.deepEqual(amountForGenericIncome.state.missingFields, ["description"]);
+    assert.match(amountForGenericIncome.reply, /referente|foi de|foi referente/i);
+
+    const genericIncomeWrites: FakeWrite[] = [];
+    const completedGenericIncome = await runAgentV2TurnForContext({
+      context: makeFakeContext(genericIncomeWrites),
+      message: "internet",
+      state: amountForGenericIncome.state,
+    });
+    assert.match(completedGenericIncome.reply, /Pronto, registrei essa entrada de R\$\s*120,00/);
+    assert.equal(completedGenericIncome.state.status, "idle");
+    assert.equal(genericIncomeWrites.length, 1);
+    assert.equal(normalizeDescription(genericIncomeWrites[0]?.payload.description ?? ""), "internet");
+    assert.notEqual(normalizeDescription(genericIncomeWrites[0]?.payload.description ?? ""), "dinheiro");
+
+    const ambiguous = await runAgentV2TurnForContext({
+      context: makeFakeContext(),
+      message: "lança 200",
+      state: idleState,
+    });
+    assert.match(ambiguous.reply, /entrada ou uma despesa|entrada ou despesa/i);
+
+    const batchWrites: FakeWrite[] = [];
+    const batchDraft = await runAgentV2TurnForContext({
+      context: makeFakeContext(batchWrites),
+      message: "entrou 300 do João, gastei 50 gasolina e paguei 120 internet",
+      state: idleState,
+    });
+    assert.equal(batchDraft.state.pendingAction, "register_movements_batch");
+    assert.equal(batchDraft.state.status, "awaiting_confirmation");
+    assert.match(batchDraft.reply, /Posso salvar tudo\?/);
+    assert.equal(batchWrites.length, 0);
+
+    const v2EditWrites: FakeWrite[] = [];
+    const v2Edit = await runAgentV2TurnForContext({
+      context: makeFakeContext(v2EditWrites),
+      message: "muda a descrição da última entrada para pix cliente joão",
+      state: idleState,
+    });
+    assert.equal(v2Edit.state.pendingAction, "edit_transaction");
+    assert.equal(v2Edit.state.status, "awaiting_confirmation");
+    assert.match(v2Edit.reply, /Posso salvar essa alteração\?/);
+    assert.equal(v2EditWrites.length, 0);
+
+    const v2Delete = await runAgentV2TurnForContext({
+      context: makeFakeContext(),
+      message: "exclui a última movimentação",
+      state: idleState,
+    });
+    assert.equal(v2Delete.state.pendingAction, "delete_transaction");
+    assert.equal(v2Delete.state.status, "awaiting_confirmation");
+    assert.match(v2Delete.reply, /Deseja excluir mesmo\?/);
   } finally {
     process.env.HELENA_V2_ENABLED = originalEnabled;
     process.env.HELENA_V2_ALLOW_ALL = originalAllowAll;

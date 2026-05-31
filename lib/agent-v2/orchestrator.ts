@@ -56,16 +56,6 @@ export async function runAgentV2TurnForContext({
     };
   }
 
-  const readToolResult = await executeAgentV2ReadTool({
-    context,
-    message: trimmedMessage,
-    state: currentState,
-  });
-
-  if (readToolResult) {
-    return readToolResult;
-  }
-
   const writeToolResult = await executeAgentV2WriteTool({
     context,
     message: trimmedMessage,
@@ -74,6 +64,16 @@ export async function runAgentV2TurnForContext({
 
   if (writeToolResult) {
     return writeToolResult;
+  }
+
+  const readToolResult = await executeAgentV2ReadTool({
+    context,
+    message: trimmedMessage,
+    state: currentState,
+  });
+
+  if (readToolResult) {
+    return readToolResult;
   }
 
   if (currentState.status !== "idle") {

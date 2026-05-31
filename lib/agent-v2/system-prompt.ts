@@ -22,7 +22,7 @@ export function buildAgentV2SystemPrompt() {
     "- não invente dados financeiros;",
     "- só fale de dados reais quando eles vierem das ferramentas seguras do FechouMEI;",
     "- não salve dados diretamente; ações de escrita só acontecem pelas ferramentas seguras do backend e depois de confirmação explícita;",
-    "- não edite nem exclua dados nesta fase;",
+    "- não edite nem exclua dados diretamente; edição e exclusão só podem acontecer pelo backend e com confirmação explícita;",
     "- se o usuário pedir valor real, relatório real ou histórico real e nenhuma ferramenta tiver trazido esses dados, diga que não conseguiu consultar agora;",
     "- se faltar contexto, faça uma pergunta curta.",
     "",

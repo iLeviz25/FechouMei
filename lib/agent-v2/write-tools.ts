@@ -24,8 +24,12 @@ type ExecuteAgentV2WriteToolInput = {
 type AgentV2WriteToolName =
   | "cancel_pending_action"
   | "confirm_pending_action"
+  | "create_movement_batch_draft"
   | "create_expense_draft"
   | "create_income_draft"
+  | "ask_movement_type"
+  | "request_transaction_delete"
+  | "request_transaction_edit"
   | "update_pending_draft";
 
 export async function executeAgentV2WriteTool({
@@ -42,11 +46,17 @@ export async function executeAgentV2WriteTool({
       userId: context.userId,
     });
 
-    const result = await runAgentTurnForContext({
+    const delegatedResult = await runAgentTurnForContext({
       channel,
       context,
       message,
       state,
+    });
+    const result = await maybeAutoSaveSingleMovement({
+      channel,
+      context,
+      initialState: state,
+      result: delegatedResult,
     });
 
     logAgentV2WriteTool({
@@ -60,9 +70,51 @@ export async function executeAgentV2WriteTool({
     return result;
   }
 
+  const sensitiveTool = getSensitiveWriteToolName(message);
+
+  if (sensitiveTool) {
+    logAgentV2WriteTool({
+      stage: "started",
+      tool: sensitiveTool,
+      userId: context.userId,
+    });
+
+    const result = await runAgentTurnForContext({
+      channel,
+      context,
+      message,
+      state,
+    });
+
+    logAgentV2WriteTool({
+      stage: "finished",
+      stateStatus: result.state.status,
+      tool: sensitiveTool,
+      userId: context.userId,
+      wroteData: result.actionTrace?.status === "executed",
+    });
+
+    return result;
+  }
+
   const draftTool = getDraftToolName(message);
 
   if (!draftTool) {
+    if (isAmbiguousSingleMovementRequest(message)) {
+      logAgentV2WriteTool({
+        stage: "finished",
+        stateStatus: state.status,
+        tool: "ask_movement_type",
+        userId: context.userId,
+        wroteData: false,
+      });
+
+      return {
+        reply: "Esse valor é uma entrada ou uma despesa?",
+        state,
+      };
+    }
+
     return null;
   }
 
@@ -72,11 +124,17 @@ export async function executeAgentV2WriteTool({
     userId: context.userId,
   });
 
-  const result = await runAgentTurnForContext({
+  const delegatedResult = await runAgentTurnForContext({
     channel,
     context,
     message,
     state: emptyAgentState(),
+  });
+  const result = await maybeAutoSaveSingleMovement({
+    channel,
+    context,
+    initialState: emptyAgentState(),
+    result: delegatedResult,
   });
 
   logAgentV2WriteTool({
@@ -90,7 +148,7 @@ export async function executeAgentV2WriteTool({
   return result;
 }
 
-function getDraftToolName(message: string): Extract<AgentV2WriteToolName, "create_expense_draft" | "create_income_draft"> | null {
+function getDraftToolName(message: string): Extract<AgentV2WriteToolName, "create_expense_draft" | "create_income_draft" | "create_movement_batch_draft"> | null {
   if (!isLikelySingleMovementDraftRequest(message)) {
     return null;
   }
@@ -106,7 +164,7 @@ function getDraftToolName(message: string): Extract<AgentV2WriteToolName, "creat
   }
 
   if (classification?.action === "register_movements_batch") {
-    return null;
+    return "create_movement_batch_draft";
   }
 
   const explicitType = inferMovementDraftType(message);
@@ -120,6 +178,51 @@ function getDraftToolName(message: string): Extract<AgentV2WriteToolName, "creat
   }
 
   return null;
+}
+
+function getSensitiveWriteToolName(message: string): Extract<AgentV2WriteToolName, "request_transaction_delete" | "request_transaction_edit"> | null {
+  const classification = classifyDeterministically(message, emptyAgentState());
+
+  if (classification?.action === "delete_transaction") {
+    return "request_transaction_delete";
+  }
+
+  if (classification?.action === "edit_transaction") {
+    return "request_transaction_edit";
+  }
+
+  return null;
+}
+
+async function maybeAutoSaveSingleMovement({
+  channel,
+  context,
+  initialState,
+  result,
+}: {
+  channel: AgentConversationChannel;
+  context: AgentExecutionContext;
+  initialState: AgentConversationState;
+  result: AgentTurnResult;
+}) {
+  if (initialState.status === "awaiting_confirmation") {
+    return result;
+  }
+
+  if (
+    result.actionTrace?.status !== "confirmation_requested" ||
+    result.state.status !== "awaiting_confirmation" ||
+    (result.state.pendingAction !== "register_income" && result.state.pendingAction !== "register_expense")
+  ) {
+    return result;
+  }
+
+  return runAgentTurnForContext({
+    channel,
+    context,
+    message: "sim",
+    state: result.state,
+  });
 }
 
 function isLikelySingleMovementDraftRequest(message: string) {
@@ -150,6 +253,20 @@ function inferMovementDraftType(message: string): "despesa" | "entrada" | null {
   }
 
   return null;
+}
+
+function isAmbiguousSingleMovementRequest(message: string) {
+  const normalized = normalizeToolText(message);
+
+  if (!/\b(lanca|lancar|lance|registra|registrar|registre|adiciona|adicionar|coloca|colocar)\b/.test(normalized)) {
+    return false;
+  }
+
+  if (!/\b\d+(?:[,.]\d+)?\b/.test(normalized)) {
+    return false;
+  }
+
+  return !/\b(entrada|receita|recebi|entrou|caiu|veio|vendi|faturei|despesa|gasto|gastei|paguei|comprei|saiu)\b/.test(normalized);
 }
 
 function getPendingToolName(message: string): AgentV2WriteToolName {

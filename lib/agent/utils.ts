@@ -125,11 +125,13 @@ export function getMissingFieldsQuestion(type: MovementType, missingFields: Move
 
   if (missingFields.length === 1) {
     if (missingFields[0] === "amount") {
-      return "Qual foi o valor?";
+      return type === "entrada" ? "Claro. Qual foi o valor dessa entrada?" : "Claro. Qual foi o valor dessa despesa?";
     }
 
     if (missingFields[0] === "description") {
-      return type === "entrada" ? "De onde veio essa entrada?" : "Essa despesa foi com o quê?";
+      return type === "entrada"
+        ? "Essa entrada foi referente a quê? Exemplo: venda, pix de cliente, serviço..."
+        : "Esse gasto foi com o quê? Exemplo: gasolina, internet, fornecedor, mercado...";
     }
 
     if (missingFields[0] === "category") {

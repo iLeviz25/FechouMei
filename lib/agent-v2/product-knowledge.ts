@@ -42,7 +42,7 @@ export const agentV2KnowledgeTopics: AgentV2KnowledgeTopic[] = [
       "",
       "Também consigo preparar rascunhos de entradas e despesas e só salvo depois que você confirmar.",
       "",
-      "Edição e exclusão continuam fora da v2 por enquanto.",
+      "Edição e exclusão passam por confirmação antes de qualquer mudança.",
     ].join("\n"),
     id: "capabilities",
     keywords: ["o que voce faz", "o que você faz", "como voce ajuda", "como você ajuda", "pode me ajudar", "consegue fazer", "helena faz"],
@@ -162,7 +162,7 @@ export const agentV2KnowledgeTopics: AgentV2KnowledgeTopic[] = [
     answer: [
       "Para registrar uma entrada, você informa o valor, uma descrição e a data.",
       "",
-      "Exemplo: \"entrou 300 pix cliente João\". Eu preparo o rascunho e peço sua confirmação antes de salvar.",
+      "Exemplo: \"entrou 300 pix cliente João\". Se estiver claro, eu salvo direto; se faltar algo, eu pergunto antes.",
     ].join("\n"),
     id: "register_income",
     keywords: [
@@ -183,7 +183,7 @@ export const agentV2KnowledgeTopics: AgentV2KnowledgeTopic[] = [
     answer: [
       "Para registrar uma despesa, você informa o valor, o motivo do gasto e a data.",
       "",
-      "Exemplo: \"gastei 50 com gasolina\". Eu preparo o rascunho e peço sua confirmação antes de salvar.",
+      "Exemplo: \"gastei 50 com gasolina\". Se estiver claro, eu salvo direto; se faltar algo, eu pergunto antes.",
     ].join("\n"),
     id: "register_expense",
     keywords: [

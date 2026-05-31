@@ -1055,6 +1055,42 @@ async function handleConfirmationTurn({
     return executeConfirmedMovementBatch(context, normalizedBatch as Array<Required<AgentMovementDraft>>, state);
   }
 
+  if (state.pendingAction === "edit_transaction") {
+    if (!state.editTarget || !state.editDraft) {
+      return {
+        reply: "Não encontrei a edição pendente para confirmar.",
+        state: emptyAgentState(),
+      };
+    }
+
+    try {
+      const result = await executeTransactionEdit(
+        context,
+        state.editTarget,
+        normalizeTransactionEditDraft(state.editDraft),
+        getTargetKindFromState(state),
+      );
+
+      return {
+        actionTrace: makeActionTrace("edit_transaction", "executed", {
+          confirmation: "confirmed",
+          summary: result.reply,
+        }),
+        reply: result.reply,
+        state: makeIdleStateWithLastWrite("edit_transaction", result.movement, getTargetKindFromState(state)),
+      };
+    } catch (error) {
+      return makeWriteFailureResult({
+        action: "edit_transaction",
+        confirmation: "confirmed",
+        error,
+        reply: "Não consegui atualizar essa movimentação agora. Tente novamente em instantes.",
+        state,
+        summary: "Falha ao editar a movimentação pendente.",
+      });
+    }
+  }
+
   if (state.pendingAction !== "register_income" && state.pendingAction !== "register_expense") {
     return {
       reply: "Ainda não consigo confirmar essa ação por aqui.",
@@ -1330,6 +1366,13 @@ function handleAwaitingConfirmationFallback(state: AgentConversationState): Agen
   if (state.pendingAction === "delete_transaction") {
     return {
       reply: "Pode responder 'sim' para excluir ou 'cancelar' para manter.",
+      state,
+    };
+  }
+
+  if (state.pendingAction === "edit_transaction") {
+    return {
+      reply: "Pode responder 'sim' para salvar essa alteração ou 'cancelar' para manter como está.",
       state,
     };
   }
@@ -1729,12 +1772,14 @@ function getRegistrationMissingFieldsQuestion(
 ) {
   if (missingFields.length === 1 && missingFields[0] === "description" && draft.amount) {
     return type === "entrada"
-      ? `Essa entrada de ${toCurrency(draft.amount)} foi de quê?`
-      : `Esse gasto de ${toCurrency(draft.amount)} foi com o quê?`;
+      ? `Essa entrada de ${toCurrency(draft.amount)} foi referente a quê? Exemplo: venda, pix de cliente, serviço...`
+      : `Esse gasto de ${toCurrency(draft.amount)} foi com o quê? Exemplo: gasolina, internet, fornecedor, mercado...`;
   }
 
   if (missingFields.length === 1 && missingFields[0] === "category" && draft.description) {
-    return "Você quer colocar em qual categoria?";
+    return type === "entrada"
+      ? "Essa entrada foi referente a quê? Exemplo: venda, pix de cliente, serviço..."
+      : "Esse gasto foi com o quê? Exemplo: gasolina, internet, fornecedor, mercado...";
   }
 
   return getMissingFieldsQuestion(type, missingFields);
@@ -2216,26 +2261,67 @@ async function handleTransactionEditTurn({
   }
 
   const normalizedEdit = normalizeTransactionEditDraft(editDraft);
-  try {
-    const result = await executeTransactionEdit(context, target, normalizedEdit, targetKind);
 
-    return {
-      actionTrace: makeActionTrace("edit_transaction", "executed", {
-        confirmation: "not_required",
-        summary: result.reply,
-      }),
-      reply: result.reply,
-      state: makeIdleStateWithLastWrite("edit_transaction", result.movement, targetKind),
-    };
-  } catch (error) {
-    return makeWriteFailureResult({
-      action: "edit_transaction",
-      confirmation: "not_required",
-      error,
-      reply: "Não consegui atualizar essa movimentação agora. Tente novamente em instantes.",
-      summary: "Falha ao editar a movimentação.",
-    });
+  return {
+    actionTrace: makeActionTrace("edit_transaction", "confirmation_requested", {
+      confirmation: "requested",
+      summary: "Confirmação solicitada para editar movimentação.",
+    }),
+    reply: getTransactionEditConfirmationReply(target, normalizedEdit, targetKind),
+    state: makeAgentState({
+      editDraft: normalizedEdit,
+      editTarget: target,
+      expectedResponseKind: "confirm_save",
+      missingFields: [],
+      pendingAction: "edit_transaction",
+      status: "awaiting_confirmation",
+    }),
+  };
+}
+
+function getTransactionEditConfirmationReply(
+  target: AgentDeleteTarget,
+  editDraft: AgentTransactionEditDraft,
+  targetKind: TransactionTargetKind,
+) {
+  const targetLabel = getEditTargetLabelForConfirmation(targetKind);
+  const preview = getTransactionEditPreview(editDraft);
+
+  return `Encontrei sua ${targetLabel}: ${formatMovementForDeletion(target)}.\n${preview}\nPosso salvar essa alteração?`;
+}
+
+function getTransactionEditPreview(editDraft: AgentTransactionEditDraft) {
+  const fields: string[] = [];
+
+  if (typeof editDraft.amount === "number") {
+    fields.push(`valor para ${toCurrency(editDraft.amount)}`);
   }
+
+  if (editDraft.description) {
+    fields.push(`descrição para ${formatDisplayTextForWhatsApp(editDraft.description)}`);
+  }
+
+  if (editDraft.category) {
+    fields.push(`categoria para ${formatDisplayTextForWhatsApp(editDraft.category)}`);
+  }
+
+  if (editDraft.occurred_on) {
+    fields.push(`data para ${formatDateLabel(editDraft.occurred_on)}`);
+  }
+
+  return fields.length > 0 ? `Vou mudar ${joinLabelsWithE(fields)}.` : "Vou atualizar essa movimentação.";
+}
+
+function getEditTargetLabelForConfirmation(targetKind: TransactionTargetKind) {
+  if (targetKind === "latest_expense") {
+    return "última despesa";
+  }
+
+  if (targetKind === "latest_income") {
+    return "última entrada";
+  }
+
+  return "última movimentação";
 }
 
 function normalizeDraftCategory(category?: string) {
