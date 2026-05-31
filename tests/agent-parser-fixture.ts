@@ -1033,6 +1033,7 @@ async function runAgentV2Checks() {
 
       assert.equal(draft.state.status, "idle", draftCase.message);
       assert.match(draft.reply, draftCase.reply, draftCase.message);
+      assert.doesNotMatch(draft.reply, /Posso salvar/i, draftCase.message);
       assert.equal(caseWrites.length, 1, draftCase.message);
       assert.equal(caseWrites[0]?.payload.amount, draftCase.amount, draftCase.message);
       assert.equal(caseWrites[0]?.payload.type, draftCase.pendingAction === "register_income" ? "entrada" : "despesa", draftCase.message);
@@ -1095,13 +1096,67 @@ async function runAgentV2Checks() {
     assert.equal(genericIncomeWrites.length, 1);
     assert.equal(normalizeDescription(genericIncomeWrites[0]?.payload.description ?? ""), "internet");
     assert.notEqual(normalizeDescription(genericIncomeWrites[0]?.payload.description ?? ""), "dinheiro");
+    assert.doesNotMatch(completedGenericIncome.reply, /referente a qu[eê]|Posso salvar/i);
 
-    const ambiguous = await runAgentV2TurnForContext({
+    const discountStart = await runAgentV2TurnForContext({
       context: makeFakeContext(),
+      message: "entrou dinheiro",
+      state: idleState,
+    });
+    const discountAmount = await runAgentV2TurnForContext({
+      context: makeFakeContext(),
+      message: "120",
+      state: discountStart.state,
+    });
+    const discountWrites: FakeWrite[] = [];
+    const discountSaved = await runAgentV2TurnForContext({
+      context: makeFakeContext(discountWrites),
+      message: "desconto",
+      state: discountAmount.state,
+    });
+    assert.match(discountSaved.reply, /Pronto, registrei essa entrada de R\$\s*120,00/);
+    assert.equal(discountSaved.state.status, "idle");
+    assert.equal(discountWrites.length, 1);
+    assert.equal(normalizeDescription(discountWrites[0]?.payload.description ?? ""), "desconto");
+    assert.doesNotMatch(discountSaved.reply, /referente a qu[eê]|Posso salvar/i);
+
+    const ambiguousWrites: FakeWrite[] = [];
+    const ambiguous = await runAgentV2TurnForContext({
+      context: makeFakeContext(ambiguousWrites),
       message: "lança 200",
       state: idleState,
     });
-    assert.match(ambiguous.reply, /entrada ou uma despesa|entrada ou despesa/i);
+    assert.equal(ambiguous.state.status, "collecting");
+    assert.equal(ambiguous.state.expectedResponseKind, "choose_movement_type");
+    assert.equal(ambiguous.state.draft?.amount, 200);
+    assert.match(ambiguous.reply, /R\$\s*200,00/);
+    assert.match(ambiguous.reply, /entrada ou despesa/i);
+
+    const chosenIncome = await runAgentV2TurnForContext({
+      context: makeFakeContext(ambiguousWrites),
+      message: "entrada",
+      state: ambiguous.state,
+    });
+    assert.equal(chosenIncome.state.pendingAction, "register_income");
+    assert.equal(chosenIncome.state.status, "collecting");
+    assert.equal(chosenIncome.state.draft?.amount, 200);
+    assert.deepEqual(chosenIncome.state.missingFields, ["description"]);
+    assert.match(chosenIncome.reply, /R\$\s*200,00/);
+    assert.match(chosenIncome.reply, /referente/i);
+    assert.doesNotMatch(chosenIncome.reply, /Qual foi o valor/i);
+
+    const ambiguousSaved = await runAgentV2TurnForContext({
+      context: makeFakeContext(ambiguousWrites),
+      message: "pix",
+      state: chosenIncome.state,
+    });
+    assert.match(ambiguousSaved.reply, /Pronto, registrei essa entrada de R\$\s*200,00/);
+    assert.equal(ambiguousSaved.state.status, "idle");
+    assert.equal(ambiguousWrites.length, 1);
+    assert.equal(ambiguousWrites[0]?.payload.amount, 200);
+    assert.equal(ambiguousWrites[0]?.payload.type, "entrada");
+    assert.equal(normalizeDescription(ambiguousWrites[0]?.payload.description ?? ""), "pix");
+    assert.doesNotMatch(ambiguousSaved.reply, /Posso salvar/i);
 
     const batchWrites: FakeWrite[] = [];
     const batchDraft = await runAgentV2TurnForContext({

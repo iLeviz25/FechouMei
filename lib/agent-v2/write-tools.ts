@@ -7,8 +7,9 @@ import {
   type AgentConversationChannel,
   type AgentConversationState,
   type AgentTurnResult,
+  type MovementType,
 } from "@/lib/agent/types";
-import { emptyAgentState } from "@/lib/agent/utils";
+import { emptyAgentState, makeAgentState, parseAmountFromText, toCurrency, toDateInputValue } from "@/lib/agent/utils";
 import { parseTransactionMessage } from "@/lib/agent/transaction-parser";
 import {
   isAgentV2SupportedPendingMovementState,
@@ -38,6 +39,27 @@ export async function executeAgentV2WriteTool({
   message,
   state,
 }: ExecuteAgentV2WriteToolInput): Promise<AgentTurnResult | null> {
+  if (state.expectedResponseKind === "choose_movement_type") {
+    const tool = "ask_movement_type";
+    logAgentV2WriteTool({
+      stage: "started",
+      tool,
+      userId: context.userId,
+    });
+
+    const result = handlePendingMovementTypeChoice(message, state);
+
+    logAgentV2WriteTool({
+      stage: "finished",
+      stateStatus: result.state.status,
+      tool,
+      userId: context.userId,
+      wroteData: false,
+    });
+
+    return result;
+  }
+
   if (isAgentV2SupportedPendingMovementState(state)) {
     const tool = getPendingToolName(message);
     logAgentV2WriteTool({
@@ -101,18 +123,17 @@ export async function executeAgentV2WriteTool({
 
   if (!draftTool) {
     if (isAmbiguousSingleMovementRequest(message)) {
+      const result = createMovementTypeChoiceTurn(message, state);
+
       logAgentV2WriteTool({
         stage: "finished",
-        stateStatus: state.status,
+        stateStatus: result.state.status,
         tool: "ask_movement_type",
         userId: context.userId,
         wroteData: false,
       });
 
-      return {
-        reply: "Esse valor é uma entrada ou uma despesa?",
-        state,
-      };
+      return result;
     }
 
     return null;
@@ -146,6 +167,68 @@ export async function executeAgentV2WriteTool({
   });
 
   return result;
+}
+
+function createMovementTypeChoiceTurn(message: string, state: AgentConversationState): AgentTurnResult {
+  const amount = parseAmountFromText(message);
+
+  if (!amount) {
+    return {
+      reply: "Esse valor foi entrada ou despesa?",
+      state,
+    };
+  }
+
+  return {
+    reply: `Esse valor de ${toCurrency(amount)} foi entrada ou despesa?`,
+    state: makeAgentState({
+      draft: {
+        amount,
+        occurred_on: toDateInputValue(new Date()),
+      },
+      expectedResponseKind: "choose_movement_type",
+      missingFields: [],
+      status: "collecting",
+    }),
+  };
+}
+
+function handlePendingMovementTypeChoice(message: string, state: AgentConversationState): AgentTurnResult {
+  const type = inferMovementTypeChoice(message);
+  const amount = state.draft?.amount;
+
+  if (!type) {
+    return {
+      reply: amount
+        ? `Esse valor de ${toCurrency(amount)} foi entrada ou despesa?`
+        : "Esse valor foi entrada ou despesa?",
+      state,
+    };
+  }
+
+  const action = type === "entrada" ? "register_income" : "register_expense";
+  const draft = {
+    ...(state.draft ?? {}),
+    occurred_on: state.draft?.occurred_on ?? toDateInputValue(new Date()),
+    type,
+  };
+
+  return {
+    actionTrace: {
+      action,
+      confirmation: "not_required",
+      status: "collecting",
+      summary: `Coletando descrição para registrar ${type}.`,
+    },
+    reply: getDescriptionCollectionReply(type, amount),
+    state: makeAgentState({
+      draft,
+      expectedResponseKind: "missing_description",
+      missingFields: ["description"],
+      pendingAction: action,
+      status: "collecting",
+    }),
+  };
 }
 
 function getDraftToolName(message: string): Extract<AgentV2WriteToolName, "create_expense_draft" | "create_income_draft" | "create_movement_batch_draft"> | null {
@@ -253,6 +336,30 @@ function inferMovementDraftType(message: string): "despesa" | "entrada" | null {
   }
 
   return null;
+}
+
+function inferMovementTypeChoice(message: string): MovementType | null {
+  const normalized = normalizeToolText(message);
+  const isIncome = /\b(entrada|receita|recebimento|entrou|recebi|ganho|ganhei|venda|vendi)\b/.test(normalized);
+  const isExpense = /\b(despesa|gasto|saida|saiu|paguei|pagamento|pago|compra|comprei)\b/.test(normalized);
+
+  if (isIncome && !isExpense) {
+    return "entrada";
+  }
+
+  if (isExpense && !isIncome) {
+    return "despesa";
+  }
+
+  return null;
+}
+
+function getDescriptionCollectionReply(type: MovementType, amount?: number) {
+  const amountLabel = amount ? ` de ${toCurrency(amount)}` : "";
+
+  return type === "entrada"
+    ? `Essa entrada${amountLabel} foi referente a quê? Exemplo: venda, pix de cliente, serviço...`
+    : `Esse gasto${amountLabel} foi com o quê? Exemplo: gasolina, internet, fornecedor, mercado...`;
 }
 
 function isAmbiguousSingleMovementRequest(message: string) {

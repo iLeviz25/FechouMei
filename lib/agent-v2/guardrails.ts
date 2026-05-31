@@ -64,6 +64,10 @@ export function canAgentV2HandleTurn({
 }
 
 export function isAgentV2SupportedPendingMovementState(state?: AgentConversationState | null) {
+  if (state?.status !== "idle" && state?.expectedResponseKind === "choose_movement_type") {
+    return true;
+  }
+
   return (
     state?.status !== "idle" &&
     (

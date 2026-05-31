@@ -8,7 +8,7 @@ import {
 } from "@/lib/agent/classifier";
 import { getAgentCapabilitiesReply } from "@/lib/agent/capabilities";
 import { getActionDefinition, implementedAgentActions } from "@/lib/agent/catalog";
-import { getReliableMovementMissingFields } from "@/lib/agent/draft-sufficiency";
+import { getReliableMovementMissingFields, isUsefulMovementDescription } from "@/lib/agent/draft-sufficiency";
 import {
   type AgentExecutionContext,
   executeInitialBalanceUpdate,
@@ -1496,6 +1496,8 @@ async function handleMovementRegistrationTurn({
     }
   }
 
+  ensureFallbackCategoryForUsefulDescription(normalizedDraft);
+
   if (normalizedDraft.description && normalizedDraft.category) {
     normalizedDraft.description = cleanDescriptionUsingResolvedCategory(
       normalizedDraft.description,
@@ -1724,6 +1726,8 @@ function normalizeRegistrationDraft(draft: AgentMovementDraft, type: MovementTyp
     }
   }
 
+  ensureFallbackCategoryForUsefulDescription(normalizedDraft);
+
   if (normalizedDraft.description && normalizedDraft.category) {
     normalizedDraft.description = cleanDescriptionUsingResolvedCategory(
       normalizedDraft.description,
@@ -1732,6 +1736,12 @@ function normalizeRegistrationDraft(draft: AgentMovementDraft, type: MovementTyp
   }
 
   return normalizedDraft;
+}
+
+function ensureFallbackCategoryForUsefulDescription(draft: AgentMovementDraft) {
+  if (!draft.category && isUsefulMovementDescription(draft.description)) {
+    draft.category = "Outro";
+  }
 }
 
 function getFirstBatchMissingFields(batch: AgentMovementDraft[]) {
