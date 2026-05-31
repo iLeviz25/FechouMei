@@ -1175,11 +1175,15 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
           allowAll: agentV2Flags.allowAll,
           allowlistConfigured: agentV2Flags.allowlistConfigured,
           channel: "whatsapp",
+          commit: getRuntimeCommitRef(),
           enabled: agentV2Route.enabled,
           globalEnabled: agentV2Flags.enabled,
           numberAllowlisted: agentV2Flags.numberAllowlisted,
           reason: agentV2Route.reason,
+          remoteRef: maskWhatsAppRemoteId(remoteNumber),
           source: audioWasTranscribed ? "audio_transcript" : "text",
+          stateExpectedResponseKind: snapshot.state.expectedResponseKind,
+          statePendingAction: snapshot.state.pendingAction,
           stateStatus: snapshot.state.status,
           userAllowlisted: agentV2Flags.userAllowlisted,
           userRef: maskUserId(resolvedUserId),
@@ -2195,6 +2199,10 @@ function maskUserId(userId?: string | null) {
   return compact.length <= 8
     ? "***"
     : `${compact.slice(0, 4)}***${compact.slice(-4)}`;
+}
+
+function getRuntimeCommitRef() {
+  return process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "local";
 }
 
 function maskAudioCooldownKey(key: string) {

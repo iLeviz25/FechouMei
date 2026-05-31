@@ -3,6 +3,7 @@ import { classifyDeterministically, inferCorrectionFields } from "../lib/agent/c
 import { getAgentCapabilitiesReply } from "../lib/agent/capabilities";
 import { runAgentTurnForContext } from "../lib/agent/orchestrator";
 import { buildQuickPeriodReply, resolveQuickPeriodRange } from "../lib/agent/period-queries";
+import { loadAgentConversationSnapshot } from "../lib/agent/persistence";
 import { getHelenaProductQuestionReply } from "../lib/agent/replies";
 import { parseTransactionMessage, parseTransactionMessages } from "../lib/agent/transaction-parser";
 import { getAgentV2WhatsAppRouteDecision, shouldUseAgentV2ForWhatsApp } from "../lib/agent-v2/feature-flags";
@@ -1132,10 +1133,51 @@ async function runAgentV2Checks() {
     assert.match(ambiguous.reply, /R\$\s*200,00/);
     assert.match(ambiguous.reply, /entrada ou despesa/i);
 
+    const persistedAmbiguousSnapshot = await loadAgentConversationSnapshot({
+      channel: "whatsapp",
+      supabase: {
+        from: (table: string) => makeFakeQuery(
+          table === "agent_conversations"
+            ? [
+                {
+                  channel: "whatsapp",
+                  draft: {
+                    ...(ambiguous.state.draft ?? {}),
+                    __expectedResponseKind: ambiguous.state.expectedResponseKind,
+                  },
+                  id: "fake-conversation-id",
+                  missing_fields: ambiguous.state.missingFields ?? [],
+                  pending_action: ambiguous.state.pendingAction ?? null,
+                  status: ambiguous.state.status,
+                  updated_at: new Date().toISOString(),
+                  user_id: "test-user",
+                },
+              ]
+            : [],
+          table,
+          [],
+        ),
+      },
+      userId: "test-user",
+    } as any, { includeMessages: false });
+    assert.equal(persistedAmbiguousSnapshot.state.status, "collecting");
+    assert.equal(persistedAmbiguousSnapshot.state.expectedResponseKind, "choose_movement_type");
+    assert.equal(persistedAmbiguousSnapshot.state.draft?.amount, 200);
+    assert.deepEqual(
+      getAgentV2WhatsAppRouteDecision({
+        message: "entrada",
+        remoteNumber: "5511999999999",
+        source: "text",
+        state: persistedAmbiguousSnapshot.state,
+        userId: "test-user",
+      }),
+      { enabled: true, reason: "enabled" },
+    );
+
     const chosenIncome = await runAgentV2TurnForContext({
       context: makeFakeContext(ambiguousWrites),
       message: "entrada",
-      state: ambiguous.state,
+      state: persistedAmbiguousSnapshot.state,
     });
     assert.equal(chosenIncome.state.pendingAction, "register_income");
     assert.equal(chosenIncome.state.status, "collecting");

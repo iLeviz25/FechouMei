@@ -29,6 +29,7 @@ const validExpectedResponseKinds = new Set([
   "confirm_save",
   "confirm_delete",
   "choose_cancel_or_continue",
+  "choose_movement_type",
   "missing_amount",
   "missing_category",
   "missing_description",
