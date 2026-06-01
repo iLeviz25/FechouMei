@@ -205,6 +205,8 @@ $env:HELENA_FORCE_V1 = "false"
 $env:HELENA_USE_V1_FALLBACK = "false"
 
 Write-Ok "Helena local configurada para usar v2 por padrao."
+Write-Ok "Helena v2 ativa no ambiente local."
+Write-Ok "Rollback v1 desativado no ambiente local."
 
 if (-not (Test-Path -LiteralPath $evolutionEnvPath)) {
   if (Test-Path -LiteralPath $evolutionExamplePath) {
@@ -344,6 +346,8 @@ if (-not $SkipWebhook) {
   try {
     Invoke-Evolution "Post" "/webhook/set/$instance" $headers $webhookBody | Out-Null
     Write-Ok "Webhook configurado para $WebhookDisplayUrl"
+    Write-Ok "Webhook da Evolution configurado para ambiente local."
+    Write-Warn "Enquanto este webhook estiver assim, essa instancia envia mensagens para este PC, nao para a Vercel."
   } catch {
     Write-Warn "Nao consegui configurar o webhook automaticamente: $($_.Exception.Message)"
   }
@@ -376,7 +380,8 @@ Write-Step "Resumo"
 Write-Host "- Evolution API: http://127.0.0.1:8080"
 Write-Host "- App local: $AppUrl"
 Write-Host "- Webhook local esperado: $WebhookDisplayUrl"
-Write-Host "- Helena: v2 local por padrao (v1 so com HELENA_FORCE_V1=true)"
+Write-Host "- Helena: v2 local ativa"
+Write-Host "- Rollback v1: desativado (ative so com HELENA_FORCE_V1=true ou HELENA_USE_V1_FALLBACK=true)"
 Write-Host "- Para responder no WhatsApp, o numero precisa estar vinculado na tela Helena do app."
 Write-Host ""
 Write-Host "Pode deixar esta janela aberta enquanto testa. Para parar tudo, feche a janela do app e rode docker compose down em docker\evolution se quiser desligar a Evolution." -ForegroundColor Yellow

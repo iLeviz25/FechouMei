@@ -6,6 +6,10 @@ import {
   sendWhatsAppTypingIndicator,
 } from "../lib/channels/whatsapp/evolution.ts";
 import {
+  createInboundWhatsAppEvent,
+  sanitizeInboundMessageText,
+} from "../lib/channels/whatsapp/persistence.ts";
+import {
   WhatsAppMediaDownloadError,
   WhatsAppUnsupportedAudioError,
   downloadWhatsAppAudio,
@@ -197,6 +201,52 @@ test("normaliza payload textual da Evolution sem marcar audio", () => {
   assert.equal(normalized.messageType, "conversation");
   assert.equal(normalized.text, "Como esta meu mes?");
   assert.equal(normalized.audio, null);
+});
+
+test("dedupe de evento inbound usa message id e sanitiza texto operacional", async () => {
+  const seenIds = new Set();
+  const insertedRows = [];
+  const fakeSupabase = {
+    from(table) {
+      assert.equal(table, "agent_channel_events");
+
+      return {
+        async insert(row) {
+          insertedRows.push(row);
+
+          if (seenIds.has(row.external_message_id)) {
+            return {
+              error: {
+                code: "23505",
+                message: "duplicate key value violates unique constraint",
+              },
+            };
+          }
+
+          seenIds.add(row.external_message_id);
+          return { error: null };
+        },
+      };
+    },
+  };
+
+  const record = {
+    externalMessageId: "same-evolution-message-id",
+    instance: "fechoumei-local",
+    messageText: "entrou 300 pix cliente joao",
+    remoteId: "5511999999999@s.whatsapp.net",
+    status: "received",
+    summary: "mensagem recebida",
+    userId: "test-user",
+  };
+
+  const first = await createInboundWhatsAppEvent({ supabase: fakeSupabase }, record);
+  const second = await createInboundWhatsAppEvent({ supabase: fakeSupabase }, record);
+
+  assert.equal(first.duplicate, false);
+  assert.equal(second.duplicate, true);
+  assert.equal(insertedRows[0].message_text, "entrou [valor] pix cliente joao");
+  assert.equal(sanitizeInboundMessageText("whatsapp 55 11 99999-9999 recebeu R$ 300,00"), "whatsapp [numero] recebeu [valor]");
 });
 
 test("reconhece payload de audio com metadata minima", () => {

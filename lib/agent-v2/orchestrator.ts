@@ -78,7 +78,7 @@ export async function runAgentV2TurnForContext({
 
   if (currentState.status !== "idle") {
     return {
-      reply: "Temos um rascunho pendente. Responda 'sim' para salvar, 'cancelar' para descartar ou me mande uma correção curta.",
+      reply: "Temos um rascunho pendente. Você pode responder 'sim', 'cancelar' ou me mandar uma correção curta.",
       state: currentState,
     };
   }
@@ -94,7 +94,7 @@ export async function runAgentV2TurnForContext({
 
   if (isGreeting(normalized)) {
     return {
-      reply: "Oi! Eu sou a Helena, do FechouMEI 😊\n\nPosso te ajudar a entender melhor suas entradas, despesas, relatórios, fechamento mensal e organização do MEI.",
+      reply: "Oi! Eu sou a Helena, do FechouMEI 😊\n\nPosso te ajudar com entradas, despesas, relatórios, fechamento mensal e organização do seu MEI.",
       state: currentState,
     };
   }
@@ -112,9 +112,9 @@ export async function runAgentV2TurnForContext({
 
   return {
     reply: geminiReply ?? [
-      "Posso te ajudar com dúvidas sobre o FechouMEI, entradas, despesas, lucro, relatórios, fechamento mensal e obrigações.",
+      "Não consegui entender certinho 😅",
       "",
-      "Me conta em uma frase o que você quer organizar agora.",
+      "Você quer registrar uma entrada, registrar uma despesa ou consultar algum relatório?",
     ].join("\n"),
     state: currentState,
   };

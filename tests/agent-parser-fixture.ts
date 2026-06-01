@@ -821,6 +821,20 @@ async function runAgentV2Checks() {
     );
     process.env.HELENA_FORCE_V1 = "";
 
+    process.env.HELENA_USE_V1_FALLBACK = "true";
+    assert.equal(shouldUseAgentV2ForWhatsApp({ remoteNumber: "5511999999999", userId: "test-user" }), false);
+    assert.deepEqual(
+      getAgentV2WhatsAppRouteDecision({
+        message: "oi",
+        remoteNumber: "5511999999999",
+        source: "text",
+        state: idleState,
+        userId: "test-user",
+      }),
+      { enabled: false, reason: "forced_v1_fallback" },
+    );
+    process.env.HELENA_USE_V1_FALLBACK = "";
+
     assert.deepEqual(
       getAgentV2WhatsAppRouteDecision({
         message: "oi",

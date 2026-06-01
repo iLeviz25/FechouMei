@@ -26,6 +26,7 @@ import {
   runQueuedAgentTurn,
 } from "@/lib/agent/turn-queue";
 import type { AgentConversationState } from "@/lib/agent/types";
+import { emptyAgentState } from "@/lib/agent/utils";
 import {
   WhatsAppMediaDownloadError,
   WhatsAppUnsupportedAudioError,
@@ -415,6 +416,13 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
   });
 
   if (createdEvent.duplicate) {
+    console.info("[FECHOUMEI_WHATSAPP_DEDUPE]", {
+      duplicate: true,
+      externalMessageId,
+      instance: normalized.instance ?? null,
+      provider: getEvolutionProviderName(),
+      remoteRef: maskWhatsAppRemoteId(remoteNumber),
+    });
     trace.finish("duplicate", {
       reason: "duplicate_event",
     });
@@ -1225,6 +1233,58 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
             reply: debugReply,
             queuedTimeout: false,
             summary: "Diagnostico da Helena",
+          };
+        }
+
+        const resetReply = buildHelenaResetReply({
+          message: agentInputText,
+          remoteNumber,
+          userId: resolvedUserId,
+        });
+
+        if (resetReply) {
+          trace.mark("action_execution_started", {
+            conversationId,
+            source: resetReply.allowed ? "helena_reset" : "helena_reset_denied",
+          });
+
+          if (resetReply.allowed) {
+            const updatedSnapshot = await persistAgentTurn({
+              context: persistenceContext,
+              conversationId: snapshot.conversationId,
+              nextState: emptyAgentState(),
+              reloadSnapshot: false,
+              reply: resetReply.reply,
+              userMessage: agentInputText,
+            });
+            conversationId = updatedSnapshot.conversationId;
+          }
+
+          trace.mark("action_execution_finished", {
+            replyCharacters: resetReply.reply.length,
+            source: resetReply.allowed ? "helena_reset" : "helena_reset_denied",
+          });
+          trace.mark("response_build_started", {
+            source: resetReply.allowed ? "helena_reset" : "helena_reset_denied",
+          });
+          agentReply = resetReply.reply;
+          trace.mark("response_build_finished", {
+            characters: agentReply.length,
+            source: resetReply.allowed ? "helena_reset" : "helena_reset_denied",
+          });
+
+          console.info("[HELENA_ADMIN_COMMAND]", {
+            command: "reset",
+            result: resetReply.allowed ? "executed" : "denied",
+            userRef: maskUserId(resolvedUserId),
+          });
+
+          return {
+            reply: resetReply.reply,
+            queuedTimeout: false,
+            summary: resetReply.allowed
+              ? "Estado conversacional da Helena reiniciado"
+              : "Comando administrativo da Helena negado",
           };
         }
 
@@ -2246,8 +2306,12 @@ function buildHelenaDebugReply({
   state: AgentConversationState;
   userId: string;
 }) {
-  if (!isHelenaDebugCommand(message) || !isHelenaDebugAllowed({ remoteNumber, userId })) {
+  if (!isHelenaDebugCommand(message)) {
     return null;
+  }
+
+  if (!isHelenaDebugAllowed({ remoteNumber, userId })) {
+    return "Não consigo abrir esse diagnóstico por aqui.";
   }
 
   return [
@@ -2267,10 +2331,46 @@ function buildHelenaDebugReply({
   ].join("\n");
 }
 
+function buildHelenaResetReply({
+  message,
+  remoteNumber,
+  userId,
+}: {
+  message: string;
+  remoteNumber?: string | null;
+  userId: string;
+}) {
+  if (!isHelenaResetCommand(message)) {
+    return null;
+  }
+
+  if (!isHelenaDebugAllowed({ remoteNumber, userId })) {
+    return {
+      allowed: false,
+      reply: "Não consigo fazer esse ajuste por aqui.",
+    };
+  }
+
+  return {
+    allowed: true,
+    reply: [
+      "Pronto, reiniciei o estado da nossa conversa.",
+      "",
+      "Não apaguei movimentações, relatórios nem dados do seu MEI.",
+    ].join("\n"),
+  };
+}
+
 function isHelenaDebugCommand(message: string) {
   const normalized = normalizeHelenaDebugText(message);
 
   return normalized === "debug helena" || normalized === "helena debug";
+}
+
+function isHelenaResetCommand(message: string) {
+  const normalized = normalizeHelenaDebugText(message);
+
+  return normalized === "reset helena" || normalized === "helena reset" || normalized === "reinicia helena";
 }
 
 function isHelenaDebugAllowed({
