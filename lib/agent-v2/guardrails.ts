@@ -52,7 +52,7 @@ export function canAgentV2HandleTurn({
   source: AgentV2RouteSource;
   state?: AgentConversationState | null;
 }) {
-  if (source !== "text") {
+  if (source !== "text" && source !== "audio_transcript") {
     return false;
   }
 

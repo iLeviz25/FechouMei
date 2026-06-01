@@ -1176,11 +1176,15 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
           allowlistConfigured: agentV2Flags.allowlistConfigured,
           channel: "whatsapp",
           commit: getRuntimeCommitRef(),
+          defaultEnabled: agentV2Flags.defaultEnabled,
           enabled: agentV2Route.enabled,
-          globalEnabled: agentV2Flags.enabled,
+          forceV1Fallback: agentV2Flags.forceV1Fallback,
+          legacyGlobalFlagEnabled: agentV2Flags.legacyGlobalFlagEnabled,
           numberAllowlisted: agentV2Flags.numberAllowlisted,
           reason: agentV2Route.reason,
           remoteRef: maskWhatsAppRemoteId(remoteNumber),
+          runtime: getRuntimeEnvironmentLabel(),
+          selectedAgent: agentV2Route.enabled ? "v2" : "v1",
           source: audioWasTranscribed ? "audio_transcript" : "text",
           stateExpectedResponseKind: snapshot.state.expectedResponseKind,
           statePendingAction: snapshot.state.pendingAction,
@@ -1188,6 +1192,41 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
           userAllowlisted: agentV2Flags.userAllowlisted,
           userRef: maskUserId(resolvedUserId),
         });
+
+        const debugReply = buildHelenaDebugReply({
+          flags: agentV2Flags,
+          message: agentInputText,
+          remoteNumber,
+          route: agentV2Route,
+          source: audioWasTranscribed ? "audio_transcript" : "text",
+          state: snapshot.state,
+          userId: resolvedUserId,
+        });
+
+        if (debugReply) {
+          trace.mark("action_execution_started", {
+            conversationId,
+            source: "helena_debug",
+          });
+          trace.mark("action_execution_finished", {
+            replyCharacters: debugReply.length,
+            source: "helena_debug",
+          });
+          trace.mark("response_build_started", {
+            source: "helena_debug",
+          });
+          agentReply = debugReply;
+          trace.mark("response_build_finished", {
+            characters: agentReply.length,
+            source: "helena_debug",
+          });
+
+          return {
+            reply: debugReply,
+            queuedTimeout: false,
+            summary: "Diagnostico da Helena",
+          };
+        }
 
         trace.mark("action_execution_started", {
           agentVersion: agentV2Route.enabled ? "v2" : "v1",
@@ -2188,6 +2227,128 @@ function maskWhatsAppRemoteId(remoteId?: string | null) {
   const maskedNumber = lastDigits ? `***${lastDigits}` : "***";
 
   return suffix ? `${maskedNumber}@${suffix}` : maskedNumber;
+}
+
+function buildHelenaDebugReply({
+  flags,
+  message,
+  remoteNumber,
+  route,
+  source,
+  state,
+  userId,
+}: {
+  flags: ReturnType<typeof getAgentV2FeatureFlagSnapshot>;
+  message: string;
+  remoteNumber?: string | null;
+  route: ReturnType<typeof getAgentV2WhatsAppRouteDecision>;
+  source: "audio_transcript" | "text";
+  state: AgentConversationState;
+  userId: string;
+}) {
+  if (!isHelenaDebugCommand(message) || !isHelenaDebugAllowed({ remoteNumber, userId })) {
+    return null;
+  }
+
+  return [
+    "Debug Helena",
+    "",
+    `Ambiente: ${getRuntimeEnvironmentLabel()}`,
+    `Runtime: ${getRuntimeWebhookLabel()}`,
+    `Commit: ${getRuntimeCommitRef()}`,
+    `Versao chamada: ${route.enabled ? "v2" : "v1"}`,
+    `Roteamento: ${route.reason}`,
+    `V2 padrao: ${flags.defaultEnabled ? "sim" : "nao"}`,
+    `Rollback v1 ativo: ${flags.forceV1Fallback ? "sim" : "nao"}`,
+    `Origem: ${source === "audio_transcript" ? "audio transcrito" : "texto"}`,
+    `Estado: ${state.status}`,
+    `Acao pendente: ${state.pendingAction ?? "nenhuma"}`,
+    `Resposta esperada: ${state.expectedResponseKind ?? "nenhuma"}`,
+  ].join("\n");
+}
+
+function isHelenaDebugCommand(message: string) {
+  const normalized = normalizeHelenaDebugText(message);
+
+  return normalized === "debug helena" || normalized === "helena debug";
+}
+
+function isHelenaDebugAllowed({
+  remoteNumber,
+  userId,
+}: {
+  remoteNumber?: string | null;
+  userId: string;
+}) {
+  if (process.env.VERCEL_ENV !== "production") {
+    return true;
+  }
+
+  if (isTruthyDebugFlag(process.env.HELENA_DEBUG_ALLOW_ALL)) {
+    return true;
+  }
+
+  const allowedUserIds = parseDebugAllowlist(
+    [
+      process.env.HELENA_DEBUG_USER_IDS,
+      process.env.HELENA_V2_USER_IDS,
+      process.env.WHATSAPP_TEST_USER_ID,
+    ].join(","),
+  );
+  const allowedNumbers = parseDebugAllowlist(
+    [
+      process.env.HELENA_DEBUG_WHATSAPP_NUMBERS,
+      process.env.HELENA_V2_WHATSAPP_NUMBERS,
+      process.env.WHATSAPP_TEST_REMOTE_NUMBER,
+    ].join(","),
+    normalizeDebugPhoneNumber,
+  );
+
+  return (
+    allowedUserIds.has(userId.trim().toLowerCase()) ||
+    allowedNumbers.has(normalizeDebugPhoneNumber(remoteNumber))
+  );
+}
+
+function parseDebugAllowlist(
+  value?: string,
+  normalize: (entry: string) => string = (entry) => entry.trim().toLowerCase(),
+) {
+  return new Set(
+    (value ?? "")
+      .split(/[\s,;]+/)
+      .map((entry) => normalize(entry))
+      .filter(Boolean),
+  );
+}
+
+function normalizeHelenaDebugText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function normalizeDebugPhoneNumber(value?: string | null) {
+  return value?.replace(/\D/g, "") ?? "";
+}
+
+function isTruthyDebugFlag(value?: string | null) {
+  return /^(1|true|yes|on|enabled)$/i.test(value?.trim() ?? "");
+}
+
+function getRuntimeEnvironmentLabel() {
+  return process.env.VERCEL_ENV ? `vercel-${process.env.VERCEL_ENV}` : "local";
+}
+
+function getRuntimeWebhookLabel() {
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+
+  return "next-local";
 }
 
 function maskUserId(userId?: string | null) {

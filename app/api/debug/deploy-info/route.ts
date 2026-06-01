@@ -20,7 +20,10 @@ export async function GET(request: Request) {
     agentV2: {
       allowAll: agentV2Flags.allowAll,
       allowlistConfigured: agentV2Flags.allowlistConfigured,
+      defaultEnabled: agentV2Flags.defaultEnabled,
       enabled: agentV2Flags.enabled,
+      forceV1Fallback: agentV2Flags.forceV1Fallback,
+      legacyGlobalFlagEnabled: agentV2Flags.legacyGlobalFlagEnabled,
       numberAllowlistConfigured: agentV2Flags.numberAllowlistConfigured,
       userAllowlistConfigured: agentV2Flags.userAllowlistConfigured,
     },

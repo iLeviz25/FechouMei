@@ -1,6 +1,7 @@
 param(
   [switch]$SkipNextDev,
   [switch]$SkipWebhook,
+  [switch]$ReuseNextDev,
   [int]$AppPort = 3000
 )
 
@@ -9,7 +10,7 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 $EvolutionDir = Join-Path $Root "docker\evolution"
 $AppUrl = "http://localhost:$AppPort"
-$WebhookUrl = "http://host.docker.internal:$AppPort/api/channels/whatsapp/evolution"
+$WebhookBaseUrl = "http://host.docker.internal:$AppPort/api/channels/whatsapp/evolution"
 
 function Write-Step($message) {
   Write-Host ""
@@ -54,8 +55,71 @@ function Read-DotEnv($path) {
   return $result
 }
 
+function Set-DotEnvValue($path, $key, $value) {
+  if (-not (Test-Path -LiteralPath $path)) {
+    return
+  }
+
+  $lines = @(Get-Content -LiteralPath $path)
+  $pattern = "^\s*#?\s*$([regex]::Escape($key))\s*="
+  $found = $false
+  $updatedLines = foreach ($line in $lines) {
+    if ($line -match $pattern) {
+      $found = $true
+      "$key=$value"
+    } else {
+      $line
+    }
+  }
+
+  if (-not $found) {
+    $updatedLines += "$key=$value"
+  }
+
+  Set-Content -LiteralPath $path -Value $updatedLines -Encoding UTF8
+}
+
 function Test-CommandExists($command) {
   return [bool](Get-Command $command -ErrorAction SilentlyContinue)
+}
+
+function Test-DockerReady() {
+  docker info *> $null
+  return ($LASTEXITCODE -eq 0)
+}
+
+function Start-DockerDesktopIfNeeded() {
+  if (Test-DockerReady) {
+    Write-Ok "Docker ja esta pronto."
+    return
+  }
+
+  $dockerDesktopPaths = @(
+    "$env:ProgramFiles\Docker\Docker\Docker Desktop.exe",
+    "$env:LocalAppData\Docker\Docker Desktop.exe"
+  )
+  $dockerDesktop = $dockerDesktopPaths | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+
+  if ($dockerDesktop) {
+    Write-Warn "Docker ainda nao esta pronto. Vou abrir o Docker Desktop e aguardar."
+    Start-Process -FilePath $dockerDesktop | Out-Null
+  } else {
+    Write-Warn "Docker ainda nao esta pronto. Abra o Docker Desktop manualmente se a espera falhar."
+  }
+
+  $deadline = (Get-Date).AddSeconds(150)
+
+  while ((Get-Date) -lt $deadline) {
+    if (Test-DockerReady) {
+      Write-Ok "Docker ficou pronto."
+      return
+    }
+
+    Start-Sleep -Seconds 5
+  }
+
+  Write-Fail "Docker nao ficou pronto a tempo. Abra o Docker Desktop, espere inicializar e execute este atalho de novo."
+  exit 1
 }
 
 function Test-HttpOk($url, $timeoutSec = 4) {
@@ -130,6 +194,18 @@ if (-not (Test-Path -LiteralPath $appEnvPath)) {
   exit 1
 }
 
+Set-DotEnvValue $appEnvPath "HELENA_V2_ENABLED" "true"
+Set-DotEnvValue $appEnvPath "HELENA_V2_ALLOW_ALL" "true"
+Set-DotEnvValue $appEnvPath "HELENA_FORCE_V1" "false"
+Set-DotEnvValue $appEnvPath "HELENA_USE_V1_FALLBACK" "false"
+
+$env:HELENA_V2_ENABLED = "true"
+$env:HELENA_V2_ALLOW_ALL = "true"
+$env:HELENA_FORCE_V1 = "false"
+$env:HELENA_USE_V1_FALLBACK = "false"
+
+Write-Ok "Helena local configurada para usar v2 por padrao."
+
 if (-not (Test-Path -LiteralPath $evolutionEnvPath)) {
   if (Test-Path -LiteralPath $evolutionExamplePath) {
     Copy-Item -LiteralPath $evolutionExamplePath -Destination $evolutionEnvPath
@@ -153,8 +229,15 @@ if (-not $instance) {
   $instance = "fechoumei-local"
 }
 
+$webhookSecret = $appEnv["WHATSAPP_WEBHOOK_SECRET"]
+
 if (-not $apiKey) {
   Write-Fail "Nao encontrei EVOLUTION_API_KEY no .env.local nem em docker\evolution\.env."
+  exit 1
+}
+
+if (-not $webhookSecret) {
+  Write-Fail "Nao encontrei WHATSAPP_WEBHOOK_SECRET no .env.local. Sem isso o webhook local sera recusado."
   exit 1
 }
 
@@ -170,6 +253,8 @@ if (-not (Test-CommandExists "docker")) {
   Write-Fail "Docker nao foi encontrado no PATH. Abra o Docker Desktop e tente de novo."
   exit 1
 }
+
+Start-DockerDesktopIfNeeded
 
 Push-Location $EvolutionDir
 try {
@@ -191,9 +276,18 @@ if ($SkipNextDev) {
   $portProcess = Get-PortProcess $AppPort
 
   if ($portProcess) {
-    Write-Ok "Porta $AppPort ja esta em uso por $($portProcess.ProcessName) PID $($portProcess.Id). Vou reaproveitar."
-  } else {
-    $devCommand = "Set-Location -LiteralPath '$Root'; npm.cmd run dev -- -p $AppPort"
+    if ($ReuseNextDev) {
+      Write-Ok "Porta $AppPort ja esta em uso por $($portProcess.ProcessName) PID $($portProcess.Id). Vou reaproveitar."
+    } else {
+      Write-Warn "Porta $AppPort ja estava em uso por $($portProcess.ProcessName) PID $($portProcess.Id). Vou reiniciar para garantir a Helena v2 local."
+      Stop-Process -Id $portProcess.Id -Force
+      Start-Sleep -Seconds 2
+      $portProcess = $null
+    }
+  }
+
+  if (-not $portProcess) {
+    $devCommand = "`$env:HELENA_V2_ENABLED='true'; `$env:HELENA_V2_ALLOW_ALL='true'; `$env:HELENA_FORCE_V1='false'; `$env:HELENA_USE_V1_FALLBACK='false'; npm.cmd run dev -- -p $AppPort -H 0.0.0.0"
     Start-Process powershell.exe -ArgumentList @("-NoExit", "-ExecutionPolicy", "Bypass", "-Command", $devCommand) -WorkingDirectory $Root
     Write-Ok "Abri uma janela nova com o app local em $AppUrl"
   }
@@ -207,6 +301,8 @@ if (-not $SkipWebhook) {
   $headers = @{
     apikey = $apiKey
   }
+  $WebhookUrl = "$WebhookBaseUrl`?webhook_secret=$([uri]::EscapeDataString($webhookSecret))"
+  $WebhookDisplayUrl = "$WebhookBaseUrl`?webhook_secret=<redacted>"
 
   try {
     $state = Invoke-Evolution "Get" "/instance/connectionState/$instance" $headers
@@ -236,15 +332,18 @@ if (-not $SkipWebhook) {
   }
 
   $webhookBody = @{
-    url = $WebhookUrl
-    events = @("MESSAGES_UPSERT")
-    webhook_by_events = $false
-    webhook_base64 = $false
+    webhook = @{
+      enabled = $true
+      url = $WebhookUrl
+      events = @("MESSAGES_UPSERT")
+      webhook_by_events = $false
+      webhook_base64 = $false
+    }
   }
 
   try {
     Invoke-Evolution "Post" "/webhook/set/$instance" $headers $webhookBody | Out-Null
-    Write-Ok "Webhook configurado para $WebhookUrl"
+    Write-Ok "Webhook configurado para $WebhookDisplayUrl"
   } catch {
     Write-Warn "Nao consegui configurar o webhook automaticamente: $($_.Exception.Message)"
   }
@@ -276,7 +375,8 @@ if (-not $SkipWebhook) {
 Write-Step "Resumo"
 Write-Host "- Evolution API: http://127.0.0.1:8080"
 Write-Host "- App local: $AppUrl"
-Write-Host "- Webhook local esperado: $WebhookUrl"
+Write-Host "- Webhook local esperado: $WebhookDisplayUrl"
+Write-Host "- Helena: v2 local por padrao (v1 so com HELENA_FORCE_V1=true)"
 Write-Host "- Para responder no WhatsApp, o numero precisa estar vinculado na tela Helena do app."
 Write-Host ""
 Write-Host "Pode deixar esta janela aberta enquanto testa. Para parar tudo, feche a janela do app e rode docker compose down em docker\evolution se quiser desligar a Evolution." -ForegroundColor Yellow

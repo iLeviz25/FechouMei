@@ -782,6 +782,8 @@ async function runAgentV2Checks() {
   const originalAllowAll = process.env.HELENA_V2_ALLOW_ALL;
   const originalUserIds = process.env.HELENA_V2_USER_IDS;
   const originalNumbers = process.env.HELENA_V2_WHATSAPP_NUMBERS;
+  const originalForceV1 = process.env.HELENA_FORCE_V1;
+  const originalUseV1Fallback = process.env.HELENA_USE_V1_FALLBACK;
   const originalGeminiEnabled = process.env.HELENA_V2_GEMINI_ENABLED;
 
   try {
@@ -789,7 +791,23 @@ async function runAgentV2Checks() {
     process.env.HELENA_V2_ALLOW_ALL = "";
     process.env.HELENA_V2_USER_IDS = "test-user";
     process.env.HELENA_V2_WHATSAPP_NUMBERS = "5511999999999";
+    process.env.HELENA_FORCE_V1 = "";
+    process.env.HELENA_USE_V1_FALLBACK = "";
 
+    assert.equal(shouldUseAgentV2ForWhatsApp({ remoteNumber: "5511999999999", userId: "test-user" }), true);
+    assert.equal(shouldUseAgentV2ForWhatsApp({ remoteNumber: "5511888888888", userId: "other-user" }), true);
+    assert.deepEqual(
+      getAgentV2WhatsAppRouteDecision({
+        message: "oi",
+        remoteNumber: "5511999999999",
+        source: "text",
+        state: idleState,
+        userId: "test-user",
+      }),
+      { enabled: true, reason: "enabled" },
+    );
+
+    process.env.HELENA_FORCE_V1 = "true";
     assert.equal(shouldUseAgentV2ForWhatsApp({ remoteNumber: "5511999999999", userId: "test-user" }), false);
     assert.deepEqual(
       getAgentV2WhatsAppRouteDecision({
@@ -799,23 +817,10 @@ async function runAgentV2Checks() {
         state: idleState,
         userId: "test-user",
       }),
-      { enabled: false, reason: "feature_disabled" },
+      { enabled: false, reason: "forced_v1_fallback" },
     );
+    process.env.HELENA_FORCE_V1 = "";
 
-    process.env.HELENA_V2_ENABLED = "true";
-
-    assert.equal(shouldUseAgentV2ForWhatsApp({ remoteNumber: "5511999999999", userId: "test-user" }), true);
-    assert.equal(shouldUseAgentV2ForWhatsApp({ remoteNumber: "5511888888888", userId: "other-user" }), false);
-    assert.deepEqual(
-      getAgentV2WhatsAppRouteDecision({
-        message: "oi",
-        remoteNumber: "5511888888888",
-        source: "text",
-        state: idleState,
-        userId: "other-user",
-      }),
-      { enabled: false, reason: "not_allowlisted" },
-    );
     assert.deepEqual(
       getAgentV2WhatsAppRouteDecision({
         message: "oi",
@@ -834,7 +839,7 @@ async function runAgentV2Checks() {
         state: idleState,
         userId: "test-user",
       }),
-      { enabled: false, reason: "audio_not_supported" },
+      { enabled: true, reason: "enabled" },
     );
     assert.deepEqual(
       getAgentV2WhatsAppRouteDecision({
@@ -854,7 +859,7 @@ async function runAgentV2Checks() {
         state: idleState,
         userId: "other-user",
       }),
-      { enabled: false, reason: "not_allowlisted" },
+      { enabled: true, reason: "enabled" },
     );
     assert.deepEqual(
       getAgentV2WhatsAppRouteDecision({
@@ -918,6 +923,17 @@ async function runAgentV2Checks() {
     assert.match(outOfScope.reply, /FechouMEI/);
 
     const reportYear = getCurrentSaoPauloYearForTest();
+    const currentMonthRange = resolveQuickPeriodRange(
+      { format: "report", metric: "summary", range: "this_month", type: "period" },
+      new Date(),
+    );
+    const lastMonthRange = resolveQuickPeriodRange(
+      { format: "report", metric: "summary", range: "last_month", type: "period" },
+      new Date(),
+    );
+    const currentMonthName = getMonthNameFromRangeLabel(currentMonthRange.label);
+    const lastMonthTitle = getMonthTitleFromRangeLabel(lastMonthRange.label);
+    const expectedLastMonthResult = lastMonthRange.start === "2026-04-01" ? 120 : 210;
     const v2ReportMessages = [
       "relatório de abril",
       "me faça um relatório do mês de abril",
@@ -941,16 +957,16 @@ async function runAgentV2Checks() {
       message: "relatório do mês passado",
       state: idleState,
     });
-    assert.match(lastMonthReport.reply, new RegExp(`Relatório de abril de ${reportYear}`));
-    assert.match(lastMonthReport.reply, new RegExp(`Período: 01/04/${reportYear} a 30/04/${reportYear}`));
+    assert.match(lastMonthReport.reply, new RegExp(`Relatório de ${escapeRegExp(lastMonthTitle)}`));
+    assert.match(lastMonthReport.reply, new RegExp(`Período: ${formatDateForRegex(lastMonthRange.start)} a ${formatDateForRegex(lastMonthRange.end)}`));
 
     const lastMonthProfit = await runAgentV2TurnForContext({
       context: makeFakeContext(),
       message: "quanto lucrei mês passado?",
       state: idleState,
     });
-    assert.match(lastMonthProfit.reply, new RegExp(`Em abril de ${reportYear}`));
-    assert.match(lastMonthProfit.reply, /resultado ficou em R\$\s*120,00/);
+    assert.match(lastMonthProfit.reply, new RegExp(escapeRegExp(lastMonthRange.prefix)));
+    assert.match(lastMonthProfit.reply, new RegExp(`resultado ficou em R\\$\\s*${formatCurrencyNumberForRegex(expectedLastMonthResult)}`));
 
     const aprilBalance = await runAgentV2TurnForContext({
       context: makeFakeContext(),
@@ -980,7 +996,7 @@ async function runAgentV2Checks() {
       state: idleState,
     });
     assert.match(latestMovements.reply, /Encontrei estas movimentações/);
-    assert.match(latestMovements.reply, /cliente maio/i);
+    assert.match(latestMovements.reply, new RegExp(`cliente ${escapeRegExp(currentMonthName)}`, "i"));
 
     const latestExpenses = await runAgentV2TurnForContext({
       context: makeFakeContext(),
@@ -988,8 +1004,8 @@ async function runAgentV2Checks() {
       state: idleState,
     });
     assert.match(latestExpenses.reply, /Encontrei estas despesas/);
-    assert.match(latestExpenses.reply, /internet maio/i);
-    assert.doesNotMatch(latestExpenses.reply, /cliente maio/i);
+    assert.match(latestExpenses.reply, new RegExp(`internet ${escapeRegExp(currentMonthName)}`, "i"));
+    assert.doesNotMatch(latestExpenses.reply, new RegExp(`cliente ${escapeRegExp(currentMonthName)}`, "i"));
 
     const emptyReport = await runAgentV2TurnForContext({
       context: makeFakeContext([], []),
@@ -1235,6 +1251,8 @@ async function runAgentV2Checks() {
     process.env.HELENA_V2_ALLOW_ALL = originalAllowAll;
     process.env.HELENA_V2_USER_IDS = originalUserIds;
     process.env.HELENA_V2_WHATSAPP_NUMBERS = originalNumbers;
+    process.env.HELENA_FORCE_V1 = originalForceV1;
+    process.env.HELENA_USE_V1_FALLBACK = originalUseV1Fallback;
     process.env.HELENA_V2_GEMINI_ENABLED = originalGeminiEnabled;
   }
 }
@@ -1298,6 +1316,38 @@ function getCurrentSaoPauloYearForTest() {
   return Number(parts.find((part) => part.type === "year")?.value ?? new Date().getFullYear());
 }
 
+function getMonthTitleFromRangeLabel(label: string) {
+  return label.replace(/^em\s+/i, "");
+}
+
+function getMonthNameFromRangeLabel(label: string) {
+  return getMonthTitleFromRangeLabel(label).replace(/\s+de\s+\d{4}$/i, "");
+}
+
+function formatDateForRegex(value: string) {
+  const [year, month, day] = value.split("-");
+
+  return `${day}/${month}/${year}`;
+}
+
+function formatCurrencyNumberForRegex(value: number) {
+  return value.toLocaleString("pt-BR", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  });
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function makeDateInRange(range: { end: string; start: string }, day: number) {
+  const [year, month] = range.start.split("-");
+  const lastDay = Number(range.end.split("-")[2] ?? day);
+
+  return `${year}-${month}-${String(Math.min(day, lastDay)).padStart(2, "0")}`;
+}
+
 function makeFakeContext(writes: FakeWrite[] = [], movements: unknown[] = getDefaultFakeMovements()) {
   return {
     supabase: {
@@ -1313,9 +1363,27 @@ function makeFakeContext(writes: FakeWrite[] = [], movements: unknown[] = getDef
 }
 
 function getDefaultFakeMovements() {
+  const currentMonthRange = resolveQuickPeriodRange(
+    { format: "report", metric: "summary", range: "this_month", type: "period" },
+    new Date(),
+  );
+  const lastMonthRange = resolveQuickPeriodRange(
+    { format: "report", metric: "summary", range: "last_month", type: "period" },
+    new Date(),
+  );
+  const currentMonthName = getMonthNameFromRangeLabel(currentMonthRange.label);
+  const lastMonthName = getMonthNameFromRangeLabel(lastMonthRange.label);
+  const lastMonthMovements = lastMonthRange.start === "2026-04-01"
+    ? []
+    : [
+        { amount: 300, category: "Venda", created_at: `${makeDateInRange(lastMonthRange, 10)}T12:00:00Z`, description: `cliente ${lastMonthName}`, id: "fake-last-month-income-id", occurred_on: makeDateInRange(lastMonthRange, 10), type: "entrada", user_id: "test-user" },
+        { amount: 90, category: "Internet", created_at: `${makeDateInRange(lastMonthRange, 8)}T12:00:00Z`, description: `internet ${lastMonthName}`, id: "fake-last-month-expense-id", occurred_on: makeDateInRange(lastMonthRange, 8), type: "despesa", user_id: "test-user" },
+      ];
+
   return [
-    { amount: 500, category: "Venda", created_at: "2026-05-10T12:00:00Z", description: "cliente maio", id: "fake-may-income-id", occurred_on: "2026-05-10", type: "entrada", user_id: "test-user" },
-    { amount: 100, category: "Internet", created_at: "2026-05-08T12:00:00Z", description: "internet maio", id: "fake-may-expense-id", occurred_on: "2026-05-08", type: "despesa", user_id: "test-user" },
+    { amount: 500, category: "Venda", created_at: `${makeDateInRange(currentMonthRange, 10)}T12:00:00Z`, description: `cliente ${currentMonthName}`, id: "fake-current-month-income-id", occurred_on: makeDateInRange(currentMonthRange, 10), type: "entrada", user_id: "test-user" },
+    { amount: 100, category: "Internet", created_at: `${makeDateInRange(currentMonthRange, 8)}T12:00:00Z`, description: `internet ${currentMonthName}`, id: "fake-current-month-expense-id", occurred_on: makeDateInRange(currentMonthRange, 8), type: "despesa", user_id: "test-user" },
+    ...lastMonthMovements,
     { amount: 200, category: "Venda", created_at: "2026-04-27T12:00:00Z", description: "cliente antigo", id: "fake-income-id", occurred_on: "2026-04-27", type: "entrada", user_id: "test-user" },
     { amount: 80, category: "Alimentação", created_at: "2026-04-27T11:00:00Z", description: "mercado", id: "fake-expense-id", occurred_on: "2026-04-27", type: "despesa", user_id: "test-user" },
   ];

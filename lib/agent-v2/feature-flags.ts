@@ -1,24 +1,20 @@
 import type { AgentConversationState } from "@/lib/agent/types";
-import {
-  type AgentV2RouteSource,
-  canAgentV2HandleTurn,
-} from "@/lib/agent-v2/guardrails";
+import type { AgentV2RouteSource } from "@/lib/agent-v2/guardrails";
 
 export type AgentV2WhatsAppRouteDecision = {
   enabled: boolean;
   reason:
-    | "feature_disabled"
-    | "not_allowlisted"
-    | "audio_not_supported"
-    | "pending_state_v1"
-    | "read_action_v1"
+    | "forced_v1_fallback"
     | "enabled";
 };
 
 export type AgentV2FeatureFlagSnapshot = {
   allowAll: boolean;
   allowlistConfigured: boolean;
+  defaultEnabled: boolean;
   enabled: boolean;
+  forceV1Fallback: boolean;
+  legacyGlobalFlagEnabled: boolean;
   numberAllowlistConfigured: boolean;
   numberAllowlisted: boolean;
   userAllowlistConfigured: boolean;
@@ -31,7 +27,7 @@ export function shouldUseAgentV2ForWhatsApp(input: {
 }) {
   const snapshot = getAgentV2FeatureFlagSnapshot(input);
 
-  return snapshot.enabled && (snapshot.allowAll || snapshot.userAllowlisted || snapshot.numberAllowlisted);
+  return snapshot.enabled;
 }
 
 export function getAgentV2WhatsAppRouteDecision(input: {
@@ -43,25 +39,8 @@ export function getAgentV2WhatsAppRouteDecision(input: {
 }): AgentV2WhatsAppRouteDecision {
   const snapshot = getAgentV2FeatureFlagSnapshot(input);
 
-  if (!snapshot.enabled) {
-    return { enabled: false, reason: "feature_disabled" };
-  }
-
-  if (!snapshot.allowAll && !snapshot.userAllowlisted && !snapshot.numberAllowlisted) {
-    return { enabled: false, reason: "not_allowlisted" };
-  }
-
-  if (input.source !== "text") {
-    return { enabled: false, reason: "audio_not_supported" };
-  }
-
-  const canHandle = canAgentV2HandleTurn(input);
-
-  if (!canHandle) {
-    return {
-      enabled: false,
-      reason: input.state && input.state.status !== "idle" ? "pending_state_v1" : "read_action_v1",
-    };
+  if (snapshot.forceV1Fallback) {
+    return { enabled: false, reason: "forced_v1_fallback" };
   }
 
   return { enabled: true, reason: "enabled" };
@@ -74,7 +53,10 @@ export function getAgentV2FeatureFlagSnapshot({
   remoteNumber?: string | null;
   userId?: string | null;
 } = {}): AgentV2FeatureFlagSnapshot {
-  const enabled = isAgentV2FeatureEnabled();
+  const forceV1Fallback = isAgentV1FallbackForced();
+  const legacyGlobalFlagEnabled = isAgentV2FeatureEnabled();
+  const defaultEnabled = true;
+  const enabled = defaultEnabled && !forceV1Fallback;
   const allowAll = isTruthyFlag(process.env.HELENA_V2_ALLOW_ALL);
   const userIds = parseAllowlist(process.env.HELENA_V2_USER_IDS);
   const numbers = parseAllowlist(process.env.HELENA_V2_WHATSAPP_NUMBERS, normalizePhoneNumber);
@@ -86,7 +68,10 @@ export function getAgentV2FeatureFlagSnapshot({
   return {
     allowAll,
     allowlistConfigured: allowAll || userIds.size > 0 || numbers.size > 0,
+    defaultEnabled,
     enabled,
+    forceV1Fallback,
+    legacyGlobalFlagEnabled,
     numberAllowlistConfigured: numbers.size > 0,
     numberAllowlisted,
     userAllowlistConfigured: userIds.size > 0,
@@ -96,6 +81,13 @@ export function getAgentV2FeatureFlagSnapshot({
 
 function isAgentV2FeatureEnabled() {
   return isTruthyFlag(process.env.HELENA_V2_ENABLED);
+}
+
+export function isAgentV1FallbackForced() {
+  return (
+    isTruthyFlag(process.env.HELENA_FORCE_V1) ||
+    isTruthyFlag(process.env.HELENA_USE_V1_FALLBACK)
+  );
 }
 
 function parseAllowlist(
