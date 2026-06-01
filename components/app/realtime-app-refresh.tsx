@@ -1,0 +1,126 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+
+type RealtimeAppRefreshProps = {
+  userId: string | null;
+};
+
+const refreshDelayMs = 250;
+const focusRefreshCooldownMs = 60000;
+const backgroundRefreshThresholdMs = 30000;
+const realtimeTables = [
+  { filterColumn: "user_id", table: "movimentacoes" },
+  { filterColumn: "user_id", table: "obrigacoes_checklist" },
+  { filterColumn: "user_id", table: "reminder_preferences" },
+  { filterColumn: "id", table: "profiles" },
+] as const;
+
+export function RealtimeAppRefresh({ userId }: RealtimeAppRefreshProps) {
+  const router = useRouter();
+  const lastFocusRefreshRef = useRef(0);
+  const hiddenAtRef = useRef<number | null>(null);
+  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!userId) {
+      return;
+    }
+
+    const supabase = createClient();
+    lastFocusRefreshRef.current = Date.now();
+
+    const scheduleRefresh = () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+
+      refreshTimeoutRef.current = setTimeout(() => {
+        router.refresh();
+        refreshTimeoutRef.current = null;
+      }, refreshDelayMs);
+    };
+
+    const channels = realtimeTables.map(({ filterColumn, table }) =>
+      supabase
+        .channel(`app-live-refresh:${table}:${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            filter: `${filterColumn}=eq.${userId}`,
+            schema: "public",
+            table,
+          },
+          scheduleRefresh,
+        )
+        .subscribe((status) => {
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            console.warn("Atualização em tempo real do app ficou indisponível para uma tabela.", {
+              status,
+              table,
+            });
+          }
+        }),
+    );
+
+    const scheduleFocusRefresh = () => {
+      const now = Date.now();
+
+      if (now - lastFocusRefreshRef.current < focusRefreshCooldownMs) {
+        return;
+      }
+
+      lastFocusRefreshRef.current = now;
+      scheduleRefresh();
+    };
+
+    const refreshAfterBackground = () => {
+      const now = Date.now();
+      const hiddenAt = hiddenAtRef.current;
+      hiddenAtRef.current = null;
+
+      if (hiddenAt && now - hiddenAt < backgroundRefreshThresholdMs) {
+        return;
+      }
+
+      scheduleFocusRefresh();
+    };
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAtRef.current = Date.now();
+        return;
+      }
+
+      if (document.visibilityState === "visible") {
+        refreshAfterBackground();
+      }
+    };
+
+    const refreshWhenRestored = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        refreshAfterBackground();
+      }
+    };
+
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    window.addEventListener("pageshow", refreshWhenRestored);
+
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+      window.removeEventListener("pageshow", refreshWhenRestored);
+      channels.forEach((channel) => {
+        void supabase.removeChannel(channel);
+      });
+    };
+  }, [router, userId]);
+
+  return null;
+}

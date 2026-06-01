@@ -16,7 +16,7 @@ export default async function CadastroPage() {
 
   return (
     <AuthShell
-      description="Crie seu acesso para organizar a rotina financeira do seu MEI."
+      description="Crie sua conta para organizar a rotina financeira do seu MEI."
       switchHref="/login"
       switchLabel="entre aqui"
       switchText="Já tem conta?"

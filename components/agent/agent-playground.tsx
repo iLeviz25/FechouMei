@@ -1,0 +1,270 @@
+"use client";
+
+import { type FormEvent, useEffect, useRef, useState, useTransition } from "react";
+import { Bot, Loader2, Send, Sparkles, Trash2 } from "lucide-react";
+import { clearAgentConversation, sendAgentMessage } from "@/app/app/agente/actions";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import type { AgentConversationSnapshot, AgentConversationState, AgentMessage } from "@/lib/agent/types";
+
+const examples = [
+  "Recebi 500 de um cliente",
+  "Paguei 120 de internet",
+  "Como foi meu mês?",
+  "Quanto falta para o limite MEI?",
+  "Marcar DAS como pago",
+  "Importar minha planilha",
+];
+
+const welcomeMessage: AgentMessage = {
+  id: "welcome",
+  role: "agent",
+  content: "Oi, eu sou a Helena. Use este chat para testar mensagens antes de usar no WhatsApp.",
+};
+
+export function AgentPlayground({
+  initialConversation,
+}: {
+  initialConversation: AgentConversationSnapshot;
+}) {
+  const [input, setInput] = useState("");
+  const [state, setState] = useState<AgentConversationState>(initialConversation.state);
+  const [isPersistent, setIsPersistent] = useState(initialConversation.isPersistent ?? true);
+  const [messages, setMessages] = useState<AgentMessage[]>(
+    initialConversation.messages.length > 0 ? initialConversation.messages : [welcomeMessage],
+  );
+  const [isPending, startTransition] = useTransition();
+  const messagesViewportRef = useRef<HTMLDivElement | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const viewport = messagesViewportRef.current;
+
+    if (!viewport) {
+      return;
+    }
+
+    viewport.scrollTo({ top: viewport.scrollHeight, behavior: "auto" });
+  }, [messages, isPending]);
+
+  function submitMessage(message: string) {
+    const trimmedMessage = message.trim();
+
+    if (!trimmedMessage || isPending) {
+      return;
+    }
+
+    const userMessage: AgentMessage = {
+      content: trimmedMessage,
+      id: crypto.randomUUID(),
+      role: "user",
+    };
+
+    setMessages((current) => [...current, userMessage]);
+    setInput("");
+
+    startTransition(async () => {
+      try {
+        const result = await sendAgentMessage({
+          message: trimmedMessage,
+          transientState: state,
+        });
+
+        setState(result.state);
+        setIsPersistent(result.isPersistent ?? true);
+
+        if (result.isPersistent === false) {
+          const agentMessage: AgentMessage = {
+            content: result.reply,
+            id: crypto.randomUUID(),
+            role: "agent",
+          };
+
+          setMessages((current) => [...current, agentMessage]);
+          return;
+        }
+
+        setMessages(result.messages.length > 0 ? result.messages : [welcomeMessage]);
+      } catch {
+        setMessages((current) => [
+          ...current,
+          {
+            content: "Não consegui enviar sua mensagem agora. Tente novamente em instantes.",
+            id: crypto.randomUUID(),
+            role: "agent",
+          },
+        ]);
+      }
+    });
+  }
+
+  function handleClearConversation() {
+    if (isPending) {
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        const result = await clearAgentConversation();
+
+        setState(result.state);
+        setIsPersistent(result.isPersistent ?? true);
+        setMessages([welcomeMessage]);
+        setInput("");
+      } catch {
+        setMessages((current) => [
+          ...current,
+          {
+            content: "Não consegui limpar a conversa agora. Tente novamente em instantes.",
+            id: crypto.randomUUID(),
+            role: "agent",
+          },
+        ]);
+      }
+    });
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    submitMessage(input);
+  }
+
+  const empty = messages.length === 1 && messages[0]?.id === "welcome";
+
+  return (
+    <Card className="overflow-hidden rounded-[30px]">
+      <CardContent className="p-0">
+        <div className="surface-panel flex items-center gap-3 border-b border-border/70 px-4 py-4 sm:px-5">
+          <div className="relative flex h-11 w-11 items-center justify-center rounded-full bg-gradient-brand text-primary-foreground shadow-elevated">
+            <Bot className="h-5 w-5" />
+            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-success ring-2 ring-card" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-base font-extrabold tracking-tight text-foreground">Teste a Helena por aqui</p>
+            <p className="text-sm text-muted-foreground">Use este chat para testar mensagens antes de usar no WhatsApp.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">Teste no app</Badge>
+            {!empty ? (
+              <Button onClick={handleClearConversation} size="sm" type="button" variant="outline">
+                <Trash2 className="h-4 w-4" />
+                Limpar
+              </Button>
+            ) : null}
+          </div>
+        </div>
+
+        {!isPersistent ? (
+          <div className="border-b border-border/70 bg-secondary-soft px-5 py-3 text-sm text-secondary-foreground">
+            Este chat está em modo temporário. A conversa pode não ficar salva.
+          </div>
+        ) : null}
+
+        <div
+          className="scroll-chain-y h-[min(52dvh,32rem)] min-h-[360px] overflow-y-auto px-4 py-5 sm:min-h-[420px] sm:px-5"
+          ref={messagesViewportRef}
+        >
+          {empty ? (
+            <div className="flex min-h-[320px] flex-col items-center justify-center px-2 text-center">
+              <div className="icon-tile flex h-14 w-14 items-center justify-center rounded-[22px] bg-primary-soft text-primary">
+                <Sparkles className="h-6 w-6" />
+              </div>
+              <h2 className="mt-4 text-xl font-extrabold tracking-tight text-foreground">Teste uma mensagem</h2>
+              <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
+                Teste mensagens sobre entradas, despesas, DAS, limite MEI ou resumo do mês.
+              </p>
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                {examples.map((example) => (
+                  <button
+                    className="surface-panel-ghost rounded-full px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:border-primary/30 hover:bg-primary-soft/30"
+                    disabled={isPending}
+                    key={example}
+                    onClick={() => submitMessage(example)}
+                    type="button"
+                  >
+                    {example}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {messages.map((message) => (
+                <div className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")} key={message.id}>
+                  <div className={cn("flex max-w-[90%] gap-2", message.role === "user" ? "flex-row-reverse" : "flex-row")}>
+                    {message.role === "agent" ? (
+                      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-brand text-primary-foreground">
+                        <Bot className="h-4 w-4" />
+                      </div>
+                    ) : null}
+                    <div
+                      className={cn(
+                        "rounded-[22px] px-4 py-3 text-sm leading-6 shadow-sm",
+                        message.role === "user"
+                          ? "rounded-br-md bg-gradient-brand text-primary-foreground"
+                          : "surface-panel-muted rounded-bl-md text-foreground",
+                      )}
+                    >
+                      {message.content}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {isPending ? (
+                <div className="flex justify-start">
+                  <div className="surface-panel-muted flex items-center gap-2 rounded-[22px] rounded-bl-md px-4 py-3 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Pensando...
+                  </div>
+                </div>
+              ) : null}
+
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+        </div>
+
+        {!empty ? (
+          <div className="border-t border-border/70 bg-muted/10 px-4 py-3 sm:px-5">
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {examples.map((example) => (
+                <button
+                  className="surface-panel-ghost shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/30 hover:bg-primary-soft/25"
+                  disabled={isPending}
+                  key={example}
+                  onClick={() => submitMessage(example)}
+                  type="button"
+                >
+                  {example}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        <form className="flex items-end gap-2 border-t border-border/70 bg-muted/10 px-4 py-4 sm:px-5" onSubmit={handleSubmit}>
+          <textarea
+            className="surface-panel-ghost min-h-[52px] max-h-32 flex-1 resize-none rounded-[20px] px-4 py-3 text-sm leading-6 shadow-sm outline-none transition-[background-color,border-color,box-shadow,color] placeholder:text-muted-foreground focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isPending}
+            onChange={(event) => setInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                submitMessage(input);
+              }
+            }}
+            placeholder="Teste uma mensagem para a Helena..."
+            rows={1}
+            value={input}
+          />
+          <Button className="h-11 w-11 shrink-0 rounded-2xl bg-primary/35 text-primary hover:bg-primary/45" disabled={isPending || !input.trim()} size="icon" type="submit" variant="secondary">
+            <Send className="h-4 w-4" />
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}

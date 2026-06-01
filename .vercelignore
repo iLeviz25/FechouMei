@@ -1,0 +1,7 @@
+tmp-*
+tmp-*/
+dev-debug*
+start-debug*
+start-fechoumei*
+whatsapp-log*
+*.log

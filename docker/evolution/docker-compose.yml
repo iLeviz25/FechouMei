@@ -1,0 +1,64 @@
+version: "3.8"
+
+services:
+  evolution-api:
+    image: evoapicloud/evolution-api:latest
+    container_name: fechoumei_evolution_api
+    restart: unless-stopped
+    depends_on:
+      - evolution-postgres
+      - evolution-redis
+    ports:
+      - "8080:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    env_file:
+      - .env
+    environment:
+      SERVER_TYPE: http
+      SERVER_PORT: 8080
+      SERVER_URL: http://localhost:8080
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@evolution-postgres:5432/${POSTGRES_DATABASE}?schema=public
+      DATABASE_CONNECTION_CLIENT_NAME: fechoumei_evolution
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
+      DATABASE_SAVE_MESSAGE_UPDATE: "false"
+      DATABASE_SAVE_DATA_CONTACTS: "false"
+      DATABASE_SAVE_DATA_CHATS: "false"
+      DATABASE_SAVE_DATA_LABELS: "false"
+      DATABASE_SAVE_DATA_HISTORIC: "true"
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://evolution-redis:6379/6
+      CACHE_REDIS_PREFIX_KEY: fechoumei-evolution
+      CACHE_REDIS_SAVE_INSTANCES: "true"
+      CACHE_LOCAL_ENABLED: "false"
+      LOG_LEVEL: ERROR,WARN,INFO,LOG
+    volumes:
+      - evolution_instances:/evolution/instances
+
+  evolution-postgres:
+    image: postgres:15
+    container_name: fechoumei_evolution_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DATABASE}
+      POSTGRES_USER: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - evolution_postgres:/var/lib/postgresql/data
+
+  evolution-redis:
+    image: redis:7-alpine
+    container_name: fechoumei_evolution_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - evolution_redis:/data
+
+volumes:
+  evolution_instances:
+  evolution_postgres:
+  evolution_redis:

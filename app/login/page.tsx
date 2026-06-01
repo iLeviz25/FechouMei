@@ -5,6 +5,8 @@ import { getCurrentUserProfile } from "@/lib/profile";
 
 type LoginPageProps = {
   searchParams?: Promise<{
+    accountDeleted?: string;
+    authError?: string;
     redirectedFrom?: string;
   }>;
 };
@@ -21,15 +23,22 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     redirect(profile?.onboarding_completed ? "/app/dashboard" : "/onboarding");
   }
 
+  const initialMessage =
+    params?.accountDeleted === "1"
+      ? "Conta excluída com sucesso."
+      : params?.authError;
+  const initialTone = params?.accountDeleted === "1" ? "success" : "danger";
+
   return (
     <AuthShell
-      description="Entre para continuar seu fechamento mensal."
+      description="Entre para acompanhar seu mês, suas obrigações e seu fechamento."
       switchHref="/cadastro"
       switchLabel="crie sua conta"
       switchText="Ainda não tem conta?"
+      showPwaInstallLink
       title="Entrar no FechouMEI"
     >
-      <LoginForm redirectedFrom={params?.redirectedFrom} />
+      <LoginForm initialMessage={initialMessage} initialTone={initialTone} redirectedFrom={params?.redirectedFrom} />
     </AuthShell>
   );
 }
