@@ -143,6 +143,7 @@ export type AgentTransactionEditDraft = {
   category?: string;
   description?: string;
   occurred_on?: string;
+  type?: MovementType;
 };
 
 export type AgentReminderPreferenceUpdate = {

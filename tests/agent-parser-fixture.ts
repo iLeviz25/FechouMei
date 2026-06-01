@@ -1056,6 +1056,125 @@ async function runAgentV2Checks() {
       assert.equal(caseWrites[0]?.payload.type, draftCase.pendingAction === "register_income" ? "entrada" : "despesa", draftCase.message);
     }
 
+    const deleteWrites: FakeWrite[] = [];
+    const savedExpenseForDelete = await runAgentV2TurnForContext({
+      context: makeFakeContext(deleteWrites),
+      message: "gastei 50 gasolina",
+      state: idleState,
+    });
+    const deleteAsk = await runAgentV2TurnForContext({
+      context: makeFakeContext(deleteWrites, movementsFromLastWrite(savedExpenseForDelete.state)),
+      message: "apaga essa",
+      state: savedExpenseForDelete.state,
+    });
+    assert.equal(deleteAsk.state.pendingAction, "delete_transaction");
+    assert.equal(deleteAsk.state.status, "awaiting_confirmation");
+    assert.match(deleteAsk.reply, /Quer mesmo excluir\?/);
+    assert.equal(deleteWrites.filter((write) => write.payload.__delete).length, 0);
+
+    const deleteConfirmed = await runAgentV2TurnForContext({
+      context: makeFakeContext(deleteWrites, movementsFromLastWrite(savedExpenseForDelete.state)),
+      message: "sim",
+      state: deleteAsk.state,
+    });
+    assert.match(deleteConfirmed.reply, /exclu[ií]/i);
+    assert.equal(deleteConfirmed.state.status, "idle");
+    assert.equal(deleteWrites.filter((write) => write.payload.__delete).length, 1);
+
+    const keepWrites: FakeWrite[] = [];
+    const savedExpenseToKeep = await runAgentV2TurnForContext({
+      context: makeFakeContext(keepWrites),
+      message: "gastei 50 gasolina",
+      state: idleState,
+    });
+    const keepAsk = await runAgentV2TurnForContext({
+      context: makeFakeContext(keepWrites, movementsFromLastWrite(savedExpenseToKeep.state)),
+      message: "apaga essa",
+      state: savedExpenseToKeep.state,
+    });
+    const keepCancelled = await runAgentV2TurnForContext({
+      context: makeFakeContext(keepWrites, movementsFromLastWrite(savedExpenseToKeep.state)),
+      message: "não",
+      state: keepAsk.state,
+    });
+    assert.match(keepCancelled.reply, /mantive esse lan[cç]amento/i);
+    assert.equal(keepWrites.filter((write) => write.payload.__delete).length, 0);
+
+    const valueEditWrites: FakeWrite[] = [];
+    const savedExpenseForValueEdit = await runAgentV2TurnForContext({
+      context: makeFakeContext(valueEditWrites),
+      message: "gastei 50 gasolina",
+      state: idleState,
+    });
+    const valueEditAsk = await runAgentV2TurnForContext({
+      context: makeFakeContext(valueEditWrites, movementsFromLastWrite(savedExpenseForValueEdit.state)),
+      message: "na verdade foi 60",
+      state: savedExpenseForValueEdit.state,
+    });
+    assert.equal(valueEditAsk.state.pendingAction, "edit_transaction");
+    assert.equal(valueEditAsk.state.status, "awaiting_confirmation");
+    assert.equal(valueEditAsk.state.editDraft?.amount, 60);
+    assert.match(valueEditAsk.reply, /Para: R\$\s*60,00/);
+    assert.equal(valueEditWrites.filter((write) => write.payload.amount === 60).length, 0);
+
+    const valueEditConfirmed = await runAgentV2TurnForContext({
+      context: makeFakeContext(valueEditWrites, movementsFromLastWrite(savedExpenseForValueEdit.state)),
+      message: "sim",
+      state: valueEditAsk.state,
+    });
+    assert.match(valueEditConfirmed.reply, /R\$\s*60,00/);
+    assert.equal(valueEditConfirmed.state.status, "idle");
+    assert.equal(valueEditWrites.filter((write) => write.payload.amount === 60).length, 1);
+
+    const descriptionEditWrites: FakeWrite[] = [];
+    const savedIncomeForDescriptionEdit = await runAgentV2TurnForContext({
+      context: makeFakeContext(descriptionEditWrites),
+      message: "entrou 300 pix cliente joão",
+      state: idleState,
+    });
+    const descriptionEditAsk = await runAgentV2TurnForContext({
+      context: makeFakeContext(descriptionEditWrites, movementsFromLastWrite(savedIncomeForDescriptionEdit.state)),
+      message: "muda a descrição para serviço mensal",
+      state: savedIncomeForDescriptionEdit.state,
+    });
+    assert.equal(descriptionEditAsk.state.pendingAction, "edit_transaction");
+    assert.equal(descriptionEditAsk.state.status, "awaiting_confirmation");
+    assert.equal(normalizeDescription(descriptionEditAsk.state.editDraft?.description ?? ""), "servico mensal");
+    assert.match(descriptionEditAsk.reply, /Para: Serviço mensal/i);
+
+    const typeEditWrites: FakeWrite[] = [];
+    const savedExpenseForTypeEdit = await runAgentV2TurnForContext({
+      context: makeFakeContext(typeEditWrites),
+      message: "gastei 50 gasolina",
+      state: idleState,
+    });
+    const typeEditAsk = await runAgentV2TurnForContext({
+      context: makeFakeContext(typeEditWrites, movementsFromLastWrite(savedExpenseForTypeEdit.state)),
+      message: "era entrada, não despesa",
+      state: savedExpenseForTypeEdit.state,
+    });
+    assert.equal(typeEditAsk.state.pendingAction, "edit_transaction");
+    assert.equal(typeEditAsk.state.status, "awaiting_confirmation");
+    assert.equal(typeEditAsk.state.editDraft?.type, "entrada");
+    assert.equal(typeEditWrites.filter((write) => write.payload.type === "entrada").length, 0);
+
+    const cancelAfterSaved = await runAgentV2TurnForContext({
+      context: makeFakeContext(typeEditWrites, movementsFromLastWrite(savedExpenseForTypeEdit.state)),
+      message: "cancela",
+      state: savedExpenseForTypeEdit.state,
+    });
+    assert.equal(cancelAfterSaved.state.pendingAction, "delete_transaction");
+    assert.equal(cancelAfterSaved.state.status, "awaiting_confirmation");
+    assert.equal(typeEditWrites.filter((write) => write.payload.__delete).length, 0);
+
+    const noRecentDelete = await runAgentV2TurnForContext({
+      context: makeFakeContext([], []),
+      message: "apaga essa",
+      state: idleState,
+    });
+    assert.match(noRecentDelete.reply, /Não encontrei uma movimentação recente/i);
+    assert.equal(noRecentDelete.state.status, "idle");
+
     const cancelWrites: FakeWrite[] = [];
     const cancelDraft = await runAgentV2TurnForContext({
       context: makeFakeContext(cancelWrites),
@@ -1235,7 +1354,7 @@ async function runAgentV2Checks() {
     });
     assert.equal(v2Edit.state.pendingAction, "edit_transaction");
     assert.equal(v2Edit.state.status, "awaiting_confirmation");
-    assert.match(v2Edit.reply, /Posso salvar essa alteração\?/);
+    assert.match(v2Edit.reply, /Posso confirmar essa alteração\?/);
     assert.equal(v2EditWrites.length, 0);
 
     const v2Delete = await runAgentV2TurnForContext({
@@ -1245,7 +1364,7 @@ async function runAgentV2Checks() {
     });
     assert.equal(v2Delete.state.pendingAction, "delete_transaction");
     assert.equal(v2Delete.state.status, "awaiting_confirmation");
-    assert.match(v2Delete.reply, /Deseja excluir mesmo\?/);
+    assert.match(v2Delete.reply, /Quer mesmo excluir\?/);
   } finally {
     process.env.HELENA_V2_ENABLED = originalEnabled;
     process.env.HELENA_V2_ALLOW_ALL = originalAllowAll;
@@ -1348,6 +1467,22 @@ function makeDateInRange(range: { end: string; start: string }, day: number) {
   return `${year}-${month}-${String(Math.min(day, lastDay)).padStart(2, "0")}`;
 }
 
+function movementsFromLastWrite(state: { lastWrite?: { target: any } }) {
+  const target = state.lastWrite?.target;
+
+  if (!target) {
+    throw new Error("Expected lastWrite target in test state.");
+  }
+
+  return [
+    {
+      ...target,
+      created_at: `${target.occurred_on}T12:00:00Z`,
+      user_id: "test-user",
+    },
+  ];
+}
+
 function makeFakeContext(writes: FakeWrite[] = [], movements: unknown[] = getDefaultFakeMovements()) {
   return {
     supabase: {
@@ -1391,6 +1526,8 @@ function getDefaultFakeMovements() {
 
 function makeFakeQuery(data: unknown[], table: string, writes: FakeWrite[]) {
   let result = { data: Array.isArray(data) ? [...data] as unknown[] : data as unknown, error: null };
+  let deleteMode = false;
+  let pendingUpdate: any = null;
 
   const updateResult = (nextData: unknown) => {
     result = { data: nextData, error: null };
@@ -1405,6 +1542,10 @@ function makeFakeQuery(data: unknown[], table: string, writes: FakeWrite[]) {
   const query = {
     eq: (field: string, value: unknown) => {
       filterRows((row) => row[field] === value);
+      return query;
+    },
+    delete: () => {
+      deleteMode = true;
       return query;
     },
     gte: (field: string, value: unknown) => {
@@ -1454,16 +1595,31 @@ function makeFakeQuery(data: unknown[], table: string, writes: FakeWrite[]) {
       return query;
     },
     select: () => query,
-    single: async () => ({ data: Array.isArray(result.data) ? result.data[0] : result.data, error: null }),
-    then: (resolve: (value: typeof result) => void) => resolve(result),
+    single: async () => {
+      if (pendingUpdate) {
+        const base = Array.isArray(result.data) ? result.data[0] ?? {} : result.data ?? {};
+        const updated = { ...base, ...pendingUpdate };
+        writes.push({ payload: pendingUpdate, table });
+        result = {
+          data: updated,
+          error: null,
+        };
+        pendingUpdate = null;
+      }
+
+      return { data: Array.isArray(result.data) ? result.data[0] : result.data, error: null };
+    },
+    then: (resolve: (value: typeof result) => void) => {
+      if (deleteMode) {
+        writes.push({ payload: { __delete: true, rows: result.data }, table });
+        result = { data: null, error: null };
+        deleteMode = false;
+      }
+
+      resolve(result);
+    },
     update: (payload: any) => {
-      const base = Array.isArray(result.data) ? result.data[0] ?? {} : result.data ?? {};
-      const updated = { ...base, ...payload };
-      writes.push({ payload, table });
-      result = {
-        data: updated,
-        error: null,
-      };
+      pendingUpdate = payload;
       return query;
     },
   };

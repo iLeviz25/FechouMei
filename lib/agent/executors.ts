@@ -343,6 +343,7 @@ export async function executeTransactionEdit(
     description?: string;
     occurred_at?: string;
     occurred_on?: string;
+    type?: "despesa" | "entrada";
   } = {};
 
   if (typeof edit.amount === "number" && edit.amount > 0) {
@@ -360,6 +361,10 @@ export async function executeTransactionEdit(
   if (edit.occurred_on?.trim()) {
     update.occurred_on = edit.occurred_on.trim();
     update.occurred_at = buildOccurredAtFromDateInput(edit.occurred_on.trim());
+  }
+
+  if (edit.type === "entrada" || edit.type === "despesa") {
+    update.type = edit.type;
   }
 
   if (Object.keys(update).length === 0) {
@@ -420,6 +425,11 @@ function getTransactionEditSuccessReply(
     return `Pronto, mudei a data da sua ${targetLabel} para ${formatDateLabel(updated.occurred_on)}.`;
   }
 
+  if (changedFields.length === 1 && edit.type) {
+    const updatedLabel = updated.type === "entrada" ? "entrada" : "despesa";
+    return `Pronto, mudei esse lançamento para ${updatedLabel}.`;
+  }
+
   return `Pronto, atualizei ${formatEditedFieldsForReply(edit)} da sua ${targetLabel}.`;
 }
 
@@ -431,6 +441,7 @@ function assertTransactionEditPersisted(
     description?: string;
     occurred_at?: string;
     occurred_on?: string;
+    type?: "despesa" | "entrada";
   },
 ) {
   if (typeof edit.amount === "number" && updated.amount !== edit.amount) {
@@ -447,6 +458,10 @@ function assertTransactionEditPersisted(
 
   if (edit.occurred_on && updated.occurred_on !== edit.occurred_on) {
     throw new Error("A data atualizada não foi confirmada pelo banco.");
+  }
+
+  if (edit.type && updated.type !== edit.type) {
+    throw new Error("O tipo atualizado não foi confirmado pelo banco.");
   }
 }
 
@@ -483,6 +498,10 @@ function formatEditedFieldsForReply(edit: AgentTransactionEditDraft) {
 
   if (edit.occurred_on) {
     fields.push("a data");
+  }
+
+  if (edit.type) {
+    fields.push("o tipo");
   }
 
   if (fields.length === 0) {
