@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   markWhatsAppMessageAsRead,
@@ -25,6 +26,11 @@ import {
   getReliableMovementMissingFields,
   isUsefulMovementDescription,
 } from "../lib/agent/draft-sufficiency.ts";
+import {
+  buildWhatsAppImportConfirmationReply,
+  buildWhatsAppImportSessionReply,
+} from "../lib/channels/whatsapp/import-replies.ts";
+import { processImportFileForPreview } from "../lib/import/process-file.ts";
 
 const config = {
   allowedRemoteNumber: "5511999999999",
@@ -35,6 +41,47 @@ const config = {
   maxReplyLength: 900,
   testUserId: "user-id",
 };
+
+function makeImportSummary(overrides = {}) {
+  return {
+    duplicateExistingCount: 0,
+    duplicateFileCount: 0,
+    errorCount: 0,
+    expenseAmount: 3797.05,
+    expenseCount: 18,
+    importableCount: 25,
+    incomeAmount: 7935,
+    incomeCount: 7,
+    totalRows: 25,
+    ...overrides,
+  };
+}
+
+function makeImportPreviewSupabase(existingMovements = []) {
+  return {
+    from(table) {
+      assert.equal(table, "movimentacoes");
+
+      return {
+        eq() {
+          return this;
+        },
+        gte() {
+          return this;
+        },
+        lte() {
+          return Promise.resolve({
+            data: existingMovements,
+            error: null,
+          });
+        },
+        select() {
+          return this;
+        },
+      };
+    },
+  };
+}
 
 test("envia indicador de digitando pela Evolution", async () => {
   const originalFetch = globalThis.fetch;
@@ -247,6 +294,84 @@ test("dedupe de evento inbound usa message id e sanitiza texto operacional", asy
   assert.equal(second.duplicate, true);
   assert.equal(insertedRows[0].message_text, "entrou [valor] pix cliente joao");
   assert.equal(sanitizeInboundMessageText("whatsapp 55 11 99999-9999 recebeu R$ 300,00"), "whatsapp [numero] recebeu [valor]");
+});
+
+test("preview de CSV valido encontra entradas e despesas para importacao", async () => {
+  const bytes = await readFile("tests/fixtures/whatsapp-import-sample.csv");
+  const fakeSupabase = makeImportPreviewSupabase([]);
+
+  const result = await processImportFileForPreview({
+    buffer: bytes,
+    fileName: "movimentacoes_bancarias.csv",
+    fileType: "text/csv",
+    supabase: fakeSupabase,
+    userId: "test-user",
+  });
+
+  assert.equal(result.summary.importableCount, 3);
+  assert.equal(result.summary.incomeCount, 1);
+  assert.equal(result.summary.expenseCount, 2);
+  assert.equal(result.summary.errorCount, 0);
+});
+
+test("resposta de pre-importacao limpa fica natural e nao mostra zeros tecnicos", () => {
+  const reply = buildWhatsAppImportSessionReply(makeImportSummary(), null);
+
+  assert.match(reply, /Recebi sua planilha ✅/);
+  assert.match(reply, /Encontrei 25 movimentações para importar/);
+  assert.match(reply, /• 7 entradas — R\$\s*7\.935,00/);
+  assert.match(reply, /• 18 despesas — R\$\s*3\.797,05/);
+  assert.match(reply, /Não encontrei erros nem possíveis duplicidades/);
+  assert.match(reply, /responda: confirmar/);
+  assert.doesNotMatch(reply, /0 com erro/);
+  assert.doesNotMatch(reply, /0 poss/);
+});
+
+test("resposta de pre-importacao com duplicadas alerta sem bloquear confirmacao das novas", () => {
+  const reply = buildWhatsAppImportSessionReply(makeImportSummary({ duplicateExistingCount: 3 }), null);
+
+  assert.match(reply, /Também encontrei 3 possíveis duplicidades/);
+  assert.match(reply, /Vale revisar antes de confirmar/);
+  assert.match(reply, /importar apenas as novas agora/);
+});
+
+test("resposta de pre-importacao com erro orienta revisar no app", () => {
+  const reply = buildWhatsAppImportSessionReply(makeImportSummary({ errorCount: 2 }), "https://app.test/importar/sessao/1");
+
+  assert.match(reply, /• 2 linhas com erro/);
+  assert.match(reply, /recomendo revisar essas linhas no app em Importar dados/);
+  assert.doesNotMatch(reply, /Para importar tudo agora/);
+});
+
+test("resposta de confirmacao de importacao fica natural", () => {
+  const reply = buildWhatsAppImportConfirmationReply({
+    importedCount: 25,
+    importedExpenseAmount: 3797.05,
+    importedExpenseCount: 18,
+    importedIncomeAmount: 7935,
+    importedIncomeCount: 7,
+    message: "25 movimentações importadas com sucesso.",
+    ok: true,
+    skippedDuplicateCount: 0,
+  });
+
+  assert.match(reply, /Pronto, importei sua planilha ✅/);
+  assert.match(reply, /Foram adicionadas 25 movimentações/);
+  assert.match(reply, /• 7 entradas — R\$\s*7\.935,00/);
+  assert.match(reply, /• 18 despesas — R\$\s*3\.797,05/);
+  assert.match(reply, /Você já pode conferir tudo em Movimentações/);
+  assert.doesNotMatch(reply, /^Pronto\.\nImportei/m);
+});
+
+test("resposta de confirmacao sem importados orienta reenviar ou revisar", () => {
+  const reply = buildWhatsAppImportConfirmationReply({
+    importedCount: 0,
+    message: "Não há linhas válidas para importar.",
+    ok: true,
+  });
+
+  assert.match(reply, /Não encontrei movimentações válidas para importar nesse arquivo/);
+  assert.match(reply, /tentar enviar de novo/);
 });
 
 test("reconhece payload de audio com metadata minima", () => {

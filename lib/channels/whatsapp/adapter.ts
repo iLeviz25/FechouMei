@@ -39,6 +39,10 @@ import {
   createInboundWhatsAppEvent,
   updateInboundWhatsAppEvent,
 } from "@/lib/channels/whatsapp/persistence";
+import {
+  buildWhatsAppImportConfirmationReply as buildWhatsAppImportConfirmationReplyV2,
+  buildWhatsAppImportSessionReply,
+} from "@/lib/channels/whatsapp/import-replies";
 import { resolveWhatsAppInboundUser } from "@/lib/channels/whatsapp/activation";
 import {
   WhatsAppChannelConfigError,
@@ -718,7 +722,7 @@ export async function handleEvolutionWhatsAppWebhook(payload: unknown) {
         reason: "whatsapp_import_session_created",
         remoteId: normalized.remoteJid,
         remoteNumber,
-        reply: buildImportSessionReply(parseResult.summary, reviewUrl),
+        reply: buildWhatsAppImportSessionReply(parseResult.summary, reviewUrl),
         status: "processed",
         summary: `Arquivo recebido pelo WhatsApp e sessao de revisao criada: ${session.id}.`,
         trace,
@@ -1717,7 +1721,7 @@ async function handleWhatsAppImportTextIntent({
 
     return {
       reason: result.ok ? "whatsapp_import_confirmed" : "whatsapp_import_confirm_blocked",
-      reply: buildWhatsAppImportConfirmationReply(result),
+      reply: buildWhatsAppImportConfirmationReplyV2(result),
       status: result.ok ? "processed" : "discarded",
       summary: result.ok ? "Sessao de importacao confirmada pelo WhatsApp." : "Confirmacao de importacao bloqueada pelo WhatsApp.",
     };

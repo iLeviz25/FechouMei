@@ -258,7 +258,7 @@ export async function cancelWhatsAppImportSession({
   if (!view) {
     return {
       ok: false,
-      message: "Não encontrei nenhuma importação pendente para cancelar.",
+      message: "Não encontrei uma importação pendente para cancelar.",
     };
   }
 
@@ -266,7 +266,7 @@ export async function cancelWhatsAppImportSession({
     return {
       importedCount: 0,
       ok: true,
-      message: "Essa planilha já foi importada. Não importei novamente para evitar duplicidade.",
+      message: "Essa planilha já foi importada. Não apaguei nenhuma movimentação.",
     };
   }
 
@@ -293,7 +293,7 @@ export async function cancelWhatsAppImportSession({
 
   return {
     ok: true,
-    message: "Importação cancelada. Nenhuma movimentação foi salva.",
+    message: "Tudo bem, cancelei essa importação. Nenhuma movimentação foi salva.",
   };
 }
 
